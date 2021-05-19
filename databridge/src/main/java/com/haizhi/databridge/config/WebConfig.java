@@ -1,6 +1,7 @@
 package com.haizhi.databridge.config;
 
 import com.google.common.base.CaseFormat;
+import com.haizhi.databridge.client.XxlLoginInterceptor;
 import com.haizhi.databridge.web.interceptor.CommonDataInterceptor;
 import com.haizhi.databridge.web.interceptor.RequestLogInterceptor;
 import java.io.IOException;
@@ -81,5 +82,10 @@ public class WebConfig implements WebMvcConfigurer {
 				}, response);
 			}
 		};
+	}
+
+	@Bean
+	public XxlLoginInterceptor xxlLoginInterceptor() {
+		return new XxlLoginInterceptor();
 	}
 }

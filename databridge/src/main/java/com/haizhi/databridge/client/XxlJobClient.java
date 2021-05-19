@@ -1,10 +1,13 @@
 package com.haizhi.databridge.client;
 
+import com.github.lianjiatech.retrofit.spring.boot.annotation.Intercept;
 import com.github.lianjiatech.retrofit.spring.boot.annotation.RetrofitClient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.POST;
@@ -16,6 +19,7 @@ import java.util.Map;
  * xxl-job service api interface
  */
 @RetrofitClient(baseUrl = "${xxl-job.url}")
+@Intercept(exclude = "/xxl-job-admin/login", handler = XxlLoginInterceptor.class)
 public interface XxlJobClient {
 
     @FormUrlEncoded
@@ -41,6 +45,12 @@ public interface XxlJobClient {
     @FormUrlEncoded
     @POST("/xxl-job-admin/jobinfo/trigger")
     ReturnT<String> trigger(@Field("id") int id);
+
+    @FormUrlEncoded
+    @POST("/xxl-job-admin/login")
+    Call<ResponseBody> login(@Field("userName") String userName,
+                             @Field("password") String password,
+                             @Field("ifRemember") String ifRemember);
 
     @Data
     @AllArgsConstructor

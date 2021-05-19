@@ -30,4 +30,6 @@ spring:
 
 xxl-job:
   url: http://localhost:8080
+  username: admin
+  password: 123456
 
