@@ -1,0 +1,19 @@
+server:
+  port: 8081
+  address: 192.168.64.1
+
+xxl:
+  job:
+    accessToken:
+    admin:
+      addresses: http://192.168.64.1:8080/xxl-job-admin
+    executor:
+      address: ''
+      appname: dataio
+      ip: ''
+      logpath: log/jobhandler
+      logretentiondays: 30
+      port: 9999
+
+logging:
+  config: classpath:logback.xml
