@@ -10,9 +10,9 @@ spring:
 #      - '@profile.active@'
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.64.8/databridge?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
-    username: root
-    password: Qwer1234
+    url: jdbc:mysql://offlinedb.haizhi.com:3306/noah?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
+    username: haizhioffdb
+    password: b@30QpqPkh
   jpa:
     show-sql: true
     hibernate:
@@ -24,12 +24,10 @@ spring:
 #    property-naming-strategy: SNAKE_CASE
     deserialization:
       fail-on-unknown-properties: false
-
   aop:
     proxy-target-class: true
 
 xxl-job:
-  url: http://localhost:8080
+  url: http://dev121.haizhi.com:8099
   username: admin
   password: 123456
-

@@ -1,19 +1,14 @@
 package com.haizhi.databridge.client;
 
+import java.io.IOException;
+
 import com.github.lianjiatech.retrofit.spring.boot.interceptor.BasePathMatchInterceptor;
-import com.haizhi.databridge.client.XxlJobClient;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
-import retrofit2.Response;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import retrofit2.Response;
 
 /**
  * @author duanxiaoyi

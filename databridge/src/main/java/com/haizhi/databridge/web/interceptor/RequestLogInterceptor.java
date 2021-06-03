@@ -1,7 +1,7 @@
 package com.haizhi.databridge.web.interceptor;
 
-import com.google.common.base.CaseFormat;
-import lombok.extern.slf4j.Slf4j;
+import static com.haizhi.databridge.constants.DatabridgeConstants.TRACE_ID;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -11,12 +11,11 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.common.base.CaseFormat;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
-
-import static com.haizhi.databridge.constants.DatabridgeContant.TRACE_ID;
-
 
 @Slf4j
 public class RequestLogInterceptor implements HandlerInterceptor {

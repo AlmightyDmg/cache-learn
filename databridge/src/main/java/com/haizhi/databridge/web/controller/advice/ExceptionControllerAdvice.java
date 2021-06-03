@@ -1,10 +1,5 @@
 package com.haizhi.databridge.web.controller.advice;
 
-import com.haizhi.databridge.web.result.StatusCode;
-import com.haizhi.databridge.web.result.WebResult;
-import com.haizhi.databridge.exception.ValidationErrorException;
-import com.haizhi.databridge.util.ErrorsUtils;
-//import com.haizhi.sdk.exception.SDKException;
 import java.util.stream.Collectors;
 
 import javax.validation.ConstraintViolation;
@@ -21,61 +16,66 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import com.haizhi.databridge.exception.ValidationErrorException;
+import com.haizhi.databridge.util.ErrorsUtils;
+import com.haizhi.databridge.web.result.StatusCode;
+import com.haizhi.databridge.web.result.WebResult;
+
 @ControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ExceptionControllerAdvice {
 
-	@ResponseBody
-	@ExceptionHandler(value = {IllegalStateException.class, IllegalArgumentException.class})
-	public WebResult<?> handleException(Exception exception) throws Exception {
-		return WebResult.fail(exception, null);
-	}
+    @ResponseBody
+    @ExceptionHandler(value = {IllegalStateException.class, IllegalArgumentException.class})
+    public WebResult<?> handleException(Exception exception) throws Exception {
+        return WebResult.fail(exception, null);
+    }
 
-	@ResponseBody
-	@ExceptionHandler(MethodArgumentNotValidException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public WebResult<?> handleException(MethodArgumentNotValidException exception) {
-		return WebResult.fail(exception, ErrorsUtils.compositeValiditionError(exception.getBindingResult()));
-	}
+    @ResponseBody
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public WebResult<?> handleException(MethodArgumentNotValidException exception) {
+        return WebResult.fail(exception, ErrorsUtils.compositeValiditionError(exception.getBindingResult()));
+    }
 
-	@ResponseBody
-	@ExceptionHandler(MissingServletRequestParameterException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public WebResult<?> handleException(MissingServletRequestParameterException exception) throws Exception {
-		return WebResult.fail(exception, exception.getParameterName());
-	}
+    @ResponseBody
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public WebResult<?> handleException(MissingServletRequestParameterException exception) throws Exception {
+        return WebResult.fail(exception, exception.getParameterName());
+    }
 
-	/**
-	 * web层校验
-	 *
-	 * @param exception
-	 * @return
-	 * @throws Exception
-	 */
-	@ResponseBody
-	@ExceptionHandler(value = {ValidationErrorException.class})
-	public WebResult<?> validationException(ValidationErrorException exception) {
-		return WebResult.fail(exception, exception.getBody()).setStatus(StatusCode.PARAMETERS_INVALID);
-	}
+    /**
+     * web层校验
+     *
+     * @param exception
+     * @return
+     * @throws Exception
+     */
+    @ResponseBody
+    @ExceptionHandler(value = {ValidationErrorException.class})
+    public WebResult<?> validationException(ValidationErrorException exception) {
+        return WebResult.fail(exception, exception.getBody()).setStatus(StatusCode.PARAMETERS_INVALID);
+    }
 
-	/**
-	 * jpa层的校验
-	 *
-	 * @param exception
-	 * @return
-	 * @throws Exception
-	 */
-	@ExceptionHandler(value = {ConstraintViolationException.class})
-	public WebResult<?> validationException(ConstraintViolationException exception) throws Exception {
-		return WebResult.fail(exception,
-			exception.getConstraintViolations()
-				.stream()
-				.collect(Collectors.toMap(
-					ConstraintViolation::getPropertyPath,
-					ConstraintViolation::getMessage,
-					(m1, m2) -> m1 + m2))
-		);
-	}
+    /**
+     * jpa层的校验
+     *
+     * @param exception
+     * @return
+     * @throws Exception
+     */
+    @ExceptionHandler(value = {ConstraintViolationException.class})
+    public WebResult<?> validationException(ConstraintViolationException exception) throws Exception {
+        return WebResult.fail(exception,
+                exception.getConstraintViolations()
+                        .stream()
+                        .collect(Collectors.toMap(
+                                ConstraintViolation::getPropertyPath,
+                                ConstraintViolation::getMessage,
+                                (m1, m2) -> m1 + m2))
+        );
+    }
 
 //	/**
 //	 * 统一处理client异常
@@ -117,33 +117,33 @@ public class ExceptionControllerAdvice {
 //			.body(result);
 //	}
 
-	/**
-	 * 统一处理Controller中的异常 需要统一处理异常编码
-	 *
-	 * @param runtimeException
-	 * @return
-	 */
-	@ExceptionHandler({RuntimeException.class})
-	@ResponseBody
-	public ResponseEntity<?> runtimeExceptionHandler(RuntimeException runtimeException) {
-		Throwable r = ErrorsUtils.getRootCause(runtimeException);
-		WebResult result = WebResult.fail(r);
-		return ResponseEntity
-			.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-			.body(result);
-	}
+    /**
+     * 统一处理Controller中的异常 需要统一处理异常编码
+     *
+     * @param runtimeException
+     * @return
+     */
+    @ExceptionHandler({RuntimeException.class})
+    @ResponseBody
+    public ResponseEntity<?> runtimeExceptionHandler(RuntimeException runtimeException) {
+        Throwable r = ErrorsUtils.getRootCause(runtimeException);
+        WebResult result = WebResult.fail(r);
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .body(result);
+    }
 
-	/**
-	 * @description: 集中处理所有未显示捕获的异常信息
-	 * @param: ${tags}
-	 * @return: ${return_type}
-	 * @throws
-	 * @author WangChengYu
-	 * @date 2020-02-06 23:23
-	 */
-	@ResponseBody
-	@ExceptionHandler(value = {Exception.class, Error.class})
-	public WebResult<?> handleUncatchException(Error exception) {
-		return WebResult.fail(exception, null);
-	}
+    /**
+     * @throws
+     * @description: 集中处理所有未显示捕获的异常信息
+     * @param: ${tags}
+     * @return: ${return_type}
+     * @author WangChengYu
+     * @date 2020-02-06 23:23
+     */
+    @ResponseBody
+    @ExceptionHandler(value = {Exception.class, Error.class})
+    public WebResult<?> handleUncatchException(Error exception) {
+        return WebResult.fail(exception, null);
+    }
 }

@@ -73,6 +73,4 @@ public class XxlJobConfig {
      *      3、获取IP
      *          String ip_ = inetUtils.findFirstNonLoopbackHostInfo().getIpAddress();
      */
-
-
 }
