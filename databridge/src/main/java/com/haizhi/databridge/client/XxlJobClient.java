@@ -1,5 +1,8 @@
 package com.haizhi.databridge.client;
 
+import java.io.Serializable;
+import java.util.Map;
+
 import com.github.lianjiatech.retrofit.spring.boot.annotation.Intercept;
 import com.github.lianjiatech.retrofit.spring.boot.annotation.RetrofitClient;
 import lombok.AllArgsConstructor;
@@ -12,8 +15,6 @@ import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.POST;
 import retrofit2.http.QueryBean;
-import java.io.Serializable;
-import java.util.Map;
 
 /**
  * xxl-job service api interface

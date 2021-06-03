@@ -1,8 +1,10 @@
 package com.haizhi.databridge.exception;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.haizhi.databridge.web.result.StatusCode;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import com.haizhi.databridge.web.result.StatusCode;
 
 public class DatabridgeException extends RuntimeException {
 	private static final long serialVersionUID = -940285811464169752L;

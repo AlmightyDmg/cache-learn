@@ -1,5 +1,13 @@
 package com.haizhi.databridge.web.interceptor;
 
+import static com.haizhi.databridge.constants.DatabridgeConstants.DMC_ENT_ID;
+import static com.haizhi.databridge.constants.DatabridgeConstants.DMC_REQUEST;
+import static com.haizhi.databridge.constants.DatabridgeConstants.INNER_CALL;
+import static com.haizhi.databridge.constants.DatabridgeConstants.REQUEST_URI;
+import static com.haizhi.databridge.constants.DatabridgeConstants.SESSION_ID;
+import static com.haizhi.databridge.constants.DatabridgeConstants.TRACE_ID;
+import static com.haizhi.databridge.constants.DatabridgeConstants.USER_ID;
+
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -9,14 +17,6 @@ import org.slf4j.MDC;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
-
-import static com.haizhi.databridge.constants.DatabridgeConstants.DMC_ENT_ID;
-import static com.haizhi.databridge.constants.DatabridgeConstants.DMC_REQUEST;
-import static com.haizhi.databridge.constants.DatabridgeConstants.INNER_CALL;
-import static com.haizhi.databridge.constants.DatabridgeConstants.REQUEST_URI;
-import static com.haizhi.databridge.constants.DatabridgeConstants.SESSION_ID;
-import static com.haizhi.databridge.constants.DatabridgeConstants.TRACE_ID;
-import static com.haizhi.databridge.constants.DatabridgeConstants.USER_ID;
 
 public class CommonDataInterceptor implements HandlerInterceptor {
 	@Override

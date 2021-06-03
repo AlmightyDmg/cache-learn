@@ -1,3 +1,4 @@
+// CHECKSTYLE:OFF
 package com.haizhi.dataio;
 
 import org.springframework.boot.SpringApplication;
@@ -12,5 +13,4 @@ public class DataioApplication {
 	public static void main(String[] args) {
         SpringApplication.run(DataioApplication.class, args);
 	}
-
 }

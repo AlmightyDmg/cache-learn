@@ -1,7 +1,5 @@
 package com.haizhi.databridge.web.controller.advice;
 
-import com.haizhi.databridge.web.result.WebResult;
-
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -9,6 +7,8 @@ import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
+
+import com.haizhi.databridge.web.result.WebResult;
 
 /**
  * 统一数据返回格式处理
