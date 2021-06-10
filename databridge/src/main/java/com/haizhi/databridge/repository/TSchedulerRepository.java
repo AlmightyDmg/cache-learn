@@ -17,7 +17,12 @@ import com.haizhi.databridge.bean.domain.TSchedulerBean;
 @Repository
 public interface TSchedulerRepository extends HaizhiBaseRepository<TSchedulerBean, String> {
 
+	@Query(value = "SELECT * FROM TSchedulerBean WHERE TSchedulerBean.scheduler_id = ?1 "
+			+ "AND TSchedulerBean.owner = ?2 AND and deleted=0", nativeQuery = true)
 	Optional<TSchedulerBean> findBySchedulerIdAndOwner(String schedulerId, String owner);
+
+	@Query(value = "SELECT * FROM TSchedulerBean WHERE TSchedulerBean.scheduler_name = ?1 "
+			+ "AND TSchedulerBean.owner = ?2 AND and deleted=0", nativeQuery = true)
 	Optional<TSchedulerBean> findBySchedulerNameAndOwner(String schedulerName, String owner);
 
 	@Query(value = "update TSchedulerBean set deleted = 1 where scheduler_id = ?1 and deleted=0", nativeQuery = true)
