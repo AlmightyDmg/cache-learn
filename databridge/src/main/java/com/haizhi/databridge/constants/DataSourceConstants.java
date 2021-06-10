@@ -17,4 +17,42 @@ public final class DataSourceConstants {
     	public static final String DB_ROLE_WRITER = "WRITER";
     	public static final String DB_ROLE_READER = "READER";
 	}
+
+	public static final class DataBaseType {
+		public static final String MYSQL = "MYSQL";
+		public static final String BINLOG = "BINLOG";
+		public static final String KAFKA = "KAFKA";
+		public static final String DATAHUB = "DATAHUB";
+		public static final String API = "API";
+	}
+
+	public static final class DataTableStatus {
+		public static final String ERROR = "error";
+		public static final String FINISHED = "finished";
+		public static final String SYNCING = "syncing";
+		public static final String TERMINATED = "terminated";
+		public static final String STATUS_NEW = "new";
+		public static final String STATUS_IGNORED = "ignored";
+	}
+
+	public static final class SyncType {
+    	public static final String SYNC_TYPE_FULL = "全量同步";
+		public static final String SYNC_TYPE_INCREASE = "增量同步";
+	}
+
+	public static final class SyncCycle {
+		public static final String SYNC_CYCLE_STOP = "--";
+		public static final String SYNC_CYCLE_ORIGIN = "自定义";
+		public static final String SYNC_CYCLE_DELTA = "每小时";
+		public static final String SYNC_CYCLE_CRONTAB = "Crontab";
+		public static final String SYNC_CYCLE_MINUTE = "分钟级";
+	}
+
+	public static final class SchedulerTiming {
+		public static final String TIMING_TYPE_ORIGIN = "origin";
+		public static final String TIMING_TYPE_DELTA = "delta";
+		public static final String TIMING_TYPE_CRONTAB = "crontab";
+		public static final String TIMING_TYPE_MINUTE = "minute";
+
+	}
 }
