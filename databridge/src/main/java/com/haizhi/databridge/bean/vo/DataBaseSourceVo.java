@@ -52,5 +52,10 @@ public class DataBaseSourceVo {
         @JsonProperty("field_comments")
         private Integer fieldComments;
         private Object labels;
+        @JsonProperty("db_id")
+        private String dbId;
+        @JsonProperty("db_type")
+        private String dbType;
+
     }
 }

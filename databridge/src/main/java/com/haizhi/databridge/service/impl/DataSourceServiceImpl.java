@@ -4,6 +4,7 @@ import static com.haizhi.databridge.util.IdUtils.genKey;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +53,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	public DataBaseSourceVo.CreateVo create(DataSourceForm.DataSourceCreateForm dataSourceCreateForm) throws IOException {
 
 		if (Boolean.TRUE.equals(checkDsSourceExists(dataSourceCreateForm.getDsName(), getUserId()))) {
-			throw new DatabridgeException(StatusCode.DATABASE_EXISTS, String.format("数据源名称%s已存在", dataSourceCreateForm.getDsName()));
+			throw new DatabridgeException(StatusCode.SOURCE_EXISTS, String.format("数据源名称%s已存在", dataSourceCreateForm.getDsName()));
 		}
 		// 这两个参数增加通过外部传参的方式，方便将来可能与第三方服务做对接
 		String dbId = ObjectUtils.isEmpty(dataSourceCreateForm.getDbId()) ? genKey("db") : dataSourceCreateForm.getDbId();
@@ -103,14 +104,12 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	**/
 	public DataBaseSourceVo.DeleteVo delete(String dbId) {
 
-		String userId = getUserId();
-		Optional<TDataBaseSourceBean> optionalDBBean = tdataBaseSourceRepository.findByDbIdAndOwner(dbId, userId);
-		if (!optionalDBBean.isPresent()) {
-			throw new DatabridgeException(StatusCode.DATABASE_NOT_EXISTS, "不存在的数据源");
+		if (Boolean.TRUE.equals(checkDsSourceExistsByDsId(dbId, getUserId()))) {
+			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, "不存在的数据源");
 		}
 		// TODO ds相关删除怎么办
 		Integer count = 0;
-		Optional<List<TTableBean>> optionalTTableBeans = tTableRepo.findAllByDbIdAndOwner(dbId, userId);
+		Optional<List<TTableBean>> optionalTTableBeans = tTableRepo.findAllByDbIdAndOwner(dbId, getUserId());
 		if (!optionalTTableBeans.isPresent()) {
 			return DataBaseSourceVo.DeleteVo.builder().dbId(dbId).tbCount(count).build();
 		}
@@ -133,7 +132,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		String userId = ObjectUtils.isEmpty(dataSourceUpdateForm.getOwner()) ? dataSourceUpdateForm.getOwner() : getUserId();
 		Optional<TDataBaseSourceBean> optionalTdataBaseSourceBean = tdataBaseSourceRepository.findByDbIdAndOwner(dbId, userId);
 		if (!optionalTdataBaseSourceBean.isPresent()) {
-			throw new DatabridgeException(StatusCode.DATABASE_NOT_EXISTS, "不存在的数据源");
+			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, "不存在的数据源");
 		}
 		String connStr = GzipUtils.uncompress(dataSourceUpdateForm.getConnectId());
 		TDataBaseSourceBean tDataBaseSourceBean = optionalTdataBaseSourceBean.get();
@@ -146,21 +145,13 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 
 	public DataBaseSourceVo.RetrieveVo retrieve(DataSourceForm.DataSourceRetrieveForm dataSourceRetrieveForm
 	) throws UnsupportedEncodingException {
-		Optional<TDataBaseSourceBean> optionalTdataBaseSourceBean = tdataBaseSourceRepository.findByDbIdAndOwner(
-				dataSourceRetrieveForm.getDbId(), dataSourceRetrieveForm.getOwner());
-		if (!optionalTdataBaseSourceBean.isPresent()) {
-			throw new DatabridgeException(StatusCode.DATABASE_NOT_EXISTS, "不存在的数据源");
+		List<String> dbIds = new ArrayList<>();
+		dbIds.add(dataSourceRetrieveForm.getDbId());
+		List<DataBaseSourceVo.RetrieveVo> retrieveVos = retrieves(dataSourceRetrieveForm.getOwner(), dbIds);
+		if (ObjectUtils.isEmpty(retrieveVos)) {
+			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, "不存在的数据源");
 		}
-		TDataBaseSourceBean tDataBaseSourceBean = optionalTdataBaseSourceBean.get();
-		String connectId = GzipUtils.compress2String(JsonUtils.toJson(tDataBaseSourceBean.getSetup()), GzipUtils.GZIP_ENCODE_UTF_8);
-		DataSourceObjDto.Options options = JsonUtils.toObject(tDataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
-		return DataBaseSourceVo.RetrieveVo.builder()
-				.connectId(connectId)
-				.name(tDataBaseSourceBean.getDsName())
-				.tableComments(options.getTableComments())
-				.fieldComments(options.getFieldComments())
-				.labels(options.getLabels())
-				.build();
+		return retrieveVos.get(0);
 	}
 
 	//TODO 这个接口有用吗？暂时还是先放在noah吧
@@ -173,10 +164,51 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 //
 //	}
 
-	private Boolean checkDsSourceExists(String dsName, String userId) {
+	public Boolean checkDsSourceExists(String dsName, String userId) {
 		Optional<List<TDataBaseSourceBean>> optionalDataBaseSourceBeans = tdataBaseSourceRepository.findByDsNameAndOwner(dsName, userId);
 		return optionalDataBaseSourceBeans.isPresent();
 	}
+
+	public Boolean checkDsSourceExistsByDsId(String dbId, String userId) {
+		Optional<TDataBaseSourceBean> optionalTDataBaseSourceBean  = tdataBaseSourceRepository.findByDbIdAndOwner(dbId, userId);
+		return optionalTDataBaseSourceBean.isPresent();
+	}
+
+	public List<DataBaseSourceVo.RetrieveVo> retrieves(String owner, List<String> dbIds) throws UnsupportedEncodingException {
+
+		List<DataBaseSourceVo.RetrieveVo> result = new ArrayList<>();
+		Optional<List<TDataBaseSourceBean>> optionalTDataBaseSourceBeans = tdataBaseSourceRepository.findByOwnerAndDbIdIn(
+				owner, dbIds);
+		if (!optionalTDataBaseSourceBeans.isPresent()) {
+			return result;
+		}
+		for (TDataBaseSourceBean tDataBaseSourceBean: optionalTDataBaseSourceBeans.get()) {
+			String connectId = GzipUtils.compress2String(JsonUtils.toJson(tDataBaseSourceBean.getSetup()), GzipUtils.GZIP_ENCODE_UTF_8);
+			DataSourceObjDto.Options options = JsonUtils.toObject(tDataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
+			result.add(DataBaseSourceVo.RetrieveVo.builder()
+					.connectId(connectId)
+					.name(tDataBaseSourceBean.getDsName())
+					.tableComments(options.getTableComments())
+					.fieldComments(options.getFieldComments())
+					.labels(options.getLabels())
+					.dbId(tDataBaseSourceBean.getDbId())
+					.dbType(tDataBaseSourceBean.getDbType())
+					.build());
+		}
+		return result;
+
+	}
+
+	public Map<String, DataBaseSourceVo.RetrieveVo> buildDbId2DbRetrieveVo(String owner, List<String> dbIds) throws UnsupportedEncodingException {
+		Map<String, DataBaseSourceVo.RetrieveVo> retrieveVoMap = new HashMap<>();
+		List<DataBaseSourceVo.RetrieveVo> dbRetrieveVos = retrieves(owner, dbIds);
+		for (DataBaseSourceVo.RetrieveVo retrieveVo: dbRetrieveVos) {
+			retrieveVoMap.put(retrieveVo.getConnectId(), retrieveVo);
+		}
+		return retrieveVoMap;
+	}
+
+
 
 
 }
