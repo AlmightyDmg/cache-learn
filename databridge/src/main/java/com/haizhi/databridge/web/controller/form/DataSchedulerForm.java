@@ -5,6 +5,8 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import com.haizhi.databridge.bean.dto.DataSchedulerDto;
+
 /**
  * 任务相关参数
  *
@@ -44,7 +46,7 @@ public class DataSchedulerForm {
         private String schedulerDesc;
         private List<String> tables;
 
-        private Object timing;
+        private DataSchedulerDto.TimingDto timing;
     }
 
     @Data

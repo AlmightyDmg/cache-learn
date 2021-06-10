@@ -89,8 +89,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		// 变更定时设置
 		TSchedulerBean tSchedulerBean = optionalTSchedulerBean.get();
 		if (!ObjectUtils.isEmpty(updateForm.getTiming())) {
-			// TODO timing
-			System.out.printf("aaa");
+			tSchedulerBean.setTiming(JsonUtils.toJson(updateForm.getTiming()));
 		}
 		// 变更schedulerName
 		if (!ObjectUtils.isEmpty(updateForm.getSchedulerName())) {
