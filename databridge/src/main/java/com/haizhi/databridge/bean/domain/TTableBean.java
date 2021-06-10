@@ -79,10 +79,10 @@ public class TTableBean extends HaizhiBaseDomainBean {
 	private String traceback;
 
    	@Column(name = "posted", nullable = true, columnDefinition = "int(11)")
-	private Long posted;
+	private Integer posted;
 
    	@Column(name = "fetched", nullable = false, columnDefinition = "int(11)")
-	private Long fetched;
+	private Integer fetched;
 
 	@ApiModelProperty(value = "创建时间")
 	@Column(name = "create_at")

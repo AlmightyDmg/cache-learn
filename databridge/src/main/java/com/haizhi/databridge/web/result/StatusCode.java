@@ -48,8 +48,10 @@ public enum StatusCode {
     LICENSE_AUTH_FAIL(903),
 
     //dmc数据接入
-    DATABASE_EXISTS(400),
-    DATABASE_NOT_EXISTS(404),
+    SOURCE_EXISTS(400),
+    SOURCE_NOT_EXISTS(404),
+    TYPE_NOT_ALLOWED(412),
+    DATA_TABLE_EXISTS(409),
 
     // user
     USER_FORBIDDEN(1001),
