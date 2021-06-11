@@ -17,14 +17,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
-import com.haizhi.databridge.bean.domain.TDataBaseSourceBean;
-import com.haizhi.databridge.bean.domain.TTableBean;
+import com.haizhi.databridge.bean.domain.importdata.TDataBaseSourceBean;
+import com.haizhi.databridge.bean.domain.importdata.TTableBean;
 import com.haizhi.databridge.bean.dto.DataSourceObjDto;
 import com.haizhi.databridge.bean.vo.DataBaseSourceVo;
 import com.haizhi.databridge.constants.DataSourceConstants;
 import com.haizhi.databridge.exception.DatabridgeException;
-import com.haizhi.databridge.repository.TTableRepository;
-import com.haizhi.databridge.repository.TdataBaseSourceRepository;
+import com.haizhi.databridge.repository.importdata.TTableRepository;
+import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSourceService;
 import com.haizhi.databridge.util.GzipUtils;
 import com.haizhi.databridge.util.JsonUtils;

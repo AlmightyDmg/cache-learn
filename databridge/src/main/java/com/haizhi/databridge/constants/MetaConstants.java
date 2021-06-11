@@ -109,6 +109,11 @@ public final class MetaConstants {
         public static final Integer TREE_TYPE_TOPIC = 6;
 		// 要素表
 		public static final Integer TREE_TYPE_ELEMENT = 7;
+		// DMC 2.0 新版主题表
+		public static final Integer TREE_TYPE_NEW_TOPIC = 8;
+		// DMC 2.1 资源库
+		public static final Integer TREE_TYPE_PROCESS = 9;
+
         // DMC模型 文件夹关系
         public static final Integer TREE_TYPE_DATAFLOW = 99;
 
@@ -502,6 +507,9 @@ public final class MetaConstants {
         public static final Integer RELATION_TYPE = 26;  // 关系表
         public static final Integer DMC_TB_COMBINE_RELATION_TYPE = 27;  // dmc聚合关系表落盘的工作表
 		public static final Integer DMC_DATAHUB_STREAMING_TYPE = 28;     // dmc流式落盘的datahub表
+		public static final Integer TAG_TYPE = 29; // 标签表 cp from com.haizhi.hora.bean.constants.BeanConstants.TbConstants.TAG_TYPE
+		public static final Integer DMC_NEW_TOPIC_TYPE = 30;    // dmc 2.0 新版主题表
+		public static final Integer DMC_PROCESS_MODEL_TYPE = 31;     // dmc 2.1 开发建模结果表
 
         // 跨域合并类型
         public static final Integer GATHER_TYPE = 5;
@@ -613,7 +621,8 @@ public final class MetaConstants {
             ELEMENT(22),
 			OPERATOR(23),
 			TAG(25),
-			RELATION_UNION(27);
+			RELATION_UNION(27),
+			RESOURCE_UNION(28);	//  DMC 2.0 新主题表，资源表
 
             private int code;
 
@@ -833,6 +842,8 @@ public final class MetaConstants {
 		public static final String RELATION_TB_TYPE = "RELATION";
 		public static final String TAG_TB_TYPE = "TAG";
 		public static final String STREAMING_TB_TYPE = "STREAMINGTB";
+		public static final String TOPICNEW_TB_TYPE = "TOPIC_NEW";
+		public static final String PROCESS_TB_TYPE = "PROCESS";
 		// 血缘信息，节点间链接类别
 		public static final String LINEAGE_TYPE_PUSH = "PUSH";
 		public static final String LINEAGE_TYPE_MODEL = "MODEL";
@@ -873,10 +884,12 @@ public final class MetaConstants {
 			.put(RAW_TB_TYPE, "原始库配置")
 			.put(RESULT_TB_TYPE, "原始库配置")
 			.put(STANDARD_TB_TYPE, "标准库配置")
-			.put(TOPIC_TB_TYPE, "主题库配置")
+			.put(TOPIC_TB_TYPE, "业务知识库配置")
 			.put(ELEMENT_TB_TYPE, "要素管理")
 			.put(TAG_TB_TYPE, "标签管理")
 			.put(RELATION_TB_TYPE, "关系管理")
+			.put(TOPICNEW_TB_TYPE, "动态库配置")
+			.put(PROCESS_TB_TYPE, "开发库配置")
 			.build();
 	}
 

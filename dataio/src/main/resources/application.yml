@@ -17,7 +17,7 @@ xxl:
 
 spring:
   kafka:
-    bootstrap-servers: 192.168.64.8:9092
+    bootstrap-servers: dev121.haizhi.com:9092
     producer:
       retries: 1
 
@@ -28,3 +28,10 @@ mq:
 
 logging:
   config: classpath:logback.xml
+
+databridge:
+  url: http://127.0.0.1:8088
+
+flinkx:
+  url: http://127.0.0.1:8089
+
