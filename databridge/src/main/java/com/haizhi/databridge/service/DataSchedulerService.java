@@ -1,6 +1,7 @@
 package com.haizhi.databridge.service;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 import com.haizhi.databridge.bean.vo.DataSchedulerVo;
@@ -10,6 +11,7 @@ public interface DataSchedulerService {
 
 	List<DataSchedulerVo.RetrieveVo> retrieve(DataSchedulerForm.RetrieveForm retrieveForm) throws IOException;
 	void update(DataSchedulerForm.UpdateForm updateForm);
-	void delete(DataSchedulerForm.DeleteForm updateForm);
+	void delete(DataSchedulerForm.DeleteForm deleteForm);
+	DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws UnsupportedEncodingException;
 
 }

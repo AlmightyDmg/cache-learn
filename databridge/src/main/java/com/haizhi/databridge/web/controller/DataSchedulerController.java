@@ -1,13 +1,20 @@
 package com.haizhi.databridge.web.controller;
 
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+
 import javax.annotation.Resource;
 
+import io.swagger.annotations.ApiOperation;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.haizhi.databridge.bean.vo.DataSchedulerVo;
 import com.haizhi.databridge.service.DataSchedulerService;
 import com.haizhi.databridge.web.controller.base.BaseController;
+import com.haizhi.databridge.web.controller.form.DataSchedulerForm;
 
 /**
 * @Description // 数据源相关接口
@@ -27,12 +34,28 @@ public class DataSchedulerController extends BaseController {
     * @param listForm
     * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.CreateVo
     **/
-//    @RequestMapping("/list")
-//    @ApiOperation("表创建")
-//    public DataSchedulerVo.ListVo list(DataSchedulerForm.DataTableListForm listForm) throws Exception {
-//        return dataSchedulerService.list(listForm);
-//    }
+    @RequestMapping("/list")
+    @ApiOperation("列表展示")
+    DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws UnsupportedEncodingException {
+        return dataSchedulerService.list(listForm);
+    }
 
+    @RequestMapping("/retrieve")
+    @ApiOperation("列表展示")
+    List<DataSchedulerVo.RetrieveVo> retrieve(DataSchedulerForm.RetrieveForm retrieveForm) throws IOException {
+        return dataSchedulerService.retrieve(retrieveForm);
+    }
 
+    @RequestMapping("/update")
+    @ApiOperation("更新")
+    void update(DataSchedulerForm.UpdateForm updateForm) {
+        dataSchedulerService.update(updateForm);
+    }
+
+    @RequestMapping("/delete")
+    @ApiOperation("删除")
+    void delete(DataSchedulerForm.DeleteForm deleteForm) {
+        dataSchedulerService.delete(deleteForm);
+    }
 
 }
