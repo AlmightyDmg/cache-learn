@@ -32,27 +32,23 @@
     <modules>
         <module>databridge</module>
         <module>dataio</module>
+        <module>dataclient</module>
     </modules>
 
-<!--    <distributionManagement>-->
-<!--        <repository>-->
-<!--            <id>central</id>-->
-<!--            <name>Haizhi Artifactory-releases</name>-->
-<!--            <url>https://artifactory.haizhi.com:443/artifactory/libs-release</url>-->
-<!--        </repository>-->
-<!--        <snapshotRepository>-->
-<!--            <id>snapshots</id>-->
-<!--            <name>Haizhi Artifactory-snapshots</name>-->
-<!--            <url>https://artifactory.haizhi.com:443/artifactory/libs-snapshot</url>-->
-<!--        </snapshotRepository>-->
-<!--    </distributionManagement>-->
+    <distributionManagement>
+        <repository>
+            <id>central</id>
+            <name>Haizhi Artifactory-releases</name>
+            <url>https://artifactory.haizhi.com:443/artifactory/libs-release</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>Haizhi Artifactory-snapshots</name>
+            <url>https://artifactory.haizhi.com:443/artifactory/libs-snapshot</url>
+        </snapshotRepository>
+    </distributionManagement>
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>com.github.lianjiatech</groupId>
-                <artifactId>retrofit-spring-boot-starter</artifactId>
-                <version>2.2.10</version>
-            </dependency>
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
@@ -99,18 +95,6 @@
     </dependencyManagement>
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>

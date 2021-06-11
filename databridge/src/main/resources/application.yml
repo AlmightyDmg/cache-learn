@@ -9,15 +9,24 @@ spring:
 #    active:
 #      - '@profile.active@'
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://offlinedb.haizhi.com:3306/noah?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
-    username: haizhioffdb
-    password: b@30QpqPkh
+    primary:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://123.126.105.35:3308/noah?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
+      username: root
+      password: bdp_pcloud
+    second:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://123.126.105.35:3308/tassadar?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
+      username: root
+      password: bdp_pcloud
   jpa:
     show-sql: true
     hibernate:
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+      format_sql: true
+      primary-dialect: org.hibernate.dialect.MySQL55Dialect
+      second-dialect: org.hibernate.dialect.MySQL55Dialect
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
@@ -26,8 +35,34 @@ spring:
       fail-on-unknown-properties: false
   aop:
     proxy-target-class: true
+  kafka:
+    bootstrap-servers: dev121.haizhi.com:9092
 
 xxl-job:
   url: http://dev121.haizhi.com:8099
   username: admin
   password: 123456
+
+localdmc:
+  mobius:
+    url: http://dev121.haizhi.com:4000
+    connect_timeout_ms: 20000
+    call_timeout_ms: 600000
+    read_timeout_ms: 600000
+    logging: false
+  overlord:
+    url: http://dev121.haizhi.com:9527
+    connect-timeout-ms: 10000
+    logging: false
+  behemoth:
+    url: http://dev121.haizhi.com:9222
+    connect-timeout-ms: 10000
+    logging: false
+  pentagon:
+    url: http://dev121.haizhi.com:16729
+    connect-timeout-ms: 10000
+    logging: false
+  noah:
+    url: http://dev121.haizhi.com:29999
+    connect-timeout-ms: 10000
+    logging: false
