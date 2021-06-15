@@ -76,7 +76,7 @@ public class DataSchedulerVo {
     public static final class RetrieveVo {
         @JsonProperty("scheduler_id")
         private String schedulerId;
-//        private List<String> schema;
+        //        private List<String> schema;
         @JsonProperty("next_time")
         private String nextTime;
         private String status;

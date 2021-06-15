@@ -17,14 +17,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
-import com.haizhi.databridge.bean.domain.TDataBaseSourceBean;
-import com.haizhi.databridge.bean.domain.TTableBean;
+import com.haizhi.databridge.bean.domain.importdata.TDataBaseSourceBean;
+import com.haizhi.databridge.bean.domain.importdata.TTableBean;
 import com.haizhi.databridge.bean.dto.DataSourceObjDto;
 import com.haizhi.databridge.bean.vo.DataBaseSourceVo;
 import com.haizhi.databridge.constants.DataSourceConstants;
 import com.haizhi.databridge.exception.DatabridgeException;
-import com.haizhi.databridge.repository.TTableRepository;
-import com.haizhi.databridge.repository.TdataBaseSourceRepository;
+import com.haizhi.databridge.repository.importdata.TTableRepository;
+import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSourceService;
 import com.haizhi.databridge.util.Base64Utils;
 import com.haizhi.databridge.util.GzipUtils;
@@ -44,11 +44,11 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	private TTableRepository tTableRepo;
 
 	/**
-	* @Description //数据源创建接口
-	* @Date 2021/6/2 4:11 下午
-	* @param dataSourceCreateForm
-	* @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.CreateVo
-	**/
+	 * @Description //数据源创建接口
+	 * @Date 2021/6/2 4:11 下午
+	 * @param dataSourceCreateForm
+	 * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.CreateVo
+	 **/
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public DataBaseSourceVo.CreateVo create(DataSourceForm.DataSourceCreateForm dataSourceCreateForm) throws IOException {
@@ -98,11 +98,11 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 
 	}
 	/**
-	* @Description //数据源删除接口
-	* @Date 2021/6/2 4:10 下午
-	* @param dbId
-	* @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.DeleteVo
-	**/
+	 * @Description //数据源删除接口
+	 * @Date 2021/6/2 4:10 下午
+	 * @param dbId
+	 * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.DeleteVo
+	 **/
 	public DataBaseSourceVo.DeleteVo delete(String dbId) {
 
 		if (Boolean.TRUE.equals(checkDsSourceExistsByDsId(dbId, getUserId()))) {
@@ -123,11 +123,11 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	}
 
 	/**
-	* @Description //修改数据源信息
-	* @Date 2021/6/2 4:25 下午
-	* @param dataSourceUpdateForm
-	* @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.UpdateVo
-	**/
+	 * @Description //修改数据源信息
+	 * @Date 2021/6/2 4:25 下午
+	 * @param dataSourceUpdateForm
+	 * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.UpdateVo
+	 **/
 	public DataBaseSourceVo.UpdateVo update(DataSourceForm.DataSourceUpdateForm dataSourceUpdateForm) throws IOException {
 		String dbId = dataSourceUpdateForm.getDbId();
 		String userId = ObjectUtils.isEmpty(dataSourceUpdateForm.getOwner()) ? dataSourceUpdateForm.getOwner() : getUserId();

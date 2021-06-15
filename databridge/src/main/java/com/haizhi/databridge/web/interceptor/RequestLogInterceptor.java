@@ -1,6 +1,6 @@
 package com.haizhi.databridge.web.interceptor;
 
-import static com.haizhi.databridge.constants.DatabridgeConstants.TRACE_ID;
+import static com.haizhi.databridge.constants.DatabridgeConstant.TRACE_ID;
 
 import java.util.HashSet;
 import java.util.Set;

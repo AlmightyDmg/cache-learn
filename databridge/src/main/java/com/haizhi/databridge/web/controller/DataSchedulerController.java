@@ -16,10 +16,10 @@ import com.haizhi.databridge.web.controller.base.BaseController;
 import com.haizhi.databridge.web.controller.form.DataSchedulerForm;
 
 /**
-* @Description // 数据源相关接口
-* @Date 2021/6/3 3:25 下午
-* @Author zhaohuanhuan
-**/
+ * @Description // 数据源相关接口
+ * @Date 2021/6/3 3:25 下午
+ * @Author zhaohuanhuan
+ **/
 @RestController
 @RequestMapping("/api/scheduler")
 public class DataSchedulerController extends BaseController {
@@ -28,11 +28,11 @@ public class DataSchedulerController extends BaseController {
     private DataSchedulerService dataSchedulerService;
 
     /**
-    * @Description // 数据源创建接口
-    * @Date 2021/6/3 3:24 下午
-    * @param listForm
-    * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.CreateVo
-    **/
+     * @Description // 数据源创建接口
+     * @Date 2021/6/3 3:24 下午
+     * @param listForm
+     * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.CreateVo
+     **/
     @RequestMapping("/list")
     @ApiOperation("列表展示")
     DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws UnsupportedEncodingException {

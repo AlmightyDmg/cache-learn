@@ -1,0 +1,43 @@
+package com.haizhi.databridge.web.controller;
+
+
+import io.swagger.annotations.Api;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.haizhi.databridge.bean.vo.DataTransJobVo;
+import com.haizhi.databridge.service.DtsJobService;
+import com.haizhi.databridge.web.controller.form.JobUnitStateForm;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/job")
+@Api(tags = "job")
+public class CommonJobController {
+    @Autowired
+    private DtsJobService dtsJobService;
+
+    @GetMapping("/execute_info")
+    public DataTransJobVo getJobExecInfo(@RequestParam String jobId, @RequestParam String jobType) {
+        return dtsJobService.getJobExecInfo(jobId, jobType);
+    }
+
+    @RequestMapping("/update_job")
+    public String updateJobStatus(String jobId, String jobType, Integer jobStatus, Long startTime, Long endTime) {
+        return dtsJobService.updateJobStatus(jobId, jobType, jobStatus, startTime, endTime);
+    }
+
+    @RequestMapping("/update_job_task")
+    String updateJobTask(JobUnitStateForm jobUnitStateForm) {
+        return dtsJobService.updateJobTask(jobUnitStateForm);
+    }
+
+    @RequestMapping("/update_job_task_rel")
+    void updateJobTaskRel(String jobId, String fromTableId, String toTableId, String taskId) {
+        dtsJobService.updateJobTaskRel(jobId, fromTableId, toTableId, taskId);
+    }
+}

@@ -3,9 +3,15 @@ package com.haizhi.databridge.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
+import com.haizhi.databridge.bean.dto.UserBelongDto;
+import com.haizhi.databridge.client.overlord.response.InfoResp;
 import com.haizhi.databridge.constants.DatabridgeConstants;
+import com.haizhi.databridge.service.common.UserService;
+
+
 
 /**
  * 请求上线文中的公共数据
@@ -14,8 +20,8 @@ import com.haizhi.databridge.constants.DatabridgeConstants;
 public abstract class RequestCommonData {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestCommonData.class);
 
-//    @Autowired
-//    private UserService userService;
+    @Autowired
+    private UserService userService;
 
     /**
      * 请求是否来自DMC模块
@@ -59,19 +65,48 @@ public abstract class RequestCommonData {
 			return entId;
 		}
 
-//        String sessionId = MDC.get(DatabridgeConstants.SESSION_ID);
-//		if (!StringUtils.isEmpty(sessionId)) {
-//			entId = SessionUtils.getEnterpriseId(sessionId);
-//		}
-//		if (!StringUtils.isEmpty(entId)) {
-//			return entId;
-//		}
+        String sessionId = MDC.get(DatabridgeConstants.SESSION_ID);
+		if (!StringUtils.isEmpty(sessionId)) {
+			entId = SessionUtils.getEnterpriseId(sessionId);
+		}
+		if (!StringUtils.isEmpty(entId)) {
+			return entId;
+		}
 
-//		InfoResp ui = userService.getUserInfo(getUserId());
-//		entId = ui.getEnterpriseId();
+		InfoResp ui = userService.getUserInfo(getUserId());
+		entId = ui.getEnterpriseId();
 
         MDC.put(DatabridgeConstants.ENTERPRISE_ID, entId);
         return entId;
+    }
+
+    public String getRole() {
+        String cacheRole = MDC.get(DatabridgeConstants.ROLE);
+        if (!StringUtils.isEmpty(cacheRole)) {
+            return cacheRole;
+        }
+        String role = null;
+        InfoResp ui = userService.getUserInfo(getUserId());
+        role = String.valueOf(ui.getRole());
+        MDC.put(DatabridgeConstants.ROLE, role);
+        return role;
+    }
+
+    /**
+     * 获取当前请求用户的UserBelong信息
+     *
+     * @return
+     */
+    public UserBelongDto getUserBelong() {
+//        return UserBelongDto.builder().build();
+        String cachedUserBelong = MDC.get(DatabridgeConstants.USER_BELONG);
+        if (!StringUtils.isEmpty(cachedUserBelong)) {
+            return JsonUtils.toObject(cachedUserBelong, UserBelongDto.class);
+        }
+
+        UserBelongDto userBelongDto = userService.getUserBelong(getUserId());
+        MDC.put(DatabridgeConstants.USER_BELONG, JsonUtils.toJson(userBelongDto));
+        return userBelongDto;
     }
 
     public String getSessionId() {

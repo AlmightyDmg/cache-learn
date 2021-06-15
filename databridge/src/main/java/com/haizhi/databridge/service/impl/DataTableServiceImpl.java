@@ -20,15 +20,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
-import com.haizhi.databridge.bean.domain.TDataBaseSourceBean;
-import com.haizhi.databridge.bean.domain.TTableBean;
+import com.haizhi.databridge.bean.domain.importdata.TDataBaseSourceBean;
+import com.haizhi.databridge.bean.domain.importdata.TTableBean;
 import com.haizhi.databridge.bean.dto.DataTableDto;
 import com.haizhi.databridge.bean.vo.DataBaseSourceVo;
 import com.haizhi.databridge.bean.vo.DataTableVo;
 import com.haizhi.databridge.constants.DataSourceConstants;
 import com.haizhi.databridge.exception.DatabridgeException;
-import com.haizhi.databridge.repository.TTableRepository;
-import com.haizhi.databridge.repository.TdataBaseSourceRepository;
+import com.haizhi.databridge.repository.importdata.TTableRepository;
+import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataTableService;
 import com.haizhi.databridge.util.Base64Utils;
 import com.haizhi.databridge.util.JsonUtils;
@@ -50,11 +50,11 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 	private TTableRepository tTableRepo;
 
 	/**
-	* @Description //数据源创建接口
-	* @Date 2021/6/2 4:11 下午
-	* @param dataTableCreateForm
-	* @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.CreateVo
-	**/
+	 * @Description //数据源创建接口
+	 * @Date 2021/6/2 4:11 下午
+	 * @param dataTableCreateForm
+	 * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.CreateVo
+	 **/
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public DataTableVo.CreateVo create(DataTableForm.DataTableCreateForm dataTableCreateForm) throws IOException {
@@ -222,22 +222,22 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 	}
 
 	/**
-	* @Description // 校验依赖并删除表
-	* @Date 2021/6/7 7:58 下午
-	* @param dependencyForm
-	* @return void
-	**/
+	 * @Description // 校验依赖并删除表
+	 * @Date 2021/6/7 7:58 下午
+	 * @param dependencyForm
+	 * @return void
+	 **/
 	public void dependency(DataTableForm.DataTableDependencyForm dependencyForm) {
 		delete(dependencyForm.getTableId(), dependencyForm.getUserId());
 	}
 
 	/**
-	* @Description //删除表
-	* @Date 2021/6/7 7:59 下午
-	* @param tableId
-	* @param userId
-	* @return void
-	**/
+	 * @Description //删除表
+	 * @Date 2021/6/7 7:59 下午
+	 * @param tableId
+	 * @param userId
+	 * @return void
+	 **/
 	public void delete(String  tableId, String userId) {
 		Optional<TTableBean> optionalTTableBean = tTableRepo.findByTableIdAndOwner(
 				tableId, userId);
@@ -406,6 +406,4 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		}
 		return tableVoMap;
 	}
-
-
 }
