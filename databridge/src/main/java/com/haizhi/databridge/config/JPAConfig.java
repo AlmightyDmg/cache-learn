@@ -8,8 +8,8 @@ import com.haizhi.data.aop.IsDeleteAspect;
 @Configuration
 class JPAConfig {
 	
-	@Bean
-	public IsDeleteAspect deleteAspect() {
-		return new IsDeleteAspect();
-	}
+//	@Bean
+//	public IsDeleteAspect deleteAspect() {
+//		return new IsDeleteAspect();
+//	}
 }
