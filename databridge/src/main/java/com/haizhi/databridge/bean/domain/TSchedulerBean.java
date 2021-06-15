@@ -2,6 +2,7 @@ package com.haizhi.databridge.bean.domain;
 
 import java.sql.Timestamp;
 
+import javax.persistence.AttributeOverride;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -37,6 +38,9 @@ import com.haizhi.data.jpa.domain.HaizhiBaseDomainBean;
 @Entity
 @DynamicInsert
 @DynamicUpdate
+@AttributeOverride(name = "isDel", column = @Column(name = "deleted"))
+@AttributeOverride(name = "ctime", column = @Column(name = "create_at"))
+@AttributeOverride(name = "utime", column = @Column(name = "update_at"))
 @Table(name = "t_scheduler")
 public class TSchedulerBean extends HaizhiBaseDomainBean {
 
@@ -82,9 +86,9 @@ public class TSchedulerBean extends HaizhiBaseDomainBean {
 
    	@Column(name = "timing", columnDefinition = "longtext")
 	private String timing;
-
-   	@Column(name = "deleted")
-	private Integer deleted;
+//
+//   	@Column(name = "deleted")
+//	private Integer deleted;
 
    	@Column(name = "scheduler_desc")
 	private String schedulerDesc;

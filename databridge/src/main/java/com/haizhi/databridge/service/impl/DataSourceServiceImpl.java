@@ -26,6 +26,7 @@ import com.haizhi.databridge.exception.DatabridgeException;
 import com.haizhi.databridge.repository.TTableRepository;
 import com.haizhi.databridge.repository.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSourceService;
+import com.haizhi.databridge.util.Base64Utils;
 import com.haizhi.databridge.util.GzipUtils;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
@@ -183,7 +184,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 			return result;
 		}
 		for (TDataBaseSourceBean tDataBaseSourceBean: optionalTDataBaseSourceBeans.get()) {
-			String connectId = GzipUtils.compress2String(JsonUtils.toJson(tDataBaseSourceBean.getSetup()), GzipUtils.GZIP_ENCODE_UTF_8);
+			String connectId = Base64Utils.encodeBase64(JsonUtils.toJson(tDataBaseSourceBean.getSetup()));
 			DataSourceObjDto.Options options = JsonUtils.toObject(tDataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
 			result.add(DataBaseSourceVo.RetrieveVo.builder()
 					.connectId(connectId)
@@ -203,7 +204,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		Map<String, DataBaseSourceVo.RetrieveVo> retrieveVoMap = new HashMap<>();
 		List<DataBaseSourceVo.RetrieveVo> dbRetrieveVos = retrieves(owner, dbIds);
 		for (DataBaseSourceVo.RetrieveVo retrieveVo: dbRetrieveVos) {
-			retrieveVoMap.put(retrieveVo.getConnectId(), retrieveVo);
+			retrieveVoMap.put(retrieveVo.getDbId(), retrieveVo);
 		}
 		return retrieveVoMap;
 	}

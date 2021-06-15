@@ -3,7 +3,6 @@ package com.haizhi.databridge.web.controller;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.List;
 
 import javax.annotation.Resource;
 
@@ -22,7 +21,7 @@ import com.haizhi.databridge.web.controller.form.DataSchedulerForm;
 * @Author zhaohuanhuan
 **/
 @RestController
-@RequestMapping("/scheduler")
+@RequestMapping("/api/scheduler")
 public class DataSchedulerController extends BaseController {
 
     @Resource
@@ -42,13 +41,13 @@ public class DataSchedulerController extends BaseController {
 
     @RequestMapping("/retrieve")
     @ApiOperation("列表展示")
-    List<DataSchedulerVo.RetrieveVo> retrieve(DataSchedulerForm.RetrieveForm retrieveForm) throws IOException {
+    DataSchedulerVo.RetrieveVo retrieve(DataSchedulerForm.RetrieveForm retrieveForm) throws IOException {
         return dataSchedulerService.retrieve(retrieveForm);
     }
 
     @RequestMapping("/update")
     @ApiOperation("更新")
-    void update(DataSchedulerForm.UpdateForm updateForm) {
+    void update(DataSchedulerForm.UpdateForm updateForm) throws UnsupportedEncodingException {
         dataSchedulerService.update(updateForm);
     }
 

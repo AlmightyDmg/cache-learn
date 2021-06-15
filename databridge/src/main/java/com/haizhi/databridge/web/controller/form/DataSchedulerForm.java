@@ -28,6 +28,7 @@ public class DataSchedulerForm {
 
     @Data
     public static class ListForm {
+        @JsonProperty("user_id")
         private String userId;
         private Integer limit;
         private String keyword;

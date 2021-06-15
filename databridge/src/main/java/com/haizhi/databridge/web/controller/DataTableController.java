@@ -20,7 +20,7 @@ import com.haizhi.databridge.web.controller.form.DataTableForm;
 * @Author zhaohuanhuan
 **/
 @RestController
-@RequestMapping("/table")
+@RequestMapping("/api/table")
 public class DataTableController extends BaseController {
 
     @Resource

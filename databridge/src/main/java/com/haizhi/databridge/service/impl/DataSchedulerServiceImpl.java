@@ -3,6 +3,7 @@ package com.haizhi.databridge.service.impl;
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTiming.TIMING_TYPE_CRONTAB;
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTiming.TIMING_TYPE_DELTA;
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTiming.TIMING_TYPE_MINUTE;
+import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTiming.TIMING_TYPE_ORIGIN;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_CRONTAB;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_DELTA;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_MINUTE;
@@ -15,7 +16,10 @@ import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Comparator;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +27,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
@@ -54,33 +60,47 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
-	public List<DataSchedulerVo.RetrieveVo> retrieve(DataSchedulerForm.RetrieveForm retrieveForm) throws IOException {
-		List<DataSchedulerVo.RetrieveVo> retrieveVos = new ArrayList<>();
+	public DataSchedulerVo.RetrieveVo retrieve(DataSchedulerForm.RetrieveForm retrieveForm) throws IOException {
+//		List<DataSchedulerVo.RetrieveVo> retrieveVos = new ArrayList<>();
 		Optional<TSchedulerBean> optionalTSchedulerBean = tSchedulerRepo.findBySchedulerIdAndOwner(
 				retrieveForm.getSchedulerId(), retrieveForm.getUserId());
 		if (!optionalTSchedulerBean.isPresent()) {
-			return retrieveVos;
+			return null;
 		}
 		DataSchedulerDto.OptionsDto optionsDto = JsonUtils.toObject(
 				optionalTSchedulerBean.get().getOptions(), DataSchedulerDto.OptionsDto.class);
-		if (!ObjectUtils.isEmpty(optionsDto.getTables())) {
-			return retrieveVos;
+		if (ObjectUtils.isEmpty(optionsDto.getTables())) {
+			return null;
 
 		}
+		List<DataTableVo.RetrieveVo> tableRetrievesVo = new ArrayList<>();
 		for (String tableId : optionsDto.getTables()) {
 			DataTableVo.RetrieveVo tableVo = tableServiceImpl.retrieveTable(tableId, retrieveForm.getUserId());
-			retrieveVos.add(DataSchedulerVo.RetrieveVo.builder().tableId(tableVo.getTableId())
-					.schedulerId(retrieveForm.getSchedulerId())
-					.schema(tableServiceImpl.getSchemafromRef(tableVo.getRef()))
-					.build()
-			);
+			tableRetrievesVo.add(tableVo);
 		}
-		return retrieveVos;
+		TSchedulerBean tSchedulerBean = optionalTSchedulerBean.get();
+		Timestamp bastTimeStamp = tSchedulerBean.getCreateAt().after(tSchedulerBean.getCreateAt())
+				? tSchedulerBean.getCreateAt() : tSchedulerBean.getCreateAt();
+		Date bastDt = new Date(bastTimeStamp.getTime());
+
+		String nextTime = "";
+		if (!ObjectUtils.isEmpty(getNextTime(JsonUtils.toObject(tSchedulerBean.getTiming(),
+				DataSchedulerDto.TimingDto.class), bastDt))) {
+			nextTime = DateFormatUtils.format(getNextTime(JsonUtils.toObject(tSchedulerBean.getTiming(),
+					DataSchedulerDto.TimingDto.class), bastDt), "yyyy-MM-dd HH:mm:ss");
+		}
+		return DataSchedulerVo.RetrieveVo.builder()
+				.schedulerId(retrieveForm.getSchedulerId())
+				.nextTime(nextTime)
+				.status(tSchedulerBean.getStatus())
+				.tables(tableRetrievesVo)
+				.timing(JsonUtils.toObject(tSchedulerBean.getTiming(), DataSchedulerDto.TimingDto.class))
+				.build();
 	}
 
 	//	@Override
 	@Transactional(rollbackFor = Exception.class)
-	public void update(DataSchedulerForm.UpdateForm updateForm) {
+	public void update(DataSchedulerForm.UpdateForm updateForm) throws UnsupportedEncodingException {
 		Optional<TSchedulerBean> optionalTSchedulerBean = tSchedulerRepo.findBySchedulerIdAndOwner(
 				updateForm.getSchedulerId(), updateForm.getUserId());
 		if (!optionalTSchedulerBean.isPresent()) {
@@ -165,7 +185,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			// mysql查询是从0开始的
 			Integer startNum = (listForm.getPage() - 1) * pageSize;
 			Integer endNum = listForm.getPage() * pageSize - 1;
-			Optional<List<TSchedulerBean>> optionalSchedulerList = tSchedulerRepo.findTSchedulerByOwner(
+			Optional<List<TSchedulerBean>> optionalSchedulerList = tSchedulerRepo.findSchedulerByOwner(
 					listForm.getUserId(), startNum, endNum);
 			// 通过查询到的scheduler拿到schedulerId获取table
 			if (optionalSchedulerList.isPresent()) {
@@ -263,7 +283,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	}
 
 	private String getSyncCycle(String timing) {
-		if (ObjectUtils.isEmpty(timing)) {
+		if (ObjectUtils.isEmpty(timing) || "null".equals(timing)) {
 			return SYNC_CYCLE_STOP;
 		}
 		DataSchedulerDto.TimingDto timingDto = JsonUtils.toObject(timing, DataSchedulerDto.TimingDto.class);
@@ -308,5 +328,87 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			return createAt1.compareTo(createAt2);
 		});
 		return schedulerBeans;
+	}
+
+	public Date getNextTime(DataSchedulerDto.TimingDto timingDto, Date baseDt) {
+		if (ObjectUtils.isEmpty(timingDto) || ObjectUtils.isEmpty(timingDto.getEnable())) {
+			return null;
+		}
+
+		if (TIMING_TYPE_ORIGIN.equals(timingDto.getType())) {
+			List<Date> timeLineList = getTimeLine(baseDt, timingDto);
+			Date minDate = null;
+			for (Date t: timeLineList) {
+				if (ObjectUtils.isEmpty(minDate)) {
+					minDate = t;
+				} else if (t.before(minDate)) {
+					minDate = t;
+				}
+			}
+			return minDate;
+		} else if (TIMING_TYPE_MINUTE.equals(timingDto.getType())) {
+			Calendar calendar = new GregorianCalendar();
+			calendar.setTime(baseDt);
+			calendar.add(calendar.MINUTE, timingDto.getMinute());
+			Date date = calendar.getTime();
+			baseDt.setYear(date.getYear());
+			baseDt.setMonth(date.getMonth());
+			baseDt.setDate(date.getDate());
+			baseDt.setMinutes(date.getMinutes());
+			return baseDt;
+		} else if (TIMING_TYPE_CRONTAB.equals(timingDto.getType())) {
+			CronSequenceGenerator cronSequenceGenerator = new CronSequenceGenerator(timingDto.getCrontab());
+			Date nextNextTimePoint = cronSequenceGenerator.next(baseDt);
+			return nextNextTimePoint;
+		} else if (TIMING_TYPE_DELTA.equals(timingDto.getType())) {
+			List<Date> timeLineList = getTimeLineBetweenStartAndEndTime(
+					baseDt, timingDto.getStart(), timingDto.getEnd(), timingDto.getDelta());
+			Date minDate = null;
+			for (Date d: timeLineList) {
+				if (d.before(minDate)) {
+					minDate = d;
+				}
+			}
+			return minDate;
+
+		}
+
+		return null;
+	}
+
+	private List<Date> getTimeLine(Date baseDt, DataSchedulerDto.TimingDto timingDto) {
+		List<Date> result = new ArrayList<>();
+		for (DataSchedulerDto.Origin o: timingDto.getOrigin()) {
+
+			Date nextTime = new Date(baseDt.getYear(), baseDt.getMonth(), baseDt.getDate(),
+					o.getHour().intValue(), o.getMinute().intValue());
+			if (o.getHour() < baseDt.getHours() || (o.getHour() == baseDt.getHours() && o.getMinute() <= baseDt.getMinutes())) {
+				Calendar calendar = new GregorianCalendar();
+				calendar.setTime(nextTime);
+				calendar.add(calendar.DATE, 1);
+				Date date = calendar.getTime();
+				nextTime.setYear(date.getYear());
+				nextTime.setMonth(date.getMonth());
+				nextTime.setDate(date.getDate());
+			}
+			result.add(nextTime);
+
+		}
+		return result;
+	}
+
+
+	private List<Date> getTimeLineBetweenStartAndEndTime(Date baseDt, DataSchedulerDto.Origin start, DataSchedulerDto.Origin end, String delta) {
+		List<Date> result = new ArrayList<>();
+
+		while (start.getHour() < end.getHour() || (start.getHour().equals(end.getHour()) && start.getMinute() <= end.getMinute())) {
+			Date currentDt = new Date(baseDt.getYear(), baseDt.getMonth(), baseDt.getDate(), start.getHour(), start.getMinute());
+			if (start.getHour() < baseDt.getHours() || (start.getHour().equals(baseDt.getHours())
+					&& start.getMinute() <= baseDt.getMinutes())) {
+				result.add(currentDt);
+				start.setHour(start.getHour() + 1);
+			}
+		}
+		return result;
 	}
 }

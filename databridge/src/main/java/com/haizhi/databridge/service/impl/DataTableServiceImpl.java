@@ -116,7 +116,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 				.build();
 	}
 
-	public DataTableVo.RetrieveVo retrieve(DataTableForm.DataTableRetrieveForm tableRetrieveForm) {
+	public DataTableVo.RetrieveVo retrieve(DataTableForm.DataTableRetrieveForm tableRetrieveForm) throws UnsupportedEncodingException {
 		DataTableVo.RetrieveVo retrieveVo = retrieveTable(tableRetrieveForm.getTableId(), tableRetrieveForm.getUserId());
 		if (ObjectUtils.isEmpty(retrieveVo)) {
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS,
@@ -126,7 +126,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		return retrieveVo;
 	}
 
-	public DataTableVo.RetrieveVo retrieveTable(String tableId, String userId) {
+	public DataTableVo.RetrieveVo retrieveTable(String tableId, String userId) throws UnsupportedEncodingException {
 
 		Optional<TTableBean> optionalTableBean = tTableRepo.findByTableIdAndOwner(tableId, userId);
 		if (!optionalTableBean.isPresent()) {
@@ -179,7 +179,8 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		tTableRepo.save(tTableBean);
 	}
 
-	public List<DataTableVo.RetrieveVo> listRetrieve(DataTableForm.DataTableListRetrieveForm listRetrieveForm) {
+	public List<DataTableVo.RetrieveVo> listRetrieve(DataTableForm.DataTableListRetrieveForm listRetrieveForm)
+			throws UnsupportedEncodingException {
 		List<DataTableVo.RetrieveVo> result = new ArrayList();
 		Optional<List<TTableBean>> optionalTTableBeans = tTableRepo.findAllByDbIdAndOwner(
 				listRetrieveForm.getDbId(), listRetrieveForm.getUserId());
@@ -193,12 +194,13 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		return result;
 	}
 
-	private DataTableVo.RetrieveVo buildRetrieve(TTableBean tTableBean) {
+	private DataTableVo.RetrieveVo buildRetrieve(TTableBean tTableBean) throws UnsupportedEncodingException {
 		DataTableDto.SyncConfigDto syncConfig = new DataTableDto.SyncConfigDto();
-		if (ObjectUtils.isEmpty(tTableBean.getSyncConfig())) {
+		if (!ObjectUtils.isEmpty(tTableBean.getSyncConfig())) {
 			syncConfig = JsonUtils.toObject(tTableBean.getSyncConfig(), DataTableDto.SyncConfigDto.class);
 		}
 		return DataTableVo.RetrieveVo.builder()
+				.schema(getSchemafromRef(syncConfig.getRef()))
 				.tableId(tTableBean.getTableId())
 				.tbName(tTableBean.getTbName())
 				.dbId(tTableBean.getDbId())
@@ -322,6 +324,9 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 	}
 
 	public List<String> getSchemafromRef(String ref) throws UnsupportedEncodingException {
+		if (ObjectUtils.isEmpty(ref)) {
+			return null;
+		}
 		List<String> schemaList = new ArrayList<>();
 		List refList = JsonUtils.toObject(refDecode(ref), List.class);
 		if (ObjectUtils.isEmpty(refList)) {
@@ -382,6 +387,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 			DataTableDto.SyncConfigDto syncConfigDto = JsonUtils.toObject(tTableBean.getSyncConfig(), DataTableDto.SyncConfigDto.class);
 			tableVoMap.put(tTableBean.getTableId(), DataTableVo.TableVo.builder()
 					.connectId(dbRetrieveVo.getConnectId())
+					.dbType(dbRetrieveVo.getDbType())
 					.dbId(dbRetrieveVo.getDbId())
 					.dsName(dbRetrieveVo.getName())
 					.exception(tTableBean.getException())
@@ -400,4 +406,6 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		}
 		return tableVoMap;
 	}
+
+
 }

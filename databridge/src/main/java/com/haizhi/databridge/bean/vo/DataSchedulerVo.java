@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
+import com.haizhi.databridge.bean.dto.DataSchedulerDto;
+
 /**
  * 数据库相关
  *
@@ -72,14 +74,18 @@ public class DataSchedulerVo {
     @Data
     @Builder
     public static final class RetrieveVo {
-
-        @JsonProperty("table_id")
-        private String tableId;
-        @JsonProperty("tb_name")
-        private String tbName;
         @JsonProperty("scheduler_id")
         private String schedulerId;
-        private List<String> schema;
+//        private List<String> schema;
+        @JsonProperty("next_time")
+        private String nextTime;
+        private String status;
+        private DataSchedulerDto.TimingDto timing;
+        @JsonProperty("update_at")
+        private String updateAt;
+        private List<DataTableVo.RetrieveVo> tables;
+
+
     }
 
 }
