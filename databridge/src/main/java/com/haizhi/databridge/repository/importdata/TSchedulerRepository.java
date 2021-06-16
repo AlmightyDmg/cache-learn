@@ -24,7 +24,7 @@ public interface TSchedulerRepository extends HaizhiBaseRepository<TSchedulerBea
 	Optional<TSchedulerBean> findBySchedulerIdAndOwner(String schedulerId, String owner);
 
 	@Query(value = "SELECT * FROM t_scheduler WHERE t_scheduler.scheduler_name = ?1 "
-			+ "AND t_scheduler.owner = ?2 AND and deleted=0", nativeQuery = true)
+			+ "AND t_scheduler.owner = ?2 AND t_scheduler.deleted=0", nativeQuery = true)
 	Optional<TSchedulerBean> findBySchedulerNameAndOwner(String schedulerName, String owner);
 
 	@Query(value = "update t_scheduler set deleted = 1 where scheduler_id = ?1 and deleted=0", nativeQuery = true)

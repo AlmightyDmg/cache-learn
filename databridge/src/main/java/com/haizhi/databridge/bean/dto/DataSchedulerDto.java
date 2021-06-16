@@ -44,7 +44,19 @@ public final class DataSchedulerDto {
 	@NoArgsConstructor
 	@AllArgsConstructor
 	public static final class Origin {
-		private Integer minute;
-		private Integer hour;
+		private String minute;
+		private String hour;
+	}
+
+	@Data
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	public static final class Cron {
+		private String minute = "*";
+		private String hour = "*";
+		private String day = "*";
+		private String month = "*";
+		private String week = "*";
 	}
 }

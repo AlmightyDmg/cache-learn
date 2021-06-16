@@ -57,4 +57,28 @@ public class DataSchedulerController extends BaseController {
         dataSchedulerService.delete(deleteForm);
     }
 
+    @RequestMapping("/create")
+    @ApiOperation("创建")
+    void delete(DataSchedulerForm.CreateForm createForm) throws UnsupportedEncodingException {
+        dataSchedulerService.create(createForm);
+    }
+
+    @RequestMapping("/trigger")
+    @ApiOperation("触发任务")
+    void delete(DataSchedulerForm.TriggerForm triggerForm) throws UnsupportedEncodingException {
+        dataSchedulerService.trigger(triggerForm);
+    }
+
+    @RequestMapping("/start")
+    @ApiOperation("触发任务")
+    void delete(DataSchedulerForm.StartForm startForm) throws UnsupportedEncodingException {
+        dataSchedulerService.start(startForm);
+    }
+
+    @RequestMapping("/stop")
+    @ApiOperation("触发任务")
+    void delete(DataSchedulerForm.StopForm stopForm) throws UnsupportedEncodingException {
+        dataSchedulerService.stop(stopForm);
+    }
+
 }

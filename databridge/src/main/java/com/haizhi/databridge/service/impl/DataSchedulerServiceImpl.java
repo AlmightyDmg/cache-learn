@@ -4,11 +4,13 @@ import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTimin
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTiming.TIMING_TYPE_DELTA;
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTiming.TIMING_TYPE_MINUTE;
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTiming.TIMING_TYPE_ORIGIN;
+import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerType.CRON;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_CRONTAB;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_DELTA;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_MINUTE;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_ORIGIN;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_STOP;
+import static com.haizhi.databridge.constants.DataSourceConstants.TaskType.IMPORT;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -34,6 +36,7 @@ import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
+import springfox.documentation.spring.web.json.Json;
 
 import com.haizhi.databridge.bean.domain.importdata.TDataBaseSourceBean;
 import com.haizhi.databridge.bean.domain.importdata.TSchedulerBean;
@@ -44,6 +47,8 @@ import com.haizhi.databridge.bean.dto.DataTableDto;
 import com.haizhi.databridge.bean.vo.DataSchedulerVo;
 import com.haizhi.databridge.bean.vo.DataTableVo;
 import com.haizhi.databridge.bean.vo.DataTransJobVo;
+import com.haizhi.databridge.client.xxljob.JobClientApi;
+import com.haizhi.databridge.client.xxljob.request.DataTransJobParam;
 import com.haizhi.databridge.config.DmcClientProperties;
 import com.haizhi.databridge.constants.DataSourceConstants;
 import com.haizhi.databridge.exception.DatabridgeException;
@@ -51,6 +56,7 @@ import com.haizhi.databridge.repository.importdata.TSchedulerRepository;
 import com.haizhi.databridge.repository.importdata.TTableRepository;
 import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSchedulerService;
+import com.haizhi.databridge.util.IdUtils;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
 import com.haizhi.databridge.web.controller.form.DataSchedulerForm;
@@ -76,6 +82,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 	@Autowired
 	private TdataBaseSourceRepository databaseRepo;
+
+	@Autowired
+	private JobClientApi jobClientApi;
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
@@ -125,55 +134,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		if (!optionalTSchedulerBean.isPresent()) {
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, String.format("任务%s不存在", updateForm.getSchedulerId()));
 		}
-		// 变更定时设置
-		TSchedulerBean tSchedulerBean = optionalTSchedulerBean.get();
-		if (!ObjectUtils.isEmpty(updateForm.getTiming())) {
-			tSchedulerBean.setTiming(JsonUtils.toJson(updateForm.getTiming()));
-		}
-		// 变更schedulerName
-		if (!ObjectUtils.isEmpty(updateForm.getSchedulerName())) {
-
-			if (!updateForm.getSchedulerName().equals(tSchedulerBean.getSchedulerName())) {
-				if (tSchedulerRepo.findBySchedulerNameAndOwner(updateForm.getSchedulerName(), updateForm.getUserId()).isPresent()) {
-					throw new DatabridgeException(StatusCode.SOURCE_EXISTS,
-							String.format("任务%s已存在", updateForm.getSchedulerName()));
-				} else {
-					tSchedulerBean.setSchedulerName(updateForm.getSchedulerName());
-				}
-			}
-		}
-
-		// 变更scheduler_desc
-		if (!ObjectUtils.isEmpty(updateForm.getSchedulerDesc())) {
-			tSchedulerBean.setSchedulerDesc(updateForm.getSchedulerDesc());
-		}
-
-		// 处理表勾选操作
-		DataSchedulerDto.OptionsDto optionsDto = JsonUtils.toObject(optionalTSchedulerBean.get().getOptions(),
-				DataSchedulerDto.OptionsDto.class);
-		for (String tableId : optionsDto.getTables()) {
-			if (!updateForm.getTables().contains(tableId)) {
-				tableServiceImpl.updateSchedulerId(tableId, updateForm.getUserId(), null);
-			}
-		}
-		for (String tableId : updateForm.getTables()) {
-			DataTableVo.RetrieveVo retrieveVo = tableServiceImpl.retrieveTable(tableId, updateForm.getUserId());
-			if (ObjectUtils.isEmpty(retrieveVo)) {
-				continue;
-//				throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, String.format("表%s不存在", tableId));
-			}
-			if (!ObjectUtils.isEmpty(retrieveVo.getSchedulerId())
-					&& !tSchedulerBean.getSchedulerId().equals(retrieveVo.getSchedulerId())) {
-				if (tSchedulerRepo.findBySchedulerIdAndOwner(retrieveVo.getSchedulerId(), updateForm.getUserId()).isPresent()) {
-					throw new DatabridgeException(StatusCode.SOURCE_EXISTS,
-							String.format("表%s已存在任务%s中", tableId, retrieveVo.getSchedulerId()));
-				}
-				tableServiceImpl.updateSchedulerId(tableId, updateForm.getUserId(), updateForm.getSchedulerId());
-			}
-		}
-		optionsDto.setTables(updateForm.getTables());
-		tSchedulerBean.setOptions(JsonUtils.toJson(optionsDto));
-		tSchedulerRepo.save(tSchedulerBean);
+		updateScheduler(updateForm, optionalTSchedulerBean.get());
 	}
 
 	public void delete(DataSchedulerForm.DeleteForm deleteForm) {
@@ -184,6 +145,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 		tableServiceImpl.cleanSchedulerId(deleteForm.getUserId(), deleteForm.getSchedulerId());
 		tSchedulerRepo.logicDeleteBySchedulerId(deleteForm.getSchedulerId());
+		jobClientApi.remove(optionalTSchedulerBean.get().getSchedulerId());
 	}
 
 	public DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws UnsupportedEncodingException {
@@ -400,8 +362,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		for (DataSchedulerDto.Origin o: timingDto.getOrigin()) {
 
 			Date nextTime = new Date(baseDt.getYear(), baseDt.getMonth(), baseDt.getDate(),
-					o.getHour().intValue(), o.getMinute().intValue());
-			if (o.getHour() < baseDt.getHours() || (o.getHour() == baseDt.getHours() && o.getMinute() <= baseDt.getMinutes())) {
+					Integer.valueOf(o.getHour()), Integer.valueOf(o.getMinute()));
+			if (Integer.valueOf(o.getHour()) < baseDt.getHours() || (Integer.valueOf(o.getHour()) == baseDt.getHours()
+					&& Integer.valueOf(o.getMinute()) <= baseDt.getMinutes())) {
 				Calendar calendar = new GregorianCalendar();
 				calendar.setTime(nextTime);
 				calendar.add(calendar.DATE, 1);
@@ -420,10 +383,12 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	private List<Date> getTimeLineBetweenStartAndEndTime(Date baseDt, DataSchedulerDto.Origin start, DataSchedulerDto.Origin end, String delta) {
 		List<Date> result = new ArrayList<>();
 
-		while (start.getHour() < end.getHour() || (start.getHour().equals(end.getHour()) && start.getMinute() <= end.getMinute())) {
-			Date currentDt = new Date(baseDt.getYear(), baseDt.getMonth(), baseDt.getDate(), start.getHour(), start.getMinute());
-			if (start.getHour() < baseDt.getHours() || (start.getHour().equals(baseDt.getHours())
-					&& start.getMinute() <= baseDt.getMinutes())) {
+		while (Integer.valueOf(start.getHour()) < Integer.valueOf(end.getHour()) || (start.getHour().equals(end.getHour())
+				&& Integer.valueOf(start.getMinute()) <= Integer.valueOf(end.getMinute()))) {
+			Date currentDt = new Date(baseDt.getYear(), baseDt.getMonth(), baseDt.getDate(),
+					Integer.valueOf(start.getHour()), Integer.valueOf(start.getMinute()));
+			if (Integer.valueOf(start.getHour()) < baseDt.getHours() || (start.getHour().equals(baseDt.getHours())
+					&& Integer.valueOf(start.getMinute()) <= baseDt.getMinutes())) {
 				result.add(currentDt);
 				start.setHour(start.getHour() + 1);
 			}
@@ -546,5 +511,167 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
 		tTableRepo.update(tTableBean);
 		return null;
+	}
+
+	public void create(DataSchedulerForm.CreateForm createForm) throws UnsupportedEncodingException {
+		if (tSchedulerRepo.findBySchedulerNameAndOwner(createForm.getSchedulerName(), createForm.getUserId()).isPresent()) {
+			throw new DatabridgeException(StatusCode.SOURCE_EXISTS,
+					String.format("任务%s已存在", createForm.getSchedulerName()));
+		}
+		TSchedulerBean tSchedulerBean = new TSchedulerBean();
+		String schedulerId = IdUtils.genKey("nsched");
+		tSchedulerBean.setSchedulerId(schedulerId);
+		updateScheduler(createForm, tSchedulerBean);
+		String cronExpr = genCrontab(createForm.getTiming());
+		DataTransJobParam dataTransJobParam = new DataTransJobParam();
+		dataTransJobParam.setJobId(schedulerId);
+		dataTransJobParam.setTaskType(IMPORT);
+		jobClientApi.add(cronExpr, CRON, dataTransJobParam);
+		jobClientApi.start(schedulerId);
+	}
+
+	private void updateScheduler(DataSchedulerForm.ChangeBaseForm changeBaseForm, TSchedulerBean tSchedulerBean)
+			throws UnsupportedEncodingException {
+
+		if (!ObjectUtils.isEmpty(changeBaseForm.getTiming())) {
+			tSchedulerBean.setTiming(JsonUtils.toJson(changeBaseForm.getTiming()));
+		}
+		// 变更schedulerName
+		if (!ObjectUtils.isEmpty(changeBaseForm.getSchedulerName())) {
+
+			if (!changeBaseForm.getSchedulerName().equals(tSchedulerBean.getSchedulerName())) {
+				if (tSchedulerRepo.findBySchedulerNameAndOwner(changeBaseForm.getSchedulerName(), changeBaseForm.getUserId()).isPresent()) {
+					throw new DatabridgeException(StatusCode.SOURCE_EXISTS,
+							String.format("任务%s已存在", changeBaseForm.getSchedulerName()));
+				} else {
+					tSchedulerBean.setSchedulerName(changeBaseForm.getSchedulerName());
+				}
+			}
+		}
+
+		// 变更scheduler_desc
+		if (!ObjectUtils.isEmpty(changeBaseForm.getSchedulerDesc())) {
+			tSchedulerBean.setSchedulerDesc(changeBaseForm.getSchedulerDesc());
+		}
+
+		// 处理表勾选操作
+		DataSchedulerDto.OptionsDto optionsDto = JsonUtils.toObject(tSchedulerBean.getOptions(),
+				DataSchedulerDto.OptionsDto.class);
+		if (!ObjectUtils.isEmpty(optionsDto) && !ObjectUtils.isEmpty(optionsDto.getTables())) {
+			for (String tableId : optionsDto.getTables()) {
+				if (!changeBaseForm.getTables().contains(tableId)) {
+					tableServiceImpl.updateSchedulerId(tableId, changeBaseForm.getUserId(), null);
+				}
+			}
+		}
+
+		for (String tableId : changeBaseForm.getTables()) {
+			DataTableVo.RetrieveVo retrieveVo = tableServiceImpl.retrieveTable(tableId, changeBaseForm.getUserId());
+			if (ObjectUtils.isEmpty(retrieveVo)) {
+				continue;
+//				throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, String.format("表%s不存在", tableId));
+			}
+			if (!ObjectUtils.isEmpty(retrieveVo.getSchedulerId())
+					&& !tSchedulerBean.getSchedulerId().equals(retrieveVo.getSchedulerId())) {
+				if (tSchedulerRepo.findBySchedulerIdAndOwner(retrieveVo.getSchedulerId(), changeBaseForm.getUserId()).isPresent()) {
+					throw new DatabridgeException(StatusCode.SOURCE_EXISTS,
+							String.format("表%s已存在任务%s中", tableId, retrieveVo.getSchedulerId()));
+				}
+				tableServiceImpl.updateSchedulerId(tableId, changeBaseForm.getUserId(), tSchedulerBean.getSchedulerId());
+			}
+		}
+		optionsDto.setTables(changeBaseForm.getTables());
+		tSchedulerBean.setOwner(changeBaseForm.getUserId());
+		tSchedulerBean.setOptions(JsonUtils.toJson(optionsDto));
+		tSchedulerRepo.save(tSchedulerBean);
+		DataTransJobParam dataTransJobParam = new DataTransJobParam();
+		dataTransJobParam.setJobId(tSchedulerBean.getSchedulerId());
+		dataTransJobParam.setTaskType(IMPORT);
+		jobClientApi.update(tSchedulerBean.getSchedulerId(),
+				genCrontab(JsonUtils.toObject(tSchedulerBean.getTiming(), DataSchedulerDto.TimingDto.class)),
+				IMPORT,
+				dataTransJobParam
+				);
+	}
+
+	public String genCrontab(DataSchedulerDto.TimingDto timingDto) {
+		DataSchedulerDto.Cron cron = new DataSchedulerDto.Cron();
+		if (TIMING_TYPE_DELTA.equals(timingDto.getType())) {
+			DataSchedulerDto.Origin start = timingDto.getStart();
+			DataSchedulerDto.Origin end = timingDto.getEnd();
+			Integer delta = Integer.valueOf(timingDto.getDelta());
+
+			Integer startHour = Integer.valueOf(start.getHour());
+			Integer statMinute = Integer.valueOf(start.getMinute());
+
+			Integer endHour = Integer.valueOf(end.getHour());
+			Integer endMinute = Integer.valueOf(end.getMinute());
+
+			Integer maxHour = null;
+
+			if (statMinute <= endMinute) {
+				maxHour = endHour;
+			} else {
+				Integer tmp = startHour;
+				while (true) {
+					tmp	+= delta;
+					if (tmp > endHour) {
+						break;
+					}
+					maxHour += delta;
+				}
+			}
+			cron.setMonth("*");
+			cron.setDay("*");
+			cron.setWeek("*");
+			cron.setHour(String.format("%s-%s", startHour.toString(), maxHour.toString()));
+			cron.setMinute(statMinute.toString());
+		} else if (TIMING_TYPE_ORIGIN.equals(timingDto.getType())) {
+			DataSchedulerDto.Origin origin = timingDto.getOrigin().get(0);
+
+			cron.setMonth("*");
+			cron.setDay("*");
+			cron.setWeek("*");
+			cron.setHour(Integer.valueOf(origin.getHour()).toString());
+			cron.setMinute(Integer.valueOf(origin.getMinute()).toString());
+		} else if (TIMING_TYPE_CRONTAB.equals(timingDto.getType())) {
+			return timingDto.getCrontab();
+		} else if (TIMING_TYPE_MINUTE.equals(timingDto.getType())) {
+			cron.setMinute(Integer.valueOf(timingDto.getMinute()).toString());
+		} else {
+			throw new DatabridgeException(StatusCode.SOURCE_EXISTS,
+					String.format("暂不支持的类型：%s", timingDto.getType()));
+		}
+		return String.format("%s %s %s %s %s", cron.getMinute(), cron.getHour(), cron.getDay(), cron.getWeek(), cron.getMonth());
+	}
+
+	public void trigger(DataSchedulerForm.TriggerForm triggerForm) {
+		Optional<TSchedulerBean> optionalTSchedulerBean = tSchedulerRepo.findBySchedulerIdAndOwner(
+				triggerForm.getSchedulerId(), triggerForm.getUserId());
+		if (!optionalTSchedulerBean.isPresent()) {
+			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS,
+					String.format("任务不存在：%s", triggerForm.getSchedulerId()));
+		}
+		jobClientApi.trigger(triggerForm.getSchedulerId());
+	}
+
+	public void start(DataSchedulerForm.StartForm startForm) {
+		Optional<TSchedulerBean> optionalTSchedulerBean = tSchedulerRepo.findBySchedulerIdAndOwner(
+				startForm.getSchedulerId(), startForm.getUserId());
+		if (!optionalTSchedulerBean.isPresent()) {
+			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS,
+					String.format("任务不存在：%s", startForm.getSchedulerId()));
+		}
+		jobClientApi.start(startForm.getSchedulerId());
+	}
+
+	public void stop(DataSchedulerForm.StopForm stopForm) {
+		Optional<TSchedulerBean> optionalTSchedulerBean = tSchedulerRepo.findBySchedulerIdAndOwner(
+				stopForm.getSchedulerId(), stopForm.getUserId());
+		if (!optionalTSchedulerBean.isPresent()) {
+			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS,
+					String.format("任务不存在：%s", stopForm.getSchedulerId()));
+		}
+		jobClientApi.stop(stopForm.getSchedulerId());
 	}
 }

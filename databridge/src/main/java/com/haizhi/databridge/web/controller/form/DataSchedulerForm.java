@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import org.springframework.util.ObjectUtils;
 
 import com.haizhi.databridge.bean.dto.DataSchedulerDto;
 
@@ -36,11 +37,19 @@ public class DataSchedulerForm {
     }
 
     @Data
-    public static class UpdateForm {
-        @JsonProperty("user_id")
-        private String userId;
+    public static class CreateForm  extends  ChangeBaseForm {
+    }
+
+    @Data
+    public static class UpdateForm extends ChangeBaseForm {
         @JsonProperty("scheduler_id")
         private String schedulerId;
+    }
+
+    @Data
+    public static class ChangeBaseForm {
+        @JsonProperty("user_id")
+        private String userId;
         @JsonProperty("scheduler_name")
         private String schedulerName;
         @JsonProperty("scheduler_desc")
@@ -48,10 +57,35 @@ public class DataSchedulerForm {
         private List<String> tables;
 
         private DataSchedulerDto.TimingDto timing;
+//        private Object timing;
     }
 
     @Data
     public static class DeleteForm {
+        @JsonProperty("user_id")
+        private String userId;
+        @JsonProperty("scheduler_id")
+        private String schedulerId;
+    }
+
+    @Data
+    public static class TriggerForm {
+        @JsonProperty("user_id")
+        private String userId;
+        @JsonProperty("scheduler_id")
+        private String schedulerId;
+    }
+
+    @Data
+    public static class StartForm {
+        @JsonProperty("user_id")
+        private String userId;
+        @JsonProperty("scheduler_id")
+        private String schedulerId;
+    }
+
+    @Data
+    public static class StopForm {
         @JsonProperty("user_id")
         private String userId;
         @JsonProperty("scheduler_id")
