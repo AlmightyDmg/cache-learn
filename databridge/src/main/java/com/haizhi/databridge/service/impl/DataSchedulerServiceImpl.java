@@ -153,14 +153,14 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				DataSchedulerDto.OptionsDto.class);
 		for (String tableId : optionsDto.getTables()) {
 			if (!updateForm.getTables().contains(tableId)) {
-				tableServiceImpl.delete(tableId, updateForm.getUserId());
+				tableServiceImpl.updateSchedulerId(tableId, updateForm.getUserId(), null);
 			}
-			tSchedulerBean.setSchedulerId(null);
 		}
 		for (String tableId : updateForm.getTables()) {
 			DataTableVo.RetrieveVo retrieveVo = tableServiceImpl.retrieveTable(tableId, updateForm.getUserId());
 			if (ObjectUtils.isEmpty(retrieveVo)) {
-				throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, String.format("表%s不存在", tableId));
+				continue;
+//				throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, String.format("表%s不存在", tableId));
 			}
 			if (!ObjectUtils.isEmpty(retrieveVo.getSchedulerId())
 					&& !tSchedulerBean.getSchedulerId().equals(retrieveVo.getSchedulerId())) {
@@ -170,10 +170,10 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				}
 				tableServiceImpl.updateSchedulerId(tableId, updateForm.getUserId(), updateForm.getSchedulerId());
 			}
-			optionsDto.setTables(updateForm.getTables());
-			tSchedulerBean.setOptions(JsonUtils.toJson(optionsDto));
-			tSchedulerRepo.save(tSchedulerBean);
 		}
+		optionsDto.setTables(updateForm.getTables());
+		tSchedulerBean.setOptions(JsonUtils.toJson(optionsDto));
+		tSchedulerRepo.save(tSchedulerBean);
 	}
 
 	public void delete(DataSchedulerForm.DeleteForm deleteForm) {

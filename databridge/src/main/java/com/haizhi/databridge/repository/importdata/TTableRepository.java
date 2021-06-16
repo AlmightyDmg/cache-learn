@@ -21,11 +21,14 @@ public interface TTableRepository extends HaizhiBaseRepository<TTableBean, Strin
 
 	Optional<List<TTableBean>> findBySchedulerIdAndOwner(String schedulerId, String owner);
 
-	@Query(value = "update t_table set t_table.t_tabledeleted = 1 where t_table.table_id = ?1 and t_table.deleted=0", nativeQuery = true)
-	void logicDeleteByTableId(String tableId);
+	@Query(value = "update t_table set t_table.deleted = 1 where t_table.table_id = ?1", nativeQuery = true)
+	Object logicDeleteByTableId(String tableId);
 
-	@Query(value = "update t_table set t_table.deleted = 1 where t_table.scheduler_id = ?1 and t_table.deleted=0", nativeQuery = true)
+	@Query(value = "update t_table set t_table.deleted = 1 where t_table.scheduler_id = ?1", nativeQuery = true)
 	void logicDeleteBySchedulerId(String schedulerId);
+
+	@Query(value = "select *  from t_table  WHERE t_table.owner = ?1 "
+			+ "and t_table.deleted=0", nativeQuery = true)
 	Optional<List<TTableBean>> findByOwner(String owner);
 
 	@Query(value = "select *  from t_table  WHERE t_table.owner = ?1 and t_table.scheduler_id in (?2) "
