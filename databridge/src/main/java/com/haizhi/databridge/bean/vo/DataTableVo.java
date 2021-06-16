@@ -47,6 +47,7 @@ public class DataTableVo {
         private String ref;
         private Integer dereplication;
         private Integer clean;
+        private List<String> schema;
         private String sql;
         private Integer rows;
         private String model;

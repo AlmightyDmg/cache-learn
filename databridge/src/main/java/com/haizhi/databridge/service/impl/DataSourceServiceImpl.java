@@ -4,6 +4,7 @@ import static com.haizhi.databridge.util.IdUtils.genKey;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ import com.haizhi.databridge.exception.DatabridgeException;
 import com.haizhi.databridge.repository.importdata.TTableRepository;
 import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSourceService;
+import com.haizhi.databridge.util.Base64Utils;
 import com.haizhi.databridge.util.GzipUtils;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
@@ -43,11 +45,11 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	private TTableRepository tTableRepo;
 
 	/**
-	* @Description //数据源创建接口
-	* @Date 2021/6/2 4:11 下午
-	* @param dataSourceCreateForm
-	* @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.CreateVo
-	**/
+	 * @Description //数据源创建接口
+	 * @Date 2021/6/2 4:11 下午
+	 * @param dataSourceCreateForm
+	 * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.CreateVo
+	 **/
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public DataBaseSourceVo.CreateVo create(DataSourceForm.DataSourceCreateForm dataSourceCreateForm) throws IOException {
@@ -97,11 +99,11 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 
 	}
 	/**
-	* @Description //数据源删除接口
-	* @Date 2021/6/2 4:10 下午
-	* @param dbId
-	* @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.DeleteVo
-	**/
+	 * @Description //数据源删除接口
+	 * @Date 2021/6/2 4:10 下午
+	 * @param dbId
+	 * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.DeleteVo
+	 **/
 	public DataBaseSourceVo.DeleteVo delete(String dbId) {
 
 		if (Boolean.TRUE.equals(checkDsSourceExistsByDsId(dbId, getUserId()))) {
@@ -122,11 +124,11 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	}
 
 	/**
-	* @Description //修改数据源信息
-	* @Date 2021/6/2 4:25 下午
-	* @param dataSourceUpdateForm
-	* @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.UpdateVo
-	**/
+	 * @Description //修改数据源信息
+	 * @Date 2021/6/2 4:25 下午
+	 * @param dataSourceUpdateForm
+	 * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.UpdateVo
+	 **/
 	public DataBaseSourceVo.UpdateVo update(DataSourceForm.DataSourceUpdateForm dataSourceUpdateForm) throws IOException {
 		String dbId = dataSourceUpdateForm.getDbId();
 		String userId = ObjectUtils.isEmpty(dataSourceUpdateForm.getOwner()) ? dataSourceUpdateForm.getOwner() : getUserId();
@@ -183,7 +185,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 			return result;
 		}
 		for (TDataBaseSourceBean tDataBaseSourceBean: optionalTDataBaseSourceBeans.get()) {
-			String connectId = GzipUtils.compress2String(JsonUtils.toJson(tDataBaseSourceBean.getSetup()), GzipUtils.GZIP_ENCODE_UTF_8);
+			String connectId = Base64Utils.encodeBase64(JsonUtils.toJson(tDataBaseSourceBean.getSetup()));
 			DataSourceObjDto.Options options = JsonUtils.toObject(tDataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
 			result.add(DataBaseSourceVo.RetrieveVo.builder()
 					.connectId(connectId)
@@ -203,9 +205,14 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		Map<String, DataBaseSourceVo.RetrieveVo> retrieveVoMap = new HashMap<>();
 		List<DataBaseSourceVo.RetrieveVo> dbRetrieveVos = retrieves(owner, dbIds);
 		for (DataBaseSourceVo.RetrieveVo retrieveVo: dbRetrieveVos) {
-			retrieveVoMap.put(retrieveVo.getConnectId(), retrieveVo);
+			retrieveVoMap.put(retrieveVo.getDbId(), retrieveVo);
 		}
 		return retrieveVoMap;
+	}
+
+	public Integer countDatabases(String owner) {
+		Map<String, BigInteger> databaseCountMap = tdataBaseSourceRepository.countTDataBaseSourceBeanByOwner(owner);
+		return Integer.parseInt(String.valueOf(databaseCountMap.get("count")));
 	}
 
 

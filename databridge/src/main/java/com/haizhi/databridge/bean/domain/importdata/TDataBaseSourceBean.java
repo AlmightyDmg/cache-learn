@@ -1,8 +1,6 @@
 package com.haizhi.databridge.bean.domain.importdata;
 
-
-import java.sql.Timestamp;
-
+import javax.persistence.AttributeOverride;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -37,6 +35,9 @@ import com.haizhi.data.jpa.domain.HaizhiStandardDomainBean;
 @Entity
 @DynamicInsert
 @DynamicUpdate
+@AttributeOverride(name = "isDel", column = @Column(name = "deleted"))
+@AttributeOverride(name = "ctime", column = @Column(name = "create_at"))
+@AttributeOverride(name = "utime", column = @Column(name = "update_at"))
 @Table(name = "t_database")
 public class TDataBaseSourceBean extends HaizhiStandardDomainBean {
     private static final long serialVersionUID = 1L;
@@ -62,13 +63,13 @@ public class TDataBaseSourceBean extends HaizhiStandardDomainBean {
     @Column(name = "ds_name", nullable = true)
     private String dsName;
     
-    @ApiModelProperty(value = "创建时间")
-    @Column(name = "create_at", nullable = true)
-    private Timestamp createAt;
-
-    @ApiModelProperty(value = "更新时间")
-    @Column(name = "update_at", nullable = true)
-    private Timestamp updateAt;
+//    @ApiModelProperty(value = "创建时间")
+//    @Column(name = "create_at", nullable = true)
+//    private Timestamp createAt;
+//
+//    @ApiModelProperty(value = "更新时间")
+//    @Column(name = "update_at", nullable = true)
+//    private Timestamp updateAt;
 
     @ApiModelProperty(value = "所有者")
     @Column(name = "owner", length = 40, nullable = false)
@@ -89,9 +90,9 @@ public class TDataBaseSourceBean extends HaizhiStandardDomainBean {
     @Column(name = "traceback", nullable = false, columnDefinition = "longtext")
     private String traceback;
 
-    @ApiModelProperty(value = "逻辑删除")
-    @Column(name = "deleted", nullable = false, columnDefinition = "int(4)")
-    private Integer deleted;
+//    @ApiModelProperty(value = "逻辑删除")
+//    @Column(name = "deleted", nullable = false, columnDefinition = "int(4)")
+//    private Integer deleted;
 
     @NotBlank
     @ApiModelProperty(value = "remark")
