@@ -15,23 +15,23 @@ import com.haizhi.databridge.web.controller.base.BaseController;
 import com.haizhi.databridge.web.controller.form.DataTableForm;
 
 /**
-* @Description // 数据源相关接口
-* @Date 2021/6/3 3:25 下午
-* @Author zhaohuanhuan
-**/
+ * @Description // 数据源相关接口
+ * @Date 2021/6/3 3:25 下午
+ * @Author zhaohuanhuan
+ **/
 @RestController
-@RequestMapping("/table")
+@RequestMapping("/api/table")
 public class DataTableController extends BaseController {
 
     @Resource
     private DataTableService dataTableService;
 
     /**
-    * @Description // 数据源创建接口
-    * @Date 2021/6/3 3:24 下午
-    * @param createForm
-    * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.CreateVo
-    **/
+     * @Description // 数据源创建接口
+     * @Date 2021/6/3 3:24 下午
+     * @param createForm
+     * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.CreateVo
+     **/
     @RequestMapping("/create")
     @ApiOperation("表创建")
     public DataTableVo.CreateVo create(DataTableForm.DataTableCreateForm createForm) throws Exception {
@@ -39,11 +39,11 @@ public class DataTableController extends BaseController {
     }
 
     /**
-    * @Description // 表展示
-    * @Date 2021/6/3 3:27 下午
-    * @param retrieveForm
-    * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.RetrieveVo
-    **/
+     * @Description // 表展示
+     * @Date 2021/6/3 3:27 下午
+     * @param retrieveForm
+     * @return com.haizhi.databridge.bean.vo.DataBaseSourceVo.RetrieveVo
+     **/
     @RequestMapping("/retrieve")
     @ApiOperation("表展示")
     public DataTableVo.RetrieveVo retrieve(DataTableForm.DataTableRetrieveForm retrieveForm) throws IOException {
@@ -51,11 +51,11 @@ public class DataTableController extends BaseController {
     }
 
     /**
-    * @Description // 展示数据源下接入的表
-    * @Date 2021/6/7 4:50 下午
-    * @param listRetrieveForm
-    * @return void
-    **/
+     * @Description // 展示数据源下接入的表
+     * @Date 2021/6/7 4:50 下午
+     * @param listRetrieveForm
+     * @return void
+     **/
     @RequestMapping("/list/retrieve")
     @ApiOperation("表修改")
     public List<DataTableVo.RetrieveVo> listRetrieve(DataTableForm.DataTableListRetrieveForm listRetrieveForm) throws IOException {
@@ -63,11 +63,11 @@ public class DataTableController extends BaseController {
     }
 
     /**
-    * @Description // 修改表
-    * @Date 2021/6/7 4:30 下午
-    * @param updateForm
-    * @return void
-    **/
+     * @Description // 修改表
+     * @Date 2021/6/7 4:30 下午
+     * @param updateForm
+     * @return void
+     **/
     @RequestMapping("/update")
     @ApiOperation("表修改")
     public void update(DataTableForm.DataTableUpdateForm updateForm) throws IOException {
@@ -75,11 +75,11 @@ public class DataTableController extends BaseController {
     }
 
     /**
-    * @Description // 校验依赖并删除表
-    * @Date 2021/6/7 8:04 下午
-    * @param dependencyForm
-    * @return void
-    **/
+     * @Description // 校验依赖并删除表
+     * @Date 2021/6/7 8:04 下午
+     * @param dependencyForm
+     * @return void
+     **/
     @RequestMapping("/dependency")
     @ApiOperation("表删除")
     public void dependency(DataTableForm.DataTableDependencyForm dependencyForm) throws IOException {

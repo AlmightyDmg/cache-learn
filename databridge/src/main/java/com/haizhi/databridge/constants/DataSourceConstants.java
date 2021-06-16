@@ -55,4 +55,15 @@ public final class DataSourceConstants {
 		public static final String TIMING_TYPE_MINUTE = "minute";
 
 	}
+
+	public static final class SchedulerType {
+    	public static final String NORMAL =  "NONE";
+		public static final String CRON = "CRON";
+		public static final String FIX_RATE = "FIX_RATE";
+	}
+
+	public static final class TaskType {
+		public static final String IMPORT =  "import";
+		public static final String EXPORT = "export";
+	}
 }

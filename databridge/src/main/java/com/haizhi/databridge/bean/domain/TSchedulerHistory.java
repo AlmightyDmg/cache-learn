@@ -1,8 +1,7 @@
-package com.haizhi.databridge.bean.domain.importdata;
+package com.haizhi.databridge.bean.domain;
 
 import java.sql.Timestamp;
 
-import javax.persistence.AttributeOverride;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -38,11 +37,9 @@ import com.haizhi.data.jpa.domain.HaizhiBaseDomainBean;
 @Entity
 @DynamicInsert
 @DynamicUpdate
-@AttributeOverride(name = "isDel", column = @Column(name = "deleted"))
-@AttributeOverride(name = "ctime", column = @Column(name = "create_at"))
-@AttributeOverride(name = "utime", column = @Column(name = "update_at"))
-@Table(name = "t_scheduler")
-public class TSchedulerBean extends HaizhiBaseDomainBean {
+//@AttributeOverride(name = "isDel", column = @Column(name = "deleted"))
+@Table(name = "t_scheduler_history")
+public class TSchedulerHistory extends HaizhiBaseDomainBean {
 
 	private static final long serialVersionUID =  8807656451897447487L;
 
@@ -51,26 +48,26 @@ public class TSchedulerBean extends HaizhiBaseDomainBean {
    	@Column(name = "id", nullable = false, columnDefinition = "int(11) unsigned")
 	private Long id;
 
-   	@Column(name = "scheduler_id", length = 40, nullable = false)
-	private String schedulerId;
-
-   	@Column(name = "scheduler_name", length = 64, nullable = false)
-	private String schedulerName;
-
    	@Column(name = "owner", length = 70, nullable = false)
 	private String owner;
 
-   	@Column(name = "create_at")
-	private Timestamp createAt;
+	@Column(name = "scheduler_id", length = 40, nullable = false)
+	private String schedulerId;
 
-   	@Column(name = "update_at")
-	private Timestamp updateAt;
+	@Column(name = "scheduler_name", length = 64, nullable = false)
+	private String schedulerName;
+
+	@Column(name = "task_id", length = 50, nullable = false)
+	private String taskId;
+
+	@Column(name = "elapse", nullable = false, columnDefinition = "int(11)")
+	private Integer elapse;
 
    	@Column(name = "start_at")
 	private Timestamp startAt;
 
-   	@Column(name = "finish_at")
-	private Timestamp finishAt;
+   	@Column(name = "params", columnDefinition = "longtext")
+	private String params;
 
    	@Column(name = "status", length = 32)
 	private String status;
@@ -80,17 +77,5 @@ public class TSchedulerBean extends HaizhiBaseDomainBean {
 
    	@Column(name = "traceback", columnDefinition = "longtext")
 	private String traceback;
-
-   	@Column(name = "options", columnDefinition = "longtext")
-	private String options;
-
-   	@Column(name = "timing", columnDefinition = "longtext")
-	private String timing;
-//
-//   	@Column(name = "deleted")
-//	private Integer deleted;
-
-   	@Column(name = "scheduler_desc")
-	private String schedulerDesc;
 
 }

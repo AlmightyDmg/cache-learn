@@ -19,7 +19,7 @@ import com.haizhi.databridge.web.controller.form.DataSourceForm;
 * @Author zhaohuanhuan
 **/
 @RestController
-@RequestMapping("/datasource")
+@RequestMapping("/api/datasource")
 public class DataSourceController extends BaseController {
 
     @Resource

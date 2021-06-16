@@ -29,11 +29,14 @@ public final class DataSchedulerDto {
 	@NoArgsConstructor
 	@AllArgsConstructor
 	public static final class TimingDto {
-		private Origin origin;
-		private Boolean enable;
+		private List<Origin> origin;
+		private Boolean enable = false;
 		private String type;
 		private String crontab;
-		private String minute;
+		private Integer minute;
+		private Origin start;
+		private Origin end;
+		private String delta;
 	}
 
 	@Data
@@ -43,5 +46,17 @@ public final class DataSchedulerDto {
 	public static final class Origin {
 		private String minute;
 		private String hour;
+	}
+
+	@Data
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	public static final class Cron {
+		private String minute = "*";
+		private String hour = "*";
+		private String day = "*";
+		private String month = "*";
+		private String week = "*";
 	}
 }

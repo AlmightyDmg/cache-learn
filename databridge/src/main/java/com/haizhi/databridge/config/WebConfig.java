@@ -16,11 +16,13 @@ import javax.servlet.http.HttpServletResponse;
 import com.google.common.base.CaseFormat;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.format.FormatterRegistry;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.haizhi.databridge.client.xxljob.interceptor.XxlLoginInterceptor;
+import com.haizhi.databridge.web.formatter.UserGenericConverter;
 import com.haizhi.databridge.web.interceptor.CommonDataInterceptor;
 import com.haizhi.databridge.web.interceptor.RequestLogInterceptor;
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
@@ -40,6 +42,17 @@ public class WebConfig implements WebMvcConfigurer {
 		registry.addInterceptor(new CommonDataInterceptor()).addPathPatterns("/**");
 		registry.addInterceptor(new RequestLogInterceptor()).addPathPatterns("/**");
 		WebMvcConfigurer.super.addInterceptors(registry);
+	}
+
+	/**
+	 * @description: 为系统添加自定义类型转换器
+	 * @author WangChengYu
+	 * @date 2020-02-20 17:11
+	 */
+	@Override
+	public void addFormatters(FormatterRegistry registry) {
+		registry.addConverter(new UserGenericConverter());
+		WebMvcConfigurer.super.addFormatters(registry);
 	}
 
 	/**
