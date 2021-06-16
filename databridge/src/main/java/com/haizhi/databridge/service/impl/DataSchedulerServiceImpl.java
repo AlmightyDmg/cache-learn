@@ -36,7 +36,6 @@ import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
-import springfox.documentation.spring.web.json.Json;
 
 import com.haizhi.databridge.bean.domain.importdata.TDataBaseSourceBean;
 import com.haizhi.databridge.bean.domain.importdata.TSchedulerBean;
@@ -283,7 +282,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 	}
 
-	private Integer buildSchedulerCount(String owner) {
+	public Integer buildSchedulerCount(String owner) {
 		Map<String, BigInteger> schedulerCountMap = tSchedulerRepo.countTSchedulerBeanByOwner(owner);
 		Integer schedulerCount = Integer.parseInt(String.valueOf(schedulerCountMap.get("count")));
 		return schedulerCount;
@@ -540,7 +539,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		if (!ObjectUtils.isEmpty(changeBaseForm.getSchedulerName())) {
 
 			if (!changeBaseForm.getSchedulerName().equals(tSchedulerBean.getSchedulerName())) {
-				if (tSchedulerRepo.findBySchedulerNameAndOwner(changeBaseForm.getSchedulerName(), changeBaseForm.getUserId()).isPresent()) {
+				if (tSchedulerRepo.findBySchedulerNameAndOwner(changeBaseForm.getSchedulerName(),
+						changeBaseForm.getUserId()).isPresent()) {
 					throw new DatabridgeException(StatusCode.SOURCE_EXISTS,
 							String.format("任务%s已存在", changeBaseForm.getSchedulerName()));
 				} else {
@@ -584,14 +584,18 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		tSchedulerBean.setOwner(changeBaseForm.getUserId());
 		tSchedulerBean.setOptions(JsonUtils.toJson(optionsDto));
 		tSchedulerRepo.save(tSchedulerBean);
+		updateJob(tSchedulerBean.getSchedulerId(), tSchedulerBean.getTiming());
+	}
+
+	private void updateJob(String schedulerId, String timing) {
 		DataTransJobParam dataTransJobParam = new DataTransJobParam();
-		dataTransJobParam.setJobId(tSchedulerBean.getSchedulerId());
+		dataTransJobParam.setJobId(schedulerId);
 		dataTransJobParam.setTaskType(IMPORT);
-		jobClientApi.update(tSchedulerBean.getSchedulerId(),
-				genCrontab(JsonUtils.toObject(tSchedulerBean.getTiming(), DataSchedulerDto.TimingDto.class)),
+		jobClientApi.update(schedulerId,
+				genCrontab(JsonUtils.toObject(timing, DataSchedulerDto.TimingDto.class)),
 				IMPORT,
 				dataTransJobParam
-				);
+		);
 	}
 
 	public String genCrontab(DataSchedulerDto.TimingDto timingDto) {

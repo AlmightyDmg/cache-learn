@@ -44,6 +44,9 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 	private DataSourceServiceImpl dataSourceServiceImpl;
 
 	@Autowired
+	private DataSchedulerServiceImpl dataSchedulerServiceImpl;
+
+	@Autowired
 	private TdataBaseSourceRepository tdataBaseSourceRepo;
 
 	@Autowired
@@ -303,14 +306,15 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 				terminated += 1;
 			}
 		}
+
 		return DataTableVo.StatisticsVo.builder()
 				.error(error)
 				.finished(finished)
 				.syncing(syncing)
 				.terminated(terminated)
 				.total(total)
-				.totalDatabase(totalDatabase) // TODO 需要完善
-				.totalScheduler(totalScheduler) //TODO 需要完善
+				.totalDatabase(dataSourceServiceImpl.countDatabases(statisticsForm.getUserId()))
+				.totalScheduler(dataSchedulerServiceImpl.buildSchedulerCount(statisticsForm.getUserId()))
 				.build();
 	}
 

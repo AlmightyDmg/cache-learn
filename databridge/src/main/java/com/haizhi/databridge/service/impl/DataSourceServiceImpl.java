@@ -4,6 +4,7 @@ import static com.haizhi.databridge.util.IdUtils.genKey;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -207,6 +208,11 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 			retrieveVoMap.put(retrieveVo.getDbId(), retrieveVo);
 		}
 		return retrieveVoMap;
+	}
+
+	public Integer countDatabases(String owner) {
+		Map<String, BigInteger> databaseCountMap = tdataBaseSourceRepository.countTDataBaseSourceBeanByOwner(owner);
+		return Integer.parseInt(String.valueOf(databaseCountMap.get("count")));
 	}
 
 

@@ -1,6 +1,8 @@
 package com.haizhi.databridge.repository.importdata;
 
+import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.transaction.Transactional;
@@ -31,4 +33,8 @@ public interface TdataBaseSourceRepository extends HaizhiBaseRepository<TDataBas
 	void logicDeleteByDbId(String dbId);
 
 	Optional<TDataBaseSourceBean> findByDbId(String dbId);
+
+	@Query(value = "select count(1) as count "
+			+ "from t_database where t_database.deleted=0 and t_database.owner=?1", nativeQuery = true)
+	Map<String, BigInteger> countTDataBaseSourceBeanByOwner(String owner);
 }
