@@ -430,7 +430,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
 						.operator(syncConfig.getIncrease().getMaximum().getEnd().getMode())
 						.enable(syncConfig.getIncrease().getMaximum().getEnd().getEnable() ? 1 : 0)
-						.value(syncConfig.getIncrease().getMaximum().getEnd().getValue().toString()).build())
+						.value(syncConfig.getIncrease().getMaximum().getEnd().getValue()).build())
 				.build();
 		DataTransJobVo.Filter filter = DataTransJobVo.Filter.builder()
 				.filterConditions(DataTransJobVo.Filter.FilterCondition.builder()

@@ -67,7 +67,7 @@ public class DataTableForm {
         private String ref;
         private DataTableDto.IncreaseDto increase;
         private Integer rows;
-        private Object blobfield;
+        private Map<Object, Object> blobfield;
         private List<String> keys;
         private List<String> fields;
         @JsonProperty("auto_fields")
@@ -76,9 +76,17 @@ public class DataTableForm {
         private Integer clean;
         private String sql;
         private Integer dereplication;
-        @ApiModelProperty(value = "格式化字段，key是字段名称")
+//        @ApiModelProperty(value = "格式化字段，key是字段名称")
         private Map<String, DataTableDto.FieldDtoatterDto> formatter;
         private String type;
+//        @JsonProperty("table_id")
+//        private String tableId;
+        private List<Map<Object, Object>> transformList;
+        private Map<Object, Object> transform;
+        private String cleanType;
+        private Integer isView;
+
+
     }
 
     @Data
@@ -95,6 +103,8 @@ public class DataTableForm {
         private String userId;
         @JsonProperty("db_id")
         private String dbId;
+//        @JsonProperty("update_tables")
+//        private List<Object> updateTables;
         @JsonProperty("update_tables")
         private List<DataTableUpdateBaseForm> updateTables;
         @JsonProperty("create_tables")

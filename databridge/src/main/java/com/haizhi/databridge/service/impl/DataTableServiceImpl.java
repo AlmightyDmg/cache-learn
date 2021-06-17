@@ -151,7 +151,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		updateTable(updateForm.getTableId(), updateForm.getUserId(), updateForm);
 	}
 
-	public void updateTable(String tableId, String userId,  DataTableForm.DataTableUpdateBaseForm updateBaseForm) {
+	public void updateTable(String tableId, String userId,  DataTableForm.DataTableUpdateBaseForm form) {
 		Optional<TTableBean> optionalTableBean = tTableRepo.findByTableIdAndOwner(tableId, userId);
 		if (!optionalTableBean.isPresent()) {
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS,
@@ -162,24 +162,40 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 
 		tTableBean.setSyncConfig(JsonUtils.toJson(
 				DataTableDto.SyncConfigDto.builder()
-						.type(updateBaseForm.getType())
-						.ref(updateBaseForm.getRef())
-						.model(syncConfigDto.getModel())
+						.tbName(!ObjectUtils.isEmpty(form.getTbName()) ? form.getTbName() : syncConfigDto.getTbName())
+						.blobfield(!ObjectUtils.isEmpty(form.getBlobfield()) ? form.getBlobfield() : new HashMap<>())
+						.keys(form.getKeys())
+						.dereplication(form.getDereplication())
+						.sql(!ObjectUtils.isEmpty(form.getSql()) ? form.getSql() : "")
+						.synced(!ObjectUtils.isEmpty(syncConfigDto.getOutputRef()))
+						.isView(syncConfigDto.getIsView())
+						.increase(form.getIncrease())
+						.rows(form.getRows())
+						.type(form.getType())
 						.outputRef(syncConfigDto.getOutputRef())
-						.rows(updateBaseForm.getRows())
-						.keys(updateBaseForm.getKeys())
-						.fields(updateBaseForm.getFields())
-						.autoFields(updateBaseForm.getAutoFields())
-						.dereplication(updateBaseForm.getDereplication())
-						.clean(updateBaseForm.getClean())
-						.sql(updateBaseForm.getSql())
-						.blobfield(updateBaseForm.getBlobfield())
-						.increase(updateBaseForm.getIncrease())
-						.filter(updateBaseForm.getFilter())
-						.formatter(updateBaseForm.getFormatter())
+						.fields(form.getFields())
+						.autoFields(form.getAutoFields())
+						.transform(new HashMap<>())
+						.filter(form.getFilter())
+						.tableId(tableId)
+						.clean(form.getClean())
+						.model(syncConfigDto.getModel())
+						.formatter(handlerFormatter(form.getFormatter()))
+						.ref(!ObjectUtils.isEmpty(form.getRef()) ? form.getRef() : syncConfigDto.getRef())
 						.build())
 		);
 		tTableRepo.save(tTableBean);
+	}
+
+	private Map<String, DataTableDto.FieldDtoatterDto> handlerFormatter(Map<String, DataTableDto.FieldDtoatterDto> formatter) {
+		Map<String, DataTableDto.FieldDtoatterDto> result = new HashMap<>();
+		for (String key: formatter.keySet()) {
+			if (!ObjectUtils.isEmpty(formatter.get(key)) || !ObjectUtils.isEmpty(formatter.get(key).getFmt())) {
+				result.put(key, formatter.get(key));
+			}
+		}
+		return result;
+
 	}
 
 	public List<DataTableVo.RetrieveVo> listRetrieve(DataTableForm.DataTableListRetrieveForm listRetrieveForm)
@@ -206,13 +222,17 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 				.schema(getSchemafromRef(syncConfig.getRef()))
 				.tableId(tTableBean.getTableId())
 				.tbName(tTableBean.getTbName())
+				.fields(syncConfig.getFields())
+				.autoFields(syncConfig.getAutoFields())
 				.dbId(tTableBean.getDbId())
-				.synced(Boolean.TRUE.equals(ObjectUtils.isEmpty(syncConfig.getOutputRef())))
+				.synced(Boolean.TRUE.equals(!ObjectUtils.isEmpty(syncConfig.getOutputRef())))
+				.transform(syncConfig.getTransform())
 				.filter(syncConfig.getFilter())
 				.blobfield(syncConfig.getBlobfield())
 				.keys(syncConfig.getKeys())
 				.increase(syncConfig.getIncrease())
 				.ref(syncConfig.getRef())
+				.outputRef(syncConfig.getOutputRef())
 				.dereplication(syncConfig.getDereplication())
 				.clean(syncConfig.getClean())
 				.sql(syncConfig.getSql())
@@ -220,6 +240,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 				.model(syncConfig.getModel())
 				.formatter(syncConfig.getFormatter())
 				.type(syncConfig.getType())
+				.schedulerId(tTableBean.getSchedulerId())
 				.isView(0)
 				.build();
 	}

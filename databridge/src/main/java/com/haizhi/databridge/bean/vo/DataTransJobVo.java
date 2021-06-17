@@ -110,7 +110,7 @@ public class DataTransJobVo {
             public static class Conditon {
                 String operator; // 算子，比如 >=, <=
                 Integer enable;
-                String value;
+                Object value;
             }
         }
     }

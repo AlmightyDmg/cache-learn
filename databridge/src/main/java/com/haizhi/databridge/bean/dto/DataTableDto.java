@@ -40,6 +40,14 @@ public final class DataTableDto {
 		private DataTableDto.FilterDto filter;
 		// 日期可以选择格式化,默认yyyy/MM/dd HH/mm/ss
 		private Map<String, DataTableDto.FieldDtoatterDto> formatter;
+		@JsonProperty("tb_ame")
+		private String tbName;
+		private Boolean synced;
+		@JsonProperty("table_id")
+		private String tableId;
+		@JsonProperty("is_view")
+		private String isView;
+		private Map<Object, Object> transform;
 
 	}
 
@@ -48,6 +56,8 @@ public final class DataTableDto {
 		private String field;
 		private String type;
 		private DataTableDto.MaximumDto maximum;
+		@JsonProperty("new_max")
+		private Object newMax;
 
 	}
 
@@ -60,8 +70,8 @@ public final class DataTableDto {
 	@Data
 	public static class StartDto {
 		private String compare;
-		private String enable;
-		private String value;
+		private Boolean enable;
+		private Object value;
 	}
 
 	@Data
@@ -69,7 +79,7 @@ public final class DataTableDto {
 		private Boolean enable;
 		private String type;
 		private String mode;
-		private Integer value;
+		private Object value;
 	}
 
 	@Data

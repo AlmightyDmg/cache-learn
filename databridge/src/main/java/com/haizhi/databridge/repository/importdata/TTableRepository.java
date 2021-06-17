@@ -15,8 +15,13 @@ import com.haizhi.databridge.bean.domain.importdata.TTableBean;
 @Repository
 public interface TTableRepository extends HaizhiBaseRepository<TTableBean, String> {
 
+	@Query(value = "select *  from t_table  WHERE t_table.db_id = ?1 AND t_table.owner = ?2 "
+			+ "and t_table.deleted=0", nativeQuery = true)
 	Optional<List<TTableBean>> findAllByDbIdAndOwner(String dbId, String owner);
+
 	Optional<TTableBean> findByTbNameAndDbIdAndOwner(String tbName, String dbId, String owner);
+
+
 	Optional<TTableBean> findByTableIdAndOwner(String tableId, String owner);
 
 	Optional<List<TTableBean>> findBySchedulerIdAndOwner(String schedulerId, String owner);
