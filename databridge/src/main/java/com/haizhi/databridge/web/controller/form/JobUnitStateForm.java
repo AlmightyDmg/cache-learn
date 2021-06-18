@@ -23,4 +23,5 @@ public class JobUnitStateForm {
     private Long endTime;
     private String jobType;
     private String startLocation;
+    private String userId;
 }

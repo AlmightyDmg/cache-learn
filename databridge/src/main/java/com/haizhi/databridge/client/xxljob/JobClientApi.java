@@ -51,6 +51,7 @@ public class JobClientApi {
                 .executorBlockStrategy("SERIAL_EXECUTION")
                 .misfireStrategy("DO_NOTHING")
                 .executorRouteStrategy("FIRST")
+                .glueType("BEAN")
                 .jobGroup(1)
                 .executorFailRetryCount(1)
                 .executorTimeout(0)

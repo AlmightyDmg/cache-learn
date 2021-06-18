@@ -4,6 +4,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -57,7 +58,7 @@ public class TblTransTaskRelBean extends HaizhiStandardDomainBean {
     private String toTableId;
 
     @ApiModelProperty(value = "实际执行的任务ID")
-    @NotBlank
+    @NotNull
     @Column(name = "trans_task_id", nullable = false, length = 40, columnDefinition = "varchar(40)")
     private String transTaskId;
 

@@ -18,12 +18,10 @@ import com.haizhi.databridge.bean.domain.importdata.JobRelBean;
  */
 @Repository
 public interface SkdJobRelRepository extends HaizhiBaseRepository<JobRelBean, String> {
-
-    @Query(value = "select xxljob_id from scheduler_xxljob_rel where is_del=0 and scheduler_id = (?1)", nativeQuery = true)
-    Optional<List<String>> findXxljobId(String schedulerId);
+    Optional<List<JobRelBean>> findByDistJobId(String jobId);
 
     @Modifying
     @Transactional
-    @Query(value = "update scheduler_xxljob_rel set is_del = 1 where job_id = ?1", nativeQuery = true)
+    @Query(value = "update t_job_distjob_rel set is_del = 1 where job_id = ?1", nativeQuery = true)
     void logicDeleteByJobId(String jobId);
 }

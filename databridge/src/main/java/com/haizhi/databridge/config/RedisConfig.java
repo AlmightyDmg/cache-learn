@@ -2,8 +2,11 @@ package com.haizhi.databridge.config;
 
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import com.haizhi.databridge.exception.DatabridgeException;
 /**
@@ -32,5 +35,22 @@ public class RedisConfig extends CachingConfigurerSupport {
 			throw new DatabridgeException("redisTemplate初始化失败");
 		}
 		return redisTemplate;
+	}
+
+	@Bean
+	public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
+		RedisTemplate<String, Object> template = new RedisTemplate<>();
+		template.setConnectionFactory(factory);
+		StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();
+		template.setKeySerializer(stringRedisSerializer);
+		template.setValueSerializer(stringRedisSerializer);
+
+		// 设置hash key 和value序列化模式
+		template.setHashKeySerializer(stringRedisSerializer);
+		template.setHashValueSerializer(stringRedisSerializer);
+		template.afterPropertiesSet();
+
+		redisTemplate = template;
+		return template;
 	}
 }

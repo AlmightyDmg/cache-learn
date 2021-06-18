@@ -1,6 +1,5 @@
 server:
   port: 8088
-  address: localhost
 
 spring:
   application:
@@ -11,14 +10,14 @@ spring:
   datasource:
     primary:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      jdbc-url: jdbc:mysql://123.126.105.35:3308/noah?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
-      username: root
-      password: bdp_pcloud
+      jdbc-url: jdbc:mysql://offlinedb.haizhi.com:3306/noah?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
+      username: haizhioffdb
+      password: b@30QpqPkh
     second:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      jdbc-url: jdbc:mysql://123.126.105.35:3308/tassadar?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
-      username: root
-      password: bdp_pcloud
+      jdbc-url: jdbc:mysql://offlinedb.haizhi.com:3306/tassadar?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
+      username: haizhioffdb
+      password: b@30QpqPkh
   jpa:
     show-sql: true
     hibernate:
@@ -35,34 +34,61 @@ spring:
       fail-on-unknown-properties: false
   aop:
     proxy-target-class: true
-  kafka:
-    bootstrap-servers: dev121.haizhi.com:9092
+  redis:
+    database: 0       # Redis数据库索引（默认为0）,如果设置为1，那么存入的key-value都存放在select 1中
+    host: 123.126.105.106
+    port: 30227
+    password: haizhi1234
+    jedis:
+      pool:
+        max-wait: 30000   # 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-active: 100   # 连接池最大连接数（使用负值表示没有限制）
+        max-idle: 20      # 连接池中的最大空闲连接
+        min-idle: 0       # 连接池中的最小空闲连接
+    timeout: 5000     # 连接超时
+  #    password: 123456  # 密码,默认密码为空
+  #    cluster:          # 集群配置
+  #      nodes: 127.0.0.1:6381,127.0.0.1:6382
+  #    max-redirects: 2  # 最大重定向次数
 
 xxl-job:
-  url: http://dev121.haizhi.com:8099
+  url: http://192.168.64.4:18080
   username: admin
   password: 123456
 
 localdmc:
+  sub-type: hdfs
+  other-config:
+    "dfs.ha.namenodes.ns1": "nn1,nn2"
+    "dfs.namenode.rpc-address.ns1.nn2": "kudu2:9000"
+    "dfs.client.failover.proxy.provider.ns1": "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider"
+    "dfs.namenode.rpc-address.ns1.nn1": "kudu1:9000"
+    "dfs.nameservices": "ns1"
+    "fs.hdfs.impl.disable.cache": "true"
+    "fs.hdfs.impl": "org.apache.hadoop.hdfs.DistributedFileSystem"
   mobius:
-    url: http://dev121.haizhi.com:4000
+    url: http://127.0.0.1:4000
     connect_timeout_ms: 20000
     call_timeout_ms: 600000
     read_timeout_ms: 600000
     logging: false
   overlord:
-    url: http://dev121.haizhi.com:9527
+    url: http://123.126.105.108:33006
     connect-timeout-ms: 10000
     logging: false
   behemoth:
-    url: http://dev121.haizhi.com:9222
+    url: http://123.126.105.108:33008
     connect-timeout-ms: 10000
     logging: false
   pentagon:
-    url: http://dev121.haizhi.com:16729
+    url: http://123.126.105.108:34004
     connect-timeout-ms: 10000
     logging: false
   noah:
-    url: http://dev121.haizhi.com:29999
+    url: http://123.126.105.108:10721
+    connect-timeout-ms: 10000
+    logging: false
+  tassadar:
+    url: http://123.126.105.108:33001
     connect-timeout-ms: 10000
     logging: false

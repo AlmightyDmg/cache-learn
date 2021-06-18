@@ -6,11 +6,11 @@ xxl:
   job:
     accessToken:
     admin:
-      addresses: http://dev121.haizhi.com:8099/xxl-job-admin
+      addresses: http://192.168.64.4:18080/xxl-job-admin
     executor:
       address: ''
-      appname: dataio
-      ip: ''
+      appname: dataTransJobHandler
+      ip: '192.168.64.1'
       logpath: log/jobhandler
       logretentiondays: 30
       port: 9999
@@ -33,5 +33,5 @@ databridge:
   url: http://127.0.0.1:8088
 
 flinkx:
-  url: http://127.0.0.1:8089
+  url: http://192.168.64.1:30080/
 
