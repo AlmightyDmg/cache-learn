@@ -22,6 +22,8 @@ public class ExportDsVo  {
 	@Data
 	@ApiModel
 	@Builder
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static final class ExportDsListVo {
 //		@NotNull
 //		@ApiModelProperty(value = "数据源类型名称，mysql，pg等等")

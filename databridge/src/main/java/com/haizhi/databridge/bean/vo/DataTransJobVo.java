@@ -20,10 +20,11 @@ import lombok.experimental.FieldNameConstants;
 @Builder
 @FieldNameConstants
 public class DataTransJobVo {
-    String taskType; // [0import, 1export]
+    String jobType; // [0import, 1export]
     String jobId;
     Integer exportFailureStrategy;
     List<SyncUnit> syncUnits;
+    String userId;
 
     @Data
     @AllArgsConstructor
@@ -79,8 +80,10 @@ public class DataTransJobVo {
         String username;
         String password;
         String type;
+        String subType;
         String schema;
         String catalog;
+        String otherConfig;
     }
 
     @Data

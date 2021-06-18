@@ -24,10 +24,11 @@ import lombok.experimental.FieldNameConstants;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class DataTransJobDetail extends JobDetail {
-    String taskType; // [0import, 1export]
+    String jobType; // [0import, 1export]
     String jobId;
     Integer exportFailureStrategy;
     List<SyncUnit> syncUnits;
+    String userId;
 
     @Data
     @AllArgsConstructor
@@ -83,8 +84,10 @@ public class DataTransJobDetail extends JobDetail {
         String username;
         String password;
         String type;
+        String subType;
         String schema;
         String catalog;
+        String otherConfig;
     }
 
     @Data

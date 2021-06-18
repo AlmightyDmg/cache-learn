@@ -22,8 +22,6 @@ import lombok.experimental.FieldNameConstants;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class DataTransJobParam extends JobParam {
-    String taskType; // [import, export]
+    String jobType; // [import, export]
     String jobId;  // 导入schedulerId，导出为jobId
-    Integer oldDataTrans;  // [0 gp相关的任务使用flinkx; 1 旧的数据传输]
-    String dmcUrl; // 导入为noah的url，导出为pentagon的url
 }
