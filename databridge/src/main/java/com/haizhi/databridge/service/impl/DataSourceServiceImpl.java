@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ import com.haizhi.databridge.bean.domain.importdata.TDataBaseSourceBean;
 import com.haizhi.databridge.bean.domain.importdata.TTableBean;
 import com.haizhi.databridge.bean.dto.DataSourceObjDto;
 import com.haizhi.databridge.bean.vo.DataBaseSourceVo;
+import com.haizhi.databridge.bean.vo.DataTableVo;
 import com.haizhi.databridge.constants.DataSourceConstants;
 import com.haizhi.databridge.exception.DatabridgeException;
 import com.haizhi.databridge.repository.importdata.TTableRepository;
@@ -39,7 +41,10 @@ import com.haizhi.databridge.web.result.StatusCode;
 public class DataSourceServiceImpl extends RequestCommonData implements DataSourceService {
 
 	@Autowired
-	private TdataBaseSourceRepository tdataBaseSourceRepository;
+	private DataTableServiceImpl tableServiceImpl;
+
+	@Autowired
+	private TdataBaseSourceRepository tdbsRepo;
 
 	@Autowired
 	private TTableRepository tTableRepo;
@@ -82,14 +87,14 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		options.setTableComments(dataSourceCreateForm.getTableComments());
 
 		TDataBaseSourceBean dbBean = new TDataBaseSourceBean();
-		dbBean.setDbType(setup.getType().toUpperCase());
+		dbBean.setDbType(dbBean.getDbType());
 		dbBean.setDsName(dataSourceCreateForm.getDsName());
 		dbBean.setRemark(dataSourceCreateForm.getRemark());
 		dbBean.setOptions(JsonUtils.toJson(options));
 		dbBean.setOwner(owner);
 		dbBean.setDbId(dbId);
 		dbBean.setSetup(JsonUtils.toJson(setup));
-		tdataBaseSourceRepository.save(dbBean);
+		tdbsRepo.save(dbBean);
 
 		return DataBaseSourceVo.CreateVo.builder()
 				.dbId(dbId)
@@ -119,7 +124,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 			// TODO 表删除相关，以及scheduler相关
 			System.out.printf("待写");
 		}
-		tdataBaseSourceRepository.logicDeleteByDbId(dbId);
+		tdbsRepo.logicDeleteByDbId(dbId);
 		return DataBaseSourceVo.DeleteVo.builder().dbId(dbId).tbCount(count).build();
 	}
 
@@ -132,14 +137,14 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	public DataBaseSourceVo.UpdateVo update(DataSourceForm.DataSourceUpdateForm dataSourceUpdateForm) throws IOException {
 		String dbId = dataSourceUpdateForm.getDbId();
 		String userId = ObjectUtils.isEmpty(dataSourceUpdateForm.getOwner()) ? dataSourceUpdateForm.getOwner() : getUserId();
-		Optional<TDataBaseSourceBean> optionalTdataBaseSourceBean = tdataBaseSourceRepository.findByDbIdAndOwner(dbId, userId);
+		Optional<TDataBaseSourceBean> optionalTdataBaseSourceBean = tdbsRepo.findByDbIdAndOwner(dbId, userId);
 		if (!optionalTdataBaseSourceBean.isPresent()) {
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, "不存在的数据源");
 		}
 		String connStr = GzipUtils.uncompress(dataSourceUpdateForm.getConnectId());
 		TDataBaseSourceBean tDataBaseSourceBean = optionalTdataBaseSourceBean.get();
 		tDataBaseSourceBean.setSetup(connStr);
-		tdataBaseSourceRepository.save(tDataBaseSourceBean);
+		tdbsRepo.save(tDataBaseSourceBean);
 		return DataBaseSourceVo.UpdateVo.builder()
 				.dbId(dbId)
 				.build();
@@ -167,19 +172,19 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 //	}
 
 	public Boolean checkDsSourceExists(String dsName, String userId) {
-		Optional<List<TDataBaseSourceBean>> optionalDataBaseSourceBeans = tdataBaseSourceRepository.findByDsNameAndOwner(dsName, userId);
+		Optional<List<TDataBaseSourceBean>> optionalDataBaseSourceBeans = tdbsRepo.findByDsNameAndOwner(dsName, userId);
 		return optionalDataBaseSourceBeans.isPresent();
 	}
 
 	public Boolean checkDsSourceExistsByDsId(String dbId, String userId) {
-		Optional<TDataBaseSourceBean> optionalTDataBaseSourceBean  = tdataBaseSourceRepository.findByDbIdAndOwner(dbId, userId);
+		Optional<TDataBaseSourceBean> optionalTDataBaseSourceBean  = tdbsRepo.findByDbIdAndOwner(dbId, userId);
 		return optionalTDataBaseSourceBean.isPresent();
 	}
 
 	public List<DataBaseSourceVo.RetrieveVo> retrieves(String owner, List<String> dbIds) throws UnsupportedEncodingException {
 
 		List<DataBaseSourceVo.RetrieveVo> result = new ArrayList<>();
-		Optional<List<TDataBaseSourceBean>> optionalTDataBaseSourceBeans = tdataBaseSourceRepository.findByOwnerAndDbIdIn(
+		Optional<List<TDataBaseSourceBean>> optionalTDataBaseSourceBeans = tdbsRepo.findByOwnerAndDbIdIn(
 				owner, dbIds);
 		if (!optionalTDataBaseSourceBeans.isPresent()) {
 			return result;
@@ -211,11 +216,71 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	}
 
 	public Integer countDatabases(String owner) {
-		Map<String, BigInteger> databaseCountMap = tdataBaseSourceRepository.countTDataBaseSourceBeanByOwner(owner);
+		Map<String, BigInteger> databaseCountMap = tdbsRepo.countTDataBaseSourceBeanByOwner(owner);
 		return Integer.parseInt(String.valueOf(databaseCountMap.get("count")));
 	}
 
+	public DataBaseSourceVo.DataSourceStatusVo status(DataSourceForm.DataSourceStatusForm dataSourceStatusForm
+	) throws UnsupportedEncodingException {
+		List<TDataBaseSourceBean> queryDbBeanList = new ArrayList<>();
+		if (ObjectUtils.isEmpty(dataSourceStatusForm.getDbId())) {
+			Optional<List<TDataBaseSourceBean>> optionalDbsBeans = tdbsRepo.findByOwnerAndSourceType(
+					dataSourceStatusForm.getUserId(), dataSourceStatusForm.getSourceType());
+			if (!ObjectUtils.isEmpty(optionalDbsBeans)) {
+				queryDbBeanList = optionalDbsBeans.get();
+			}
 
+		} else {
+			Optional<TDataBaseSourceBean> optionalDbsBean = tdbsRepo.findByDbIdAndOwner(
+					dataSourceStatusForm.getDbId(), dataSourceStatusForm.getUserId());
+			if (!ObjectUtils.isEmpty(optionalDbsBean)) {
+				queryDbBeanList.add(optionalDbsBean.get());
+			}
+		}
+
+		List<DataBaseSourceVo.DataSourceVo> dataSourceVos = buildDataSourceVo(dataSourceStatusForm.getUserId(), queryDbBeanList);
+		// 根据dbId查出所有表
+		List<String> dbIds = queryDbBeanList.stream().map(TDataBaseSourceBean::getDbId).collect(Collectors.toList());
+
+		List<DataTableVo.TableVo> tableVoList = tableServiceImpl.getTableVosByDbIds(
+				dataSourceStatusForm.getUserId(), dbIds, dataSourceStatusForm.getStatus(), dataSourceStatusForm.getTbName());
+		DataTableVo.StatusVo countStatusByDbIds = tableServiceImpl.countStatusByDbIds(
+				dataSourceStatusForm.getUserId(), dbIds, dataSourceStatusForm.getStatus(), dataSourceStatusForm.getTbName());
+		Integer pageCount = (int) Math.ceil((double) tableVoList.size() / dataSourceStatusForm.getLimit());
+
+		return DataBaseSourceVo.DataSourceStatusVo.builder()
+				.datasource(dataSourceVos)
+				.pagecount(pageCount)
+				.query(dataSourceStatusForm)
+				.status(countStatusByDbIds)
+				.tables(tableVoList)
+				.totalitems(tableVoList.size())
+				.build();
+
+	}
+
+	private List<DataBaseSourceVo.DataSourceVo> buildDataSourceVo(String owner, List<TDataBaseSourceBean> dataBaseSourceBeans
+	) throws UnsupportedEncodingException {
+		List<String> dbIds = dataBaseSourceBeans.stream().map(TDataBaseSourceBean::getDbId).collect(Collectors.toList());
+		List<DataBaseSourceVo.DataSourceVo> dataSourceVos = new ArrayList<>();
+		Map<String, Integer> dbId2TableNumMap = tableServiceImpl.getDbId2TablesNumMap(owner, dbIds);
+		for (TDataBaseSourceBean dataBaseSourceBean: dataBaseSourceBeans) {
+			DataSourceObjDto.SetUp setUp = JsonUtils.toObject(dataBaseSourceBean.getSetup(), DataSourceObjDto.SetUp.class);
+			DataSourceObjDto.Options options = JsonUtils.toObject(dataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
+			dataSourceVos.add(DataBaseSourceVo.DataSourceVo.builder()
+					.connectId(Base64Utils.encodeBase64(dataBaseSourceBean.getSetup()))
+					.connector(String.format("%s@%s", setUp.getUid(),
+							!ObjectUtils.isEmpty(setUp.getConnStr()) ? setUp.getConnStr() : setUp.getServer()))
+					.dbId(dataBaseSourceBean.getDbId())
+					.dbType(dataBaseSourceBean.getDbType())
+					.dsName(dataBaseSourceBean.getDsName())
+					.labels(options.getLabels())
+					.remark(dataBaseSourceBean.getRemark())
+					.tbCount(dbId2TableNumMap.getOrDefault("db_id", 0))
+					.build());
+		}
+		return dataSourceVos;
+	}
 
 
 }

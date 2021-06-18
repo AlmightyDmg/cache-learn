@@ -1,6 +1,7 @@
 package com.haizhi.databridge.repository.importdata;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.transaction.Transactional;
@@ -43,4 +44,12 @@ public interface TTableRepository extends HaizhiBaseRepository<TTableBean, Strin
 	@Query(value = "select * from t_table where  t_table.owner = ?1 "
 			+ "and t_table.`tb_name` like concat('%', (?2) ,'%'))", nativeQuery = true)
 	Optional<List<TTableBean>> findTableByOwnerAndTbNameLike(String owner, String searchKey);
+
+	@Query(value = "select *  from t_table  WHERE t_table.owner = ?1 and t_table.db_id in (?2) "
+			+ "and t_table.deleted=0", nativeQuery = true)
+	Optional<List<TTableBean>> findTableBeanByOwnerAndDbIds(String owner, List<String> dbId);
+
+	@Query(value = "select t_table.db_id, count(1) as count  from t_table  WHERE t_table.owner = ?1 and t_table.db_id in (?2) "
+			+ "and t_table.deleted=0", nativeQuery = true)
+	List<Map<String, Object>> countTableNumByDbIdAndOwner(String owner, List<String> dbIds);
 }

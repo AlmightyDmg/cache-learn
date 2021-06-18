@@ -72,4 +72,10 @@ public class DataSourceController extends BaseController {
     public DataBaseSourceVo.RetrieveVo retrieve(DataSourceForm.DataSourceRetrieveForm dataSourceRetrieveForm) throws UnsupportedEncodingException {
         return dataSourceService.retrieve(dataSourceRetrieveForm);
     }
+
+    @RequestMapping("/status")
+    @ApiOperation("创建用户信息")
+    public DataBaseSourceVo.DataSourceStatusVo status(DataSourceForm.DataSourceStatusForm sourceStatusForm) throws UnsupportedEncodingException {
+        return dataSourceService.status(sourceStatusForm);
+    }
 }

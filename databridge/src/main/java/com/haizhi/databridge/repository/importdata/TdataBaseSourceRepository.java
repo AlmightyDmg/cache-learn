@@ -25,6 +25,10 @@ public interface TdataBaseSourceRepository extends HaizhiBaseRepository<TDataBas
 			+ "and t_database.owner = ?2 and t_database.deleted=0", nativeQuery = true)
 	Optional<TDataBaseSourceBean> findByDbIdAndOwner(String dsId, String owner);
 
+	@Query(value = "select *  from t_database  WHERE t_database.owner = ?1 and t_database.source_type = ?2  "
+			+ "and t_database.deleted=0", nativeQuery = true)
+	Optional<List<TDataBaseSourceBean>> findByOwnerAndSourceType(String owner, Integer sourceType);
+
 	@Query(value = "select *  from t_database  WHERE t_database.owner = ?1 "
 			+ "and t_database.db_id in (?2) and t_database.deleted=0", nativeQuery = true)
 	Optional<List<TDataBaseSourceBean>> findByOwnerAndDbIdIn(String owner, List<String> dbIds);

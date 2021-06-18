@@ -42,4 +42,21 @@ public class DataSourceForm {
             private String dbId;
             private String owner;
     }
+
+    @Data
+    public static class DataSourceStatusForm {
+        @JsonProperty("user_id")
+        private String userId;
+        private Integer limit;
+        private Integer page;
+        @JsonProperty("order_by")
+        private String orderBy;
+        @JsonProperty("source_type")
+        private Integer sourceType;
+        @JsonProperty("db_id")
+        private String dbId;
+        private String status;
+        @JsonProperty("tb_name")
+        private String tbName;
+    }
 }

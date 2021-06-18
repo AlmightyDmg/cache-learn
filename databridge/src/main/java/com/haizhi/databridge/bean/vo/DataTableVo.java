@@ -104,6 +104,27 @@ public class DataTableVo {
         @JsonProperty("tb_name")
         private String tbName;
 
+        @JsonProperty("scheduler_id")
+        private String schedulerId;
+        private String type;
+        @JsonProperty("finish_at")
+        private String finishAt;
+        @JsonProperty("sync_config")
+        private DataTableDto.SyncConfigDto syncConfig;
+        private Boolean synced;
+
+
+    }
+
+
+    @Data
+    @Builder
+    public static final class StatusVo {
+        private Integer inserting;
+        private Integer terminated;
+        private Integer finished;
+        private Integer total;
+        private Integer error;
     }
 
 }
