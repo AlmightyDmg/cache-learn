@@ -1,9 +1,11 @@
 package com.haizhi.dataio.client.databridge;
 
+import com.github.lianjiatech.retrofit.spring.boot.annotation.Intercept;
 import com.github.lianjiatech.retrofit.spring.boot.annotation.RetrofitClient;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.POST;
+import retrofit2.http.QueryBean;
 
 import com.haizhi.dataio.bean.DataTransJobDetail;
 import com.haizhi.dataio.bean.JobUnitStateForm;
@@ -14,23 +16,29 @@ import com.haizhi.dataio.bean.JobUnitStateForm;
  * @createTime 2021年05月27日 10:06:16
  */
 @RetrofitClient(baseUrl = "${databridge.url}")
+@Intercept(handler = WebResultInterceptor.class)
 public interface DatabridgeClient {
 
-    @POST("/api/export_job/job/execute_info")
+    @POST("/api/job/execute_info")
     @FormUrlEncoded
-    DataTransJobDetail getJobExecInfo(@Field("jobId") String jobId);
+    DataTransJobDetail getJobExecInfo(@Field("jobId") String jobId, @Field("jobType") String jobType);
 
-    @POST("/api/job/update_job_status")
+    @POST("/api/job/update_job")
+    @FormUrlEncoded
     String updateJobStatus(@Field("jobId") String jobId,
+                           @Field("jobType") String jobType,
                            @Field("jobStatus") Integer jobStatus,
                            @Field("startTime") Long startTime,
                            @Field("endTime") Long endTime);
 
-    @POST("/api/job/update_job_stask")
-    String updateJobExecUnit(JobUnitStateForm stateForm);
+    @POST("/api/job/update_job_task")
+    @FormUrlEncoded
+    String updateJobExecUnit(@QueryBean JobUnitStateForm stateForm);
 
-    @POST("/api/job/update_job_stask_rel")
+    @POST("/api/job/update_job_task_rel")
+    @FormUrlEncoded
     String updateJobTaskRel(@Field("jobId") String jobId,
                             @Field("taskId") String taskId,
-                            @Field("tableId") String tableId);
+                            @Field("fromTableId") String fromTableId,
+                            @Field("toTableId") String toTableId);
 }

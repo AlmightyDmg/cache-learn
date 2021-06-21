@@ -5,6 +5,8 @@ public final class DatabridgeConstant {
 
     }
 
+    public static final String REQUEST_URI = "request_uri";
+
     public static final String TRACE_ID = "trace_id";
     public static final String USER_ID = "user_id";
 

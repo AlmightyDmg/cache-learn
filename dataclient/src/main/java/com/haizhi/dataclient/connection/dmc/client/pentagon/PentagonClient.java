@@ -4,7 +4,6 @@ package com.haizhi.dataclient.connection.dmc.client.pentagon;
 import javax.validation.constraints.NotBlank;
 
 import java.util.List;
-import retrofit2.http.Field;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
 
@@ -39,6 +38,6 @@ public interface PentagonClient {
 																@Query("isNetSSL") Boolean isNetSSL,
 																@Query("version") Integer version);
 
-	@POST("/job/startExportJob")
-	PentagonResult<String> startExportJob(@Field("jobId") String jobId);
+	@POST("/job/start")
+	PentagonResult<String> startExportJob(@Query("jobId") String jobId);
 }

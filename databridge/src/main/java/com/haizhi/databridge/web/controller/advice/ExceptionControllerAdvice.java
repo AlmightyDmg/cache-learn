@@ -1,5 +1,6 @@
 package com.haizhi.databridge.web.controller.advice;
 
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.validation.ConstraintViolation;
@@ -16,10 +17,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import com.haizhi.databridge.exception.DatabridgeException;
 import com.haizhi.databridge.exception.ValidationErrorException;
+import com.haizhi.databridge.util.EnumUtil;
 import com.haizhi.databridge.util.ErrorsUtils;
 import com.haizhi.databridge.web.result.StatusCode;
 import com.haizhi.databridge.web.result.WebResult;
+import com.haizhi.dataclient.exception.SDKException;
 
 @ControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -77,45 +81,45 @@ public class ExceptionControllerAdvice {
         );
     }
 
-//	/**
-//	 * 统一处理client异常
-//	 *
-//	 * @param sdkException
-//	 * @return
-//	 */
-//	@ExceptionHandler({SDKException.class})
-//	@ResponseBody
-//	public ResponseEntity<?> sdkExceptionHandler(SDKException sdkException) {
-//		Throwable r = ErrorsUtils.getRootCause(sdkException);
-//		WebResult result = WebResult.fail(r);
-//		// TODO 临时用反射获取枚举值，后续SDKException返回状态码使用枚举值，需将hora的状态码提至公共common
-//		Optional<StatusCode> enum1 = EnumUtil.getEnumObject(StatusCode.class, e -> e.getValue() == sdkException.getStatus());
-//		StatusCode statusCode = enum1.orElse(StatusCode.API_INTERNAL_ERROR);
-//		result.setStatus(statusCode);
-//		if (result.getErrstr().startsWith("Failed to connect to")) {
-//			result.setStatus(StatusCode.TASSADAR_CONNECTION_ERROR);	// all client connection error
-//		}
-//		return ResponseEntity
-//			.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-//			.body(result);
-//	}
-//
-//	/**
-//	 * 统一处理自定义异样，根据状态码返回
-//	 *
-//	 * @param horaException
-//	 * @return
-//	 */
-//	@ExceptionHandler({HoraException.class})
-//	@ResponseBody
-//	public ResponseEntity<?> horaExceptionHandler(HoraException horaException) {
-//		Throwable r = ErrorsUtils.getRootCause(horaException);
-//		WebResult result = WebResult.fail(r);
-//		result.setStatus(horaException.getStatus());
-//		return ResponseEntity
-//			.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-//			.body(result);
-//	}
+	/**
+	 * 统一处理client异常
+	 *
+	 * @param sdkException
+	 * @return
+	 */
+	@ExceptionHandler({SDKException.class})
+	@ResponseBody
+	public ResponseEntity<?> sdkExceptionHandler(SDKException sdkException) {
+		Throwable r = ErrorsUtils.getRootCause(sdkException);
+		WebResult result = WebResult.fail(r);
+		// TODO 临时用反射获取枚举值，后续SDKException返回状态码使用枚举值，需将hora的状态码提至公共common
+		Optional<StatusCode> enum1 = EnumUtil.getEnumObject(StatusCode.class, e -> e.getValue() == sdkException.getStatus());
+		StatusCode statusCode = enum1.orElse(StatusCode.API_INTERNAL_ERROR);
+		result.setStatus(statusCode);
+		if (result.getErrstr().startsWith("Failed to connect to")) {
+			result.setStatus(StatusCode.TASSADAR_CONNECTION_ERROR);	// all client connection error
+		}
+		return ResponseEntity
+			.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+			.body(result);
+	}
+
+	/**
+	 * 统一处理自定义异样，根据状态码返回
+	 *
+	 * @param databridgeException
+	 * @return
+	 */
+	@ExceptionHandler({DatabridgeException.class})
+	@ResponseBody
+	public ResponseEntity<?> horaExceptionHandler(DatabridgeException databridgeException) {
+		Throwable r = ErrorsUtils.getRootCause(databridgeException);
+		WebResult result = WebResult.fail(r);
+		result.setStatus(databridgeException.getStatus());
+		return ResponseEntity
+			.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+			.body(result);
+	}
 
     /**
      * 统一处理Controller中的异常 需要统一处理异常编码

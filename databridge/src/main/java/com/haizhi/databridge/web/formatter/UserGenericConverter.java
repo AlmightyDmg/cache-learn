@@ -14,7 +14,7 @@ import org.slf4j.MDC;
 import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.core.convert.converter.GenericConverter;
 
-import com.haizhi.databridge.constants.DatabridgeConstants;
+import com.haizhi.databridge.constants.DatabridgeConstant;
 import com.haizhi.databridge.exception.DatabridgeException;
 
 /**
@@ -39,13 +39,18 @@ public class UserGenericConverter implements GenericConverter {
 
 	@Override
 	public Object convert(Object o, TypeDescriptor sourceType, TypeDescriptor targetType) {
-		log.warn("请求:【{}】的参数转换使用了用户自定义类型转换器", MDC.get(DatabridgeConstants.REQUEST_URI));
+		log.warn("请求:【{}】的参数转换使用了用户自定义类型转换器", MDC.get(DatabridgeConstant.REQUEST_URI));
 		if (o == null || sourceType == null || targetType == null) {
 			return null;
 		}
 		if (objectMapper == null) {
 			objectMapper = new ObjectMapper();
 		}
+
+		if (sourceType.equals(targetType)) {
+			return o;
+		}
+
 		//字符串转数组的转换逻辑
 		if (Collection.class.isAssignableFrom(targetType.getResolvableType().resolve())) {
 			try {
@@ -53,8 +58,8 @@ public class UserGenericConverter implements GenericConverter {
 				//获取目标数组的泛型类型
 				ParameterizedType type = (ParameterizedType) targetType.getResolvableType().getType();
 				CollectionType collectionType = typeFactory.constructCollectionType(
-					(Class<? extends Collection>) targetType.getType(),
-					(Class<?>) type.getActualTypeArguments()[0]);
+						(Class<? extends Collection>) targetType.getType(),
+						(Class<?>) type.getActualTypeArguments()[0]);
 				return objectMapper.readValue(String.valueOf(o), collectionType);
 			} catch (Exception e) {
 				log.error("自定义类型转换【字符串转数组】失败:", e);

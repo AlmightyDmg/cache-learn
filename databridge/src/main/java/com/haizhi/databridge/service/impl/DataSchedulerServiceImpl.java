@@ -406,7 +406,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 		return DataTransJobVo.builder()
 				.jobId(jobId)
-				.taskType("import")
+				.jobType("import")
 				.syncUnits(tableBeans.stream().map(tableBean -> {
 					DataTableDto.SyncConfigDto syncConfig =
 							JsonUtils.toObject(tableBean.getSyncConfig(), DataTableDto.SyncConfigDto.class);

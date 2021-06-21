@@ -4,6 +4,7 @@ import java.util.List;
 
 import javax.validation.constraints.NotNull;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -21,6 +22,8 @@ public class ExportJobVo {
 	@Data
 	@ApiModel
 	@Builder
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static final class JobInfoVo {
 		@ApiModelProperty(value = "任务id")
 		@JsonProperty("job_id")
@@ -82,6 +85,8 @@ public class ExportJobVo {
 	@Data
 	@ApiModel
 	@Builder
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static final class FlowInfoVo {
 		@ApiModelProperty(value = "模型id")
 		@JsonProperty("flow_id")
@@ -94,6 +99,8 @@ public class ExportJobVo {
 	@Data
 	@ApiModel
 	@Builder
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static final class DsInfoVo {
 		@ApiModelProperty(value = "数据源id")
 		@JsonProperty("ds_id")
@@ -152,6 +159,8 @@ public class ExportJobVo {
 	@Data
 	@ApiModel
 	@Builder
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static final class InnerJobInfoVo {
 		private String jobId;
 		private String userId;
@@ -177,6 +186,8 @@ public class ExportJobVo {
 	@Data
 	@ApiModel
 	@Builder
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static final class JobConfigInnerVo {
 
 		@ApiModelProperty(value = "映射字段")
@@ -234,6 +245,8 @@ public class ExportJobVo {
 	@Data
 	@ApiModel
 	@Builder
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static final class SinkInnerVo {
 
 		@ApiModelProperty(value = "数据库类型名称, eg: mysql/postgresql/datahub")
@@ -285,6 +298,8 @@ public class ExportJobVo {
 	@Data
 	@ApiModel
 	@Builder
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static final class JobConfigVo {
 
 		@ApiModelProperty(value = "映射字段")
@@ -330,6 +345,8 @@ public class ExportJobVo {
 	@Data
 	@ApiModel
 	@Builder
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static final class SinkVo {
 
 		@ApiModelProperty(value = "数据库类型名称, eg: mysql/postgresql/datahub")
@@ -357,6 +374,8 @@ public class ExportJobVo {
 	@Data
 	@ApiModel
 	@Builder
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static final class TbVo {
 		@ApiModelProperty(value = "自主建模tb表信息")
 		@JsonProperty("tb_id")
@@ -369,6 +388,8 @@ public class ExportJobVo {
 	@Data
 	@ApiModel
 	@Builder
+	@AllArgsConstructor
+	@NoArgsConstructor
 	public static final class HistoryVo {
 		@JsonProperty("jobId")
 		private String jobId;
@@ -393,8 +414,11 @@ public class ExportJobVo {
 		private Integer appendCount;
 		private Integer updateCount;
 		private Integer deleteCount;
+		@JsonInclude(JsonInclude.Include.NON_NULL)
 		private Integer failedCount;
+		@JsonInclude(JsonInclude.Include.NON_NULL)
 		private Integer allCount;
+		@JsonInclude(JsonInclude.Include.NON_NULL)
 		private Integer filterCount;
 	}
 }

@@ -1,7 +1,7 @@
 package com.haizhi.dataio.bean;
 
+
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * @author duanxiaoyi
@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
  */
 
 @Data
-@NoArgsConstructor
 public class JobParam {
 
 }

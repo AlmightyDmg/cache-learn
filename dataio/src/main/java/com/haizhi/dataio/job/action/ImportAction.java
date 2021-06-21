@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component;
 
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
 import com.haizhi.dataclient.datapi.dmc.DmcApiFactory;
-import com.haizhi.dataio.bean.DataTransJobParam;
+import com.haizhi.dataio.bean.OldDtsParam;
 import com.haizhi.dataio.utils.JsonUtils;
 
 /**
@@ -13,10 +13,10 @@ import com.haizhi.dataio.utils.JsonUtils;
  * @createTime 2021年05月27日 10:39:40
  */
 @Component
-public class ImportAction implements IAction<DataTransJobParam> {
+public class ImportAction implements IAction<OldDtsParam> {
     @Override
-    public void doAction(DataTransJobParam actionInfo) {
-        DmcConfig dmcConfig = JsonUtils.toObject(actionInfo.getDmcUrl(), DmcConfig.class);
+    public void doAction(OldDtsParam actionInfo) {
+        DmcConfig dmcConfig = JsonUtils.toObject(actionInfo.getEndpoint(), DmcConfig.class);
         DmcApiFactory.getDmcJobApi(dmcConfig).startImportJob(actionInfo.getJobId());
     }
 }
