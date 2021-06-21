@@ -1,5 +1,6 @@
 package com.haizhi.databridge.web.controller;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 import javax.annotation.Resource;
@@ -75,7 +76,7 @@ public class DataSourceController extends BaseController {
 
     @RequestMapping("/status")
     @ApiOperation("创建用户信息")
-    public DataBaseSourceVo.DataSourceStatusVo status(DataSourceForm.DataSourceStatusForm sourceStatusForm) throws UnsupportedEncodingException {
+    public DataBaseSourceVo.DataSourceStatusVo status(DataSourceForm.DataSourceStatusForm sourceStatusForm) throws IOException {
         return dataSourceService.status(sourceStatusForm);
     }
 }

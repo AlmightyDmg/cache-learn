@@ -1,12 +1,9 @@
 package com.haizhi.databridge.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
+import org.springframework.util.ObjectUtils;
 
 
 /**
@@ -27,100 +24,22 @@ public final class GzipUtils  {
     private GzipUtils() {
     }
 
-    public static byte[] compress(String str, String encoding) {
-        if (str == null || str.length() == 0) {
-            return null;
+    public static String compress2Str(String str, String altchars) throws UnsupportedEncodingException {
+        String s = Base64Utils.encodeBase64((ZLibUtils.compress(str.getBytes("UTF-8"))));
+        if (!ObjectUtils.isEmpty(altchars)) {
+            s = s.replace('+', altchars.charAt(0));
+            s = s.replace('/', altchars.charAt(1));
         }
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        GZIPOutputStream gzip;
-        try {
-            gzip = new GZIPOutputStream(out);
-            gzip.write(str.getBytes(encoding));
-            gzip.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return out.toByteArray();
+        return s;
     }
 
-    public static String compress2String(String str, String encoding) throws UnsupportedEncodingException {
-        if (str == null || str.length() == 0) {
-            return null;
+    public static String uncompress2Str(String str, String altchars) throws IOException {
+        if (!ObjectUtils.isEmpty(altchars)) {
+            str = str.replace(altchars.charAt(0), '+');
+            str = str.replace(altchars.charAt(1), '/');
         }
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        GZIPOutputStream gzip;
-        try {
-            gzip = new GZIPOutputStream(out);
-            gzip.write(str.getBytes(encoding));
-            gzip.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return out.toString(encoding);
-    }
+        byte[] s = Base64Utils.decodeBase64(str);
 
-    public static byte[] compress(String str) throws IOException {
-        return compress(str, GZIP_ENCODE_UTF_8);
-    }
-
-    public static byte[] uncompress(byte[] bytes) {
-        if (bytes == null || bytes.length == 0) {
-            return null;
-        }
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-        try {
-            GZIPInputStream ungzip = new GZIPInputStream(in);
-
-            byte[] buffer = new byte[BYTENUM];
-            int n;
-            while ((n = ungzip.read(buffer)) >= 0) {
-                out.write(buffer, 0, n);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return out.toByteArray();
-    }
-
-    public static String uncompressToString(byte[] bytes, String encoding) {
-        if (bytes == null || bytes.length == 0) {
-            return null;
-        }
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-        try {
-            GZIPInputStream ungzip = new GZIPInputStream(in);
-            byte[] buffer = new byte[BYTENUM];
-            int n;
-            while ((n = ungzip.read(buffer)) >= 0) {
-                out.write(buffer, 0, n);
-            }
-            return out.toString(encoding);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public static String uncompressToString(byte[] bytes) {
-        return uncompressToString(bytes, GZIP_ENCODE_UTF_8);
-    }
-
-    public static String uncompress(String str) throws IOException {
-        if (str == null || str.length() == 0) {
-            return str;
-        }
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ByteArrayInputStream in = new ByteArrayInputStream(str
-                .getBytes(GZIP_ENCODE_UTF_8));
-        GZIPInputStream gunzip = new GZIPInputStream(in);
-        byte[] buffer = new byte[BYTENUM];
-        int n;
-        while ((n = gunzip.read(buffer)) >= 0) {
-            out.write(buffer, 0, n);
-        }
-        // toString()使用平台默认编码，也可以显式的指定如toString(&quot;GBK&quot;)
-        return out.toString();
+        return ZLibUtils.decompress(s);
     }
 }

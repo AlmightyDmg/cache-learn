@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +28,6 @@ import com.haizhi.databridge.exception.DatabridgeException;
 import com.haizhi.databridge.repository.importdata.TTableRepository;
 import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSourceService;
-import com.haizhi.databridge.util.Base64Utils;
 import com.haizhi.databridge.util.GzipUtils;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
@@ -74,12 +72,10 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 			connInfo.put("random", Integer.valueOf((int) (System.currentTimeMillis() * onlyForRandom)).toString());
 			connInfo.put("type", DataSourceConstants.SourceType.SOURCE_FROM_API);
 			connInfo.put("role", DataSourceConstants.RoleType.DB_ROLE_READER);
-			dataSourceCreateForm.setConnectId(Arrays.toString(GzipUtils.compress(JsonUtils.toJson(connInfo))));
-			// TODO 添加connectID
-			System.out.printf("添加connectId");
+			dataSourceCreateForm.setConnectId(encodeConnectId(JsonUtils.toJson(connInfo)));
 		}
 
-		String connStr = GzipUtils.uncompress(dataSourceCreateForm.getConnectId());
+		String connStr = GzipUtils.uncompress2Str(dataSourceCreateForm.getConnectId(), "+-");
 		DataSourceObjDto.SetUp setup = JsonUtils.toObject(connStr, DataSourceObjDto.SetUp.class);
 		DataSourceObjDto.Options options = new DataSourceObjDto.Options();
 //		DataSourceObjDto.Output output = new DataSourceObjDto.Output();
@@ -141,7 +137,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		if (!optionalTdataBaseSourceBean.isPresent()) {
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, "不存在的数据源");
 		}
-		String connStr = GzipUtils.uncompress(dataSourceUpdateForm.getConnectId());
+		String connStr = GzipUtils.uncompress2Str(dataSourceUpdateForm.getConnectId(), "+-");
 		TDataBaseSourceBean tDataBaseSourceBean = optionalTdataBaseSourceBean.get();
 		tDataBaseSourceBean.setSetup(connStr);
 		tdbsRepo.save(tDataBaseSourceBean);
@@ -190,7 +186,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 			return result;
 		}
 		for (TDataBaseSourceBean tDataBaseSourceBean: optionalTDataBaseSourceBeans.get()) {
-			String connectId = Base64Utils.encodeBase64(JsonUtils.toJson(tDataBaseSourceBean.getSetup()));
+			String connectId = encodeConnectId(JsonUtils.toJson(tDataBaseSourceBean.getSetup()));
 			DataSourceObjDto.Options options = JsonUtils.toObject(tDataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
 			result.add(DataBaseSourceVo.RetrieveVo.builder()
 					.connectId(connectId)
@@ -221,7 +217,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	}
 
 	public DataBaseSourceVo.DataSourceStatusVo status(DataSourceForm.DataSourceStatusForm dataSourceStatusForm
-	) throws UnsupportedEncodingException {
+	) throws IOException {
 		List<TDataBaseSourceBean> queryDbBeanList = new ArrayList<>();
 		if (ObjectUtils.isEmpty(dataSourceStatusForm.getDbId())) {
 			Optional<List<TDataBaseSourceBean>> optionalDbsBeans = tdbsRepo.findByOwnerAndSourceType(
@@ -260,7 +256,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	}
 
 	private List<DataBaseSourceVo.DataSourceVo> buildDataSourceVo(String owner, List<TDataBaseSourceBean> dataBaseSourceBeans
-	) throws UnsupportedEncodingException {
+	) throws IOException {
 		List<String> dbIds = dataBaseSourceBeans.stream().map(TDataBaseSourceBean::getDbId).collect(Collectors.toList());
 		List<DataBaseSourceVo.DataSourceVo> dataSourceVos = new ArrayList<>();
 		Map<String, Integer> dbId2TableNumMap = tableServiceImpl.getDbId2TablesNumMap(owner, dbIds);
@@ -268,7 +264,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 			DataSourceObjDto.SetUp setUp = JsonUtils.toObject(dataBaseSourceBean.getSetup(), DataSourceObjDto.SetUp.class);
 			DataSourceObjDto.Options options = JsonUtils.toObject(dataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
 			dataSourceVos.add(DataBaseSourceVo.DataSourceVo.builder()
-					.connectId(Base64Utils.encodeBase64(dataBaseSourceBean.getSetup()))
+					.connectId(encodeConnectId(JsonUtils.toJson(setUp)))
 					.connector(String.format("%s@%s", setUp.getUid(),
 							!ObjectUtils.isEmpty(setUp.getConnStr()) ? setUp.getConnStr() : setUp.getServer()))
 					.dbId(dataBaseSourceBean.getDbId())
@@ -278,9 +274,18 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 					.remark(dataBaseSourceBean.getRemark())
 					.tbCount(dbId2TableNumMap.getOrDefault("db_id", 0))
 					.build());
+			decodeConnectId(encodeConnectId(JsonUtils.toJson(setUp)));
+
 		}
 		return dataSourceVos;
 	}
 
+	public String encodeConnectId(String s) throws UnsupportedEncodingException {
+		return GzipUtils.compress2Str(s, "+-");
+	}
+
+	public String decodeConnectId(String s) throws IOException {
+		return GzipUtils.uncompress2Str(s, "+-");
+	}
 
 }
