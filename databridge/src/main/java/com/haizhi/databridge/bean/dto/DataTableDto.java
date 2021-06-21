@@ -22,7 +22,6 @@ public final class DataTableDto {
 	@NoArgsConstructor
 	@AllArgsConstructor
 	public static final class SyncConfigDto {
-		private String type;
 		private String model;
 		private String ref;
 		@JsonProperty("output_ref")
@@ -36,6 +35,8 @@ public final class DataTableDto {
 		private Integer clean;
 		private String sql;
 		private Object blobfield;
+		// maximum、relativetime
+		private String type;
 		private DataTableDto.IncreaseDto increase;
 		private DataTableDto.FilterDto filter;
 		// 日期可以选择格式化,默认yyyy/MM/dd HH/mm/ss
@@ -56,10 +57,12 @@ public final class DataTableDto {
 		private String field;
 		private String type;
 		private DataTableDto.MaximumDto maximum;
+		private DataTableDto.RelativetimeDto relativetime;
 		@JsonProperty("new_max")
 		private Object newMax;
 
 	}
+
 
 	@Data
 	public static class MaximumDto {
@@ -77,6 +80,26 @@ public final class DataTableDto {
 	@Data
 	public static class EndDto {
 		private Boolean enable;
+		private String type;
+		private String mode;
+		private Object value;
+	}
+
+	@Data
+	public static class RelativetimeDto {
+		private DataTableDto.RelativetimeStartDto start;
+		private DataTableDto.RelativetimeEndDto end;
+	}
+
+	@Data
+	public static class RelativetimeStartDto {
+		private String type;
+		private String mode;
+		private Object value;
+	}
+
+	@Data
+	public static class RelativetimeEndDto {
 		private String type;
 		private String mode;
 		private Object value;
