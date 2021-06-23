@@ -45,6 +45,8 @@ public class DataTableVo {
         private List<String> fields;
         private DataTableDto.IncreaseDto increase;
         private String ref;
+        @JsonProperty("output_ref")
+        private String outputRef;
         private Integer dereplication;
         private Integer clean;
         private List<String> schema;
@@ -55,7 +57,9 @@ public class DataTableVo {
         private String type;
         @JsonProperty("is_view")
         private Integer isView;
-
+        @JsonProperty("auto_fields")
+        private Integer autoFields;
+        private Map<Object, Object> transform;
     }
 
     @Data
@@ -100,6 +104,27 @@ public class DataTableVo {
         @JsonProperty("tb_name")
         private String tbName;
 
+        @JsonProperty("scheduler_id")
+        private String schedulerId;
+        private String type;
+        @JsonProperty("finish_at")
+        private String finishAt;
+        @JsonProperty("sync_config")
+        private DataTableDto.SyncConfigDto syncConfig;
+        private Boolean synced;
+
+
+    }
+
+
+    @Data
+    @Builder
+    public static final class StatusVo {
+        private Integer inserting;
+        private Integer terminated;
+        private Integer finished;
+        private Integer total;
+        private Integer error;
     }
 
 }

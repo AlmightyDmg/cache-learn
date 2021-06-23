@@ -2,13 +2,8 @@ package com.haizhi.databridge.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.zip.Deflater;
-import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
 
 /**
  * ZLib压缩工具
@@ -30,7 +25,7 @@ public abstract class ZLibUtils {
      * @return byte[] 压缩后的数据
      */
     public static byte[] compress(byte[] data) {
-        byte[] output = new byte[0];
+        byte[] output = new byte[byteNum];
 
         Deflater compresser = new Deflater();
 
@@ -60,122 +55,31 @@ public abstract class ZLibUtils {
     }
 
     /**
-     * 压缩
-     *
-     * @param data
-     *            待压缩数据
-     *
-     * @param os
-     *            输出流
-     */
-    public static void compress(byte[] data, OutputStream os) {
-        DeflaterOutputStream dos = new DeflaterOutputStream(os);
-
-        try {
-            dos.write(data, 0, data.length);
-
-            dos.finish();
-
-            dos.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static String compressStr(String str) throws UnsupportedEncodingException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        DeflaterOutputStream dos = new DeflaterOutputStream(out);
-        byte[] data = str.getBytes(COMPRESS_ENCODE_UTF_8);
-
-        try {
-            dos.write(data, 0, data.length);
-
-            dos.finish();
-
-            dos.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return out.toString(COMPRESS_ENCODE_UTF_8);
-    }
-
-
-
-    /**
      * 解压缩
      *
      * @param data
      *            待压缩的数据
      * @return byte[] 解压缩后的数据
      */
-    public static byte[] decompress(byte[] data) {
-        byte[] output = new byte[0];
-
-        Inflater decompresser = new Inflater();
-        decompresser.reset();
-        decompresser.setInput(data);
-
-        ByteArrayOutputStream o = new ByteArrayOutputStream(data.length);
+    public static String decompress(byte[] data) throws IOException {
+        Inflater inflater = new Inflater();
+        inflater.setInput(data);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(data.length);
         try {
-            byte[] buf = new byte[byteNum];
-            while (!decompresser.finished()) {
-                int i = decompresser.inflate(buf);
-                o.write(buf, 0, i);
+            byte[] buff = new byte[byteNum];
+            while (!inflater.finished()) {
+                int count = inflater.inflate(buff);
+                baos.write(buff, 0, count);
             }
-            output = o.toByteArray();
         } catch (Exception e) {
-            output = data;
             e.printStackTrace();
         } finally {
-            try {
-                o.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            baos.close();
         }
+        inflater.end();
+        byte[] output = baos.toByteArray();
+        return new String(output, "UTF-8");
 
-        decompresser.end();
-        return output;
     }
-
-    /**
-     * 解压缩
-     *
-     * @param is
-     *            输入流
-     * @return byte[] 解压缩后的数据
-     */
-    public static byte[] decompress(InputStream is) {
-        InflaterInputStream iis = new InflaterInputStream(is);
-        ByteArrayOutputStream o = new ByteArrayOutputStream(byteNum);
-        try {
-            int i = byteNum;
-            byte[] buf = new byte[i];
-
-            while ((i = iis.read(buf, 0, i)) > 0) {
-                o.write(buf, 0, i);
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return o.toByteArray();
-    }
-
-//    public static String compress2String(String str, String encoding) throws UnsupportedEncodingException {
-//        if (str == null || str.length() == 0) {
-//            return null;
-//        }
-//        ByteArrayOutputStream out = new ByteArrayOutputStream();
-//        GZIPOutputStream gzip;
-//        try {
-//            gzip = new GZIPOutputStream(out);
-//            gzip.write(str.getBytes(encoding));
-//            gzip.close();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        return out.toString(encoding);
-//    }
 }
 

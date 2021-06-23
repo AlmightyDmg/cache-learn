@@ -40,4 +40,6 @@ public interface DataSourceService {
 	 **/
 	DataBaseSourceVo.RetrieveVo retrieve(DataSourceForm.DataSourceRetrieveForm dataSourceRetrieveForm) throws UnsupportedEncodingException;
 
+	DataBaseSourceVo.DataSourceStatusVo status(DataSourceForm.DataSourceStatusForm sourceStatusForm) throws IOException;
+
 }
