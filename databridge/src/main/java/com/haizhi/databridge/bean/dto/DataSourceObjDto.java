@@ -19,8 +19,12 @@ public final class DataSourceObjDto {
 	@NoArgsConstructor
 	@AllArgsConstructor
 	public static final class SetUp {
-		private String output;
+//		private String output;
 		private String type;
+		private String uid;
+		@JsonProperty("conn_str")
+		private String connStr;
+		private String server;
 
 		@JsonProperty("access_id")
 		private String accessId;

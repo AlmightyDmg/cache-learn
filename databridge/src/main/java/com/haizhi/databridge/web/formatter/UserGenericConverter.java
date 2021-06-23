@@ -58,8 +58,8 @@ public class UserGenericConverter implements GenericConverter {
 				//获取目标数组的泛型类型
 				ParameterizedType type = (ParameterizedType) targetType.getResolvableType().getType();
 				CollectionType collectionType = typeFactory.constructCollectionType(
-					(Class<? extends Collection>) targetType.getType(),
-					(Class<?>) type.getActualTypeArguments()[0]);
+						(Class<? extends Collection>) targetType.getType(),
+						(Class<?>) type.getActualTypeArguments()[0]);
 				return objectMapper.readValue(String.valueOf(o), collectionType);
 			} catch (Exception e) {
 				log.error("自定义类型转换【字符串转数组】失败:", e);

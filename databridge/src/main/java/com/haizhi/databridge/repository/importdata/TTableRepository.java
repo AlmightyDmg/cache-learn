@@ -1,6 +1,7 @@
 package com.haizhi.databridge.repository.importdata;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.transaction.Transactional;
@@ -15,8 +16,13 @@ import com.haizhi.databridge.bean.domain.importdata.TTableBean;
 @Repository
 public interface TTableRepository extends HaizhiBaseRepository<TTableBean, String> {
 
+	@Query(value = "select *  from t_table  WHERE t_table.db_id = ?1 AND t_table.owner = ?2 "
+			+ "and t_table.deleted=0", nativeQuery = true)
 	Optional<List<TTableBean>> findAllByDbIdAndOwner(String dbId, String owner);
+
 	Optional<TTableBean> findByTbNameAndDbIdAndOwner(String tbName, String dbId, String owner);
+
+
 	Optional<TTableBean> findByTableIdAndOwner(String tableId, String owner);
 
 	Optional<List<TTableBean>> findBySchedulerIdAndOwner(String schedulerId, String owner);
@@ -38,4 +44,12 @@ public interface TTableRepository extends HaizhiBaseRepository<TTableBean, Strin
 	@Query(value = "select * from t_table where  t_table.owner = ?1 "
 			+ "and t_table.`tb_name` like concat('%', (?2) ,'%'))", nativeQuery = true)
 	Optional<List<TTableBean>> findTableByOwnerAndTbNameLike(String owner, String searchKey);
+
+	@Query(value = "select *  from t_table  WHERE t_table.owner = ?1 and t_table.db_id in (?2) "
+			+ "and t_table.deleted=0", nativeQuery = true)
+	Optional<List<TTableBean>> findTableBeanByOwnerAndDbIds(String owner, List<String> dbId);
+
+	@Query(value = "select t_table.db_id, count(1) as count  from t_table  WHERE t_table.owner = ?1 and t_table.db_id in (?2) "
+			+ "and t_table.deleted=0", nativeQuery = true)
+	List<Map<String, Object>> countTableNumByDbIdAndOwner(String owner, List<String> dbIds);
 }

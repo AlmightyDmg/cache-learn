@@ -151,7 +151,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		updateTable(updateForm.getTableId(), updateForm.getUserId(), updateForm);
 	}
 
-	public void updateTable(String tableId, String userId,  DataTableForm.DataTableUpdateBaseForm updateBaseForm) {
+	public void updateTable(String tableId, String userId,  DataTableForm.DataTableUpdateBaseForm form) {
 		Optional<TTableBean> optionalTableBean = tTableRepo.findByTableIdAndOwner(tableId, userId);
 		if (!optionalTableBean.isPresent()) {
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS,
@@ -162,24 +162,40 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 
 		tTableBean.setSyncConfig(JsonUtils.toJson(
 				DataTableDto.SyncConfigDto.builder()
-						.type(updateBaseForm.getType())
-						.ref(updateBaseForm.getRef())
-						.model(syncConfigDto.getModel())
+						.tbName(!ObjectUtils.isEmpty(form.getTbName()) ? form.getTbName() : syncConfigDto.getTbName())
+						.blobfield(!ObjectUtils.isEmpty(form.getBlobfield()) ? form.getBlobfield() : new HashMap<>())
+						.keys(form.getKeys())
+						.dereplication(form.getDereplication())
+						.sql(!ObjectUtils.isEmpty(form.getSql()) ? form.getSql() : "")
+						.synced(!ObjectUtils.isEmpty(syncConfigDto.getOutputRef()))
+						.isView(syncConfigDto.getIsView())
+						.increase(form.getIncrease())
+						.rows(form.getRows())
+						.type(form.getType())
 						.outputRef(syncConfigDto.getOutputRef())
-						.rows(updateBaseForm.getRows())
-						.keys(updateBaseForm.getKeys())
-						.fields(updateBaseForm.getFields())
-						.autoFields(updateBaseForm.getAutoFields())
-						.dereplication(updateBaseForm.getDereplication())
-						.clean(updateBaseForm.getClean())
-						.sql(updateBaseForm.getSql())
-						.blobfield(updateBaseForm.getBlobfield())
-						.increase(updateBaseForm.getIncrease())
-						.filter(updateBaseForm.getFilter())
-						.formatter(updateBaseForm.getFormatter())
+						.fields(form.getFields())
+						.autoFields(form.getAutoFields())
+						.transform(new HashMap<>())
+						.filter(form.getFilter())
+						.tableId(tableId)
+						.clean(form.getClean())
+						.model(syncConfigDto.getModel())
+						.formatter(handlerFormatter(form.getFormatter()))
+						.ref(!ObjectUtils.isEmpty(form.getRef()) ? form.getRef() : syncConfigDto.getRef())
 						.build())
 		);
 		tTableRepo.save(tTableBean);
+	}
+
+	private Map<String, DataTableDto.FieldDtoatterDto> handlerFormatter(Map<String, DataTableDto.FieldDtoatterDto> formatter) {
+		Map<String, DataTableDto.FieldDtoatterDto> result = new HashMap<>();
+		for (String key: formatter.keySet()) {
+			if (!ObjectUtils.isEmpty(formatter.get(key)) || !ObjectUtils.isEmpty(formatter.get(key).getFmt())) {
+				result.put(key, formatter.get(key));
+			}
+		}
+		return result;
+
 	}
 
 	public List<DataTableVo.RetrieveVo> listRetrieve(DataTableForm.DataTableListRetrieveForm listRetrieveForm)
@@ -206,13 +222,17 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 				.schema(getSchemafromRef(syncConfig.getRef()))
 				.tableId(tTableBean.getTableId())
 				.tbName(tTableBean.getTbName())
+				.fields(syncConfig.getFields())
+				.autoFields(syncConfig.getAutoFields())
 				.dbId(tTableBean.getDbId())
-				.synced(Boolean.TRUE.equals(ObjectUtils.isEmpty(syncConfig.getOutputRef())))
+				.synced(Boolean.TRUE.equals(!ObjectUtils.isEmpty(syncConfig.getOutputRef())))
+				.transform(syncConfig.getTransform())
 				.filter(syncConfig.getFilter())
 				.blobfield(syncConfig.getBlobfield())
 				.keys(syncConfig.getKeys())
 				.increase(syncConfig.getIncrease())
 				.ref(syncConfig.getRef())
+				.outputRef(syncConfig.getOutputRef())
 				.dereplication(syncConfig.getDereplication())
 				.clean(syncConfig.getClean())
 				.sql(syncConfig.getSql())
@@ -220,6 +240,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 				.model(syncConfig.getModel())
 				.formatter(syncConfig.getFormatter())
 				.type(syncConfig.getType())
+				.schedulerId(tTableBean.getSchedulerId())
 				.isView(0)
 				.build();
 	}
@@ -285,16 +306,78 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 
 	public DataTableVo.StatisticsVo statistics(DataTableForm.DataTableStatisticsForm statisticsForm) {
 		Optional<List<TTableBean>> optionalTTableBeans = tTableRepo.findByOwner(statisticsForm.getUserId());
+		if (!optionalTTableBeans.isPresent()) {
+			return null;
+		}
+		List<TTableBean> tTableBeans = optionalTTableBeans.get();
+		return countStatistics(statisticsForm.getUserId(), tTableBeans);
 
+	}
+
+	public DataTableVo.StatisticsVo countStatisticsByDbIds(String owner, List<String> dbIds) {
+		Optional<List<TTableBean>> optionalTTableBeans = tTableRepo.findTableBeanByOwnerAndDbIds(owner, dbIds);
+		if (optionalTTableBeans.isPresent()) {
+			return countStatistics(owner, optionalTTableBeans.get());
+		}
+		return null;
+	}
+
+	// 根据status过滤
+	public DataTableVo.StatisticsVo countStatisticsByDbIds(String owner, List<String> dbIds, String tbStatus, String tbName) {
+
+		List<TTableBean> tTableBeans = new ArrayList<>();
+		Optional<List<TTableBean>> optionalTTableBeans = tTableRepo.findTableBeanByOwnerAndDbIds(owner, dbIds);
+		if (!optionalTTableBeans.isPresent()) {
+			return null;
+		}
+		if (!ObjectUtils.isEmpty(tbStatus)) {
+			tTableBeans = optionalTTableBeans.get().stream().filter(
+					tTableBean -> tbStatus.equals(tTableBean.getStatus())).collect(Collectors.toList());
+		}
+		if (!ObjectUtils.isEmpty(tbName)) {
+			tTableBeans = optionalTTableBeans.get().stream().filter(
+					tTableBean -> tbName.equals(tTableBean.getTbName())).collect(Collectors.toList());
+		}
+		return countStatistics(owner, tTableBeans);
+	}
+
+	// 根据status过滤
+	public DataTableVo.StatusVo countStatusByDbIds(String owner, List<String> dbIds, String tbStatus, String tbName) {
+
+		Optional<List<TTableBean>> optionalTTableBeans = tTableRepo.findTableBeanByOwnerAndDbIds(owner, dbIds);
+		if (!optionalTTableBeans.isPresent()) {
+			return null;
+		}
+		List<TTableBean> tTableBeans = optionalTTableBeans.get();
+		if (!ObjectUtils.isEmpty(tbStatus)) {
+			tTableBeans = optionalTTableBeans.get().stream().filter(
+					tTableBean -> tbStatus.equals(tTableBean.getStatus())).collect(Collectors.toList());
+		}
+		if (!ObjectUtils.isEmpty(tbName)) {
+			tTableBeans = optionalTTableBeans.get().stream().filter(
+					tTableBean -> tbName.equals(tTableBean.getTbName())).collect(Collectors.toList());
+		}
+		return DataTableVo.StatusVo.builder()
+				.error(tTableBeans.stream().filter(tTableBean -> "error".equals(tTableBean.getStatus()))
+						.collect(Collectors.toList()).size())
+				.finished(tTableBeans.stream().filter(tTableBean -> "finished".equals(tTableBean.getStatus()))
+						.collect(Collectors.toList()).size())
+				.inserting(tTableBeans.stream().filter(tTableBean -> "inserting".equals(tTableBean.getStatus()))
+						.collect(Collectors.toList()).size())
+				.terminated(tTableBeans.stream().filter(tTableBean -> "terminated".equals(tTableBean.getStatus()))
+						.collect(Collectors.toList()).size())
+				.total(tTableBeans.size())
+				.build();
+//		return countStatistics(owner, tTableBeans);
+	}
+
+
+
+	public DataTableVo.StatisticsVo countStatistics(String owner, List<TTableBean> tTableBeans) {
 		int error = 0;
 		int finished = 0;
 		int syncing = 0;
 		int terminated = 0;
-		int total = 0;
-		int totalDatabase = 0;
-		int totalScheduler = 0;
-
-		List<TTableBean> tTableBeans = optionalTTableBeans.get();
 		for (TTableBean tTableBean: tTableBeans) {
 			if (DataSourceConstants.DataTableStatus.ERROR.equals(tTableBean.getStatus())) {
 				error += 1;
@@ -312,19 +395,19 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 				.finished(finished)
 				.syncing(syncing)
 				.terminated(terminated)
-				.total(total)
-				.totalDatabase(dataSourceServiceImpl.countDatabases(statisticsForm.getUserId()))
-				.totalScheduler(dataSchedulerServiceImpl.buildSchedulerCount(statisticsForm.getUserId()))
+				.total(tTableBeans.size())
+				.totalDatabase(dataSourceServiceImpl.countDatabases(owner))
+				.totalScheduler(dataSchedulerServiceImpl.buildSchedulerCount(owner))
 				.build();
 	}
 
 
 	public String refEncode(String ref) throws UnsupportedEncodingException {
-		return Base64Utils.encodeBase64(ref);
+		return Base64Utils.encodeBase64(ref.getBytes("UTF-8"));
 	}
 
 	public String refDecode(String ref) throws UnsupportedEncodingException {
-		return Base64Utils.decodeBase64(ref);
+		return new String(Base64Utils.decodeBase64(ref), "UTF-8");
 	}
 
 	public List<String> getSchemafromRef(String ref) throws UnsupportedEncodingException {
@@ -400,14 +483,53 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 					.ref(syncConfigDto.getRef())
 					.remark(tTableBean.getRemark())
 					.schema(getSchemafromRef(syncConfigDto.getRef()))
-					.startAt(ft.format(tTableBean.getStartAt()))
+					.startAt(!ObjectUtils.isEmpty(tTableBean.getStartAt()) ? ft.format(tTableBean.getStartAt()) : null)
 					.status(tTableBean.getStatus())
 					.syncType(getSyncType(syncConfigDto))
 					.tableId(tTableBean.getTableId())
 					.tbName(tTableBean.getTbName())
+					.schedulerId(tTableBean.getSchedulerId())
+					.type(syncConfigDto.getType())
+					.finishAt(!ObjectUtils.isEmpty(tTableBean.getFinishAt()) ? ft.format(tTableBean.getFinishAt()) : null)
+					.syncConfig(syncConfigDto)
+					.synced(Boolean.TRUE.equals(!ObjectUtils.isEmpty(syncConfigDto.getOutputRef())))
 					.build()
 			);
 		}
 		return tableVoMap;
+	}
+
+	public List<DataTableVo.TableVo> getTableVosByDbIds(String owner, List<String> dbIds, String tbStatus, String tbName
+	) throws UnsupportedEncodingException {
+		List<DataTableVo.TableVo> result = new ArrayList<>();
+
+		List<TTableBean> tTableBeans = new ArrayList<>();
+		Optional<List<TTableBean>> optionalTTableBeans = tTableRepo.findTableBeanByOwnerAndDbIds(owner, dbIds);
+		if (!optionalTTableBeans.isPresent()) {
+			return result;
+		}
+		if (!ObjectUtils.isEmpty(tbStatus)) {
+			tTableBeans = optionalTTableBeans.get().stream().filter(
+					tTableBean -> tbStatus.equals(tTableBean.getStatus())).collect(Collectors.toList());
+		}
+		if (!ObjectUtils.isEmpty(tbName)) {
+			tTableBeans = optionalTTableBeans.get().stream().filter(
+					tTableBean -> tbName.equals(tTableBean.getTbName())).collect(Collectors.toList());
+		}
+		Map<String, DataTableVo.TableVo> tableId2TableVoMap = buildTableId2TableVoMap(owner, optionalTTableBeans.get());
+		return tableId2TableVoMap.values().stream().collect(Collectors.toList());
+	}
+
+	public Map<String, Integer> getDbId2TablesNumMap(String owner, List<String> dbIds)  {
+		List<Map<String, Object>> optionalDbId2TablesNumMapList = tTableRepo.countTableNumByDbIdAndOwner(owner, dbIds);
+//		Optional<List<Map<String, Object>>> optionalDbId2TablesNumMapList = tTableRepo.countTableNumByDbIdAndOwner(owner, dbIds);
+//		if (!optionalDbId2TablesNumMapList.isPresent()) {
+//			return new HashMap<>();
+//		}
+		Map<String, Integer> dbId2TableNumMap = new HashMap<>();
+		for (Map<String, Object> obj: optionalDbId2TablesNumMapList) {
+			dbId2TableNumMap.put(obj.get("db_id").toString(), Integer.valueOf(obj.get("count").toString()));
+		}
+		return dbId2TableNumMap;
 	}
 }
