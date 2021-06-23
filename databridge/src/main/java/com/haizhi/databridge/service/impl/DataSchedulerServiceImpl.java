@@ -11,6 +11,7 @@ import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_ORIGIN;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_STOP;
 import static com.haizhi.databridge.constants.DataSourceConstants.TaskType.IMPORT;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -18,6 +19,8 @@ import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -29,6 +32,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +40,7 @@ import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 
 import com.haizhi.databridge.bean.domain.importdata.TDataBaseSourceBean;
 import com.haizhi.databridge.bean.domain.importdata.TSchedulerBean;
@@ -58,10 +63,14 @@ import com.haizhi.databridge.service.DataSchedulerService;
 import com.haizhi.databridge.util.IdUtils;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
+import com.haizhi.databridge.util.SpringUtils;
+import com.haizhi.databridge.util.ZLibUtils;
 import com.haizhi.databridge.web.controller.form.DataSchedulerForm;
 import com.haizhi.databridge.web.controller.form.JobUnitStateForm;
 import com.haizhi.databridge.web.result.StatusCode;
+import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataFieldResp;
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
+import com.haizhi.dataclient.datapi.dmc.DmcTableApi;
 
 @Service
 @Log4j2
@@ -397,78 +406,180 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 	@Override
 	public DataTransJobVo getJobExecInfo(String jobId) {
-		TSchedulerBean tSchedulerBean = tSchedulerRepo.getOne(jobId);
+		TSchedulerBean tSchedulerBean = tSchedulerRepo.findBySchedulerId(jobId).orElseThrow(() -> new DatabridgeException("jog not exist"));
 		String dmcUrl = JsonUtils.toJson(DmcConfig.builder().pentagonProp(dmcProp.getPentagon())
-				.noahProp(dmcProp.getNoah()).mobiusProp(dmcProp.getMobius()).build());
-		DataTransJobVo.Sink toSink = DataTransJobVo.Sink.builder().url(dmcUrl).type("dmc").build();
+				.noahProp(dmcProp.getNoah()).mobiusProp(dmcProp.getMobius()).tassadarProp(dmcProp.getTassadar()).build());
 		List<TTableBean> tableBeans = JsonUtils.toObject(tSchedulerBean.getOptions(), DataSchedulerDto.OptionsDto.class)
-				.getTables().stream().map(tableId -> tTableRepo.findById(tableId).orElse(null)).collect(Collectors.toList());
+				.getTables().stream().map(tableId -> tTableRepo.findByTableId(tableId).orElse(null)).collect(Collectors.toList());
 
 		return DataTransJobVo.builder()
 				.jobId(jobId)
 				.jobType("import")
+				.userId(tSchedulerBean.getOwner())
 				.syncUnits(tableBeans.stream().map(tableBean -> {
 					DataTableDto.SyncConfigDto syncConfig =
 							JsonUtils.toObject(tableBean.getSyncConfig(), DataTableDto.SyncConfigDto.class);
-							return getSyncUnit(syncConfig, tableBean, toSink);
+							return getSyncUnit(syncConfig, tableBean, dmcUrl, tSchedulerBean.getOwner());
 					 }).collect(Collectors.toList())
 					).build();
 	}
 
+	private DataTransJobVo.Sync.SyncCondition getSyncCondition(DataTableDto.SyncConfigDto syncConfig) {
+		DataTransJobVo.Sync.SyncCondition syncCondition = null;
+		if (ObjectUtils.isEmpty(syncConfig.getIncrease())) {
+			syncCondition = null;
+		} else {
+			if ("maximum".equalsIgnoreCase(syncConfig.getIncrease().getType())) {
+				syncCondition = DataTransJobVo.Sync.SyncCondition.builder()
+					.field(syncConfig.getIncrease().getField())
+					.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
+							.operator(syncConfig.getIncrease().getMaximum().getStart().getCompare())
+							.enable("true".equals(syncConfig.getIncrease().getMaximum().getStart().getEnable()) ? 1 : 0)
+							.value(syncConfig.getIncrease().getMaximum().getStart().getValue()).build())
+					.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
+							.operator(syncConfig.getIncrease().getMaximum().getEnd().getMode())
+							.enable(syncConfig.getIncrease().getMaximum().getEnd().getEnable() ? 1 : 0)
+							.value(syncConfig.getIncrease().getMaximum().getEnd().getValue().toString()).build())
+					.build();
+			} else if ("relativetime".equalsIgnoreCase(syncConfig.getIncrease().getType())) {
+				syncCondition = null;
+			}
+		}
+
+		return syncCondition;
+	}
+
+	private DataTransJobVo.Filter getFilter(DataTableDto.SyncConfigDto syncConfig) {
+		DataTransJobVo.Filter filter;
+		if (syncConfig.getFilter() == null) {
+			filter = null;
+		} else {
+			List<DataTransJobVo.Filter.FilterCondition.Condition> conditions =
+					Optional.ofNullable(syncConfig.getFilter().getList()).orElse(new ArrayList<>()).stream()
+							.map(con -> DataTransJobVo.Filter.FilterCondition.Condition.builder()
+									.name(con.getName())
+									.type(con.getType())
+									.value(con.getValue())
+									.build())
+							.collect(Collectors.toList());
+			filter = DataTransJobVo.Filter.builder()
+					.filterConditions(DataTransJobVo.Filter.FilterCondition.builder()
+							.relationType(syncConfig.getFilter().getType())
+							.conditions(conditions).build())
+					.sqlConditions(Collections.singletonList(syncConfig.getSql())).build();
+		}
+
+		return filter;
+	}
+
 	private DataTransJobVo.SyncUnit getSyncUnit(DataTableDto.SyncConfigDto syncConfig, TTableBean tableBean,
-												DataTransJobVo.Sink toSink) {
+												String dmcUrl, String userId) {
 		TDataBaseSourceBean dbBean = databaseRepo.findByDbId(tableBean.getDbId()).orElse(new TDataBaseSourceBean());
 		DataSourceObjDto.SetUp setup = JsonUtils.toObject(dbBean.getSetup(), DataSourceObjDto.SetUp.class);
-		List<DataTransJobVo.Column> columns = syncConfig.getFields().stream().map(field -> DataTransJobVo.Column.builder()
-						.name(field).build()).collect(Collectors.toList());
-		DataTransJobVo.Sync.SyncCondition syncCondition = DataTransJobVo.Sync.SyncCondition.builder()
-				.field(syncConfig.getIncrease().getField())
-				.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
-						.operator(syncConfig.getIncrease().getMaximum().getStart().getCompare())
-						.enable("true".equals(syncConfig.getIncrease().getMaximum().getStart().getEnable()) ? 1 : 0)
-						.value(syncConfig.getIncrease().getMaximum().getStart().getValue()).build())
-				.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
-						.operator(syncConfig.getIncrease().getMaximum().getEnd().getMode())
-						.enable(syncConfig.getIncrease().getMaximum().getEnd().getEnable() ? 1 : 0)
-						.value(syncConfig.getIncrease().getMaximum().getEnd().getValue()).build())
-				.build();
-		DataTransJobVo.Filter filter = DataTransJobVo.Filter.builder()
-				.filterConditions(DataTransJobVo.Filter.FilterCondition.builder()
-						.relationType(syncConfig.getFilter().getType())
-						.conditions(syncConfig.getFilter().getList().stream().map(con ->
-								DataTransJobVo.Filter.FilterCondition.Condition.builder().name(con.getName())
-										.type(con.getType()).value(con.getValue()).build())
-								.collect(Collectors.toList())).build())
-						.sqlConditions(Collections.singletonList(syncConfig.getSql())).build();
+		List<DataTransJobVo.Column> columns =
+				getFromColumns(syncConfig, dbBean, tableBean.getTbName(), syncConfig.getFields(), userId);
+
+		DataTransJobVo.Sink toSink = DataTransJobVo.Sink.builder().url(dmcUrl).type("dmc")
+				.schema(dbBean.getDbId()).catalog(dbBean.getDsName()).build();
+
+		DataTransJobVo.Sync.SyncCondition syncCondition = getSyncCondition(syncConfig);
+
+		DataTransJobVo.Filter filter = getFilter(syncConfig);
+
+		String toTablePath = null;
+		String toTableId = null;
+		if (!ObjectUtils.isEmpty(syncConfig.getOutputRef())) {
+			List<String> folderTable = JsonUtils.json2List(base64Decode(syncConfig.getOutputRef(), "+-"));
+			toTablePath = folderTable.get(0);
+			toTableId = folderTable.get(1);
+		}
 		return DataTransJobVo.SyncUnit.builder()
 				.reader(DataTransJobVo.Reader.builder()
 						.columns(columns)
-						.sync(DataTransJobVo.Sync.builder()
-								.type(syncConfig.getModel())
-								.fetchSize(syncConfig.getRows())
-								.syncCondition(syncCondition)
-								.build())
+						.sync(DataTransJobVo.Sync.builder().type(syncConfig.getModel()).fetchSize(syncConfig.getRows())
+								.syncCondition(syncCondition).build())
 						.filter(filter)
 						.tableId(tableBean.getTableId())
 						.tableName(tableBean.getTbName())
 						.build())
 				.writer(DataTransJobVo.Writer.builder()
 						.columns(columns)
+						.tableId(toTableId)
+						.tablePath(toTablePath)
 						.tableName(tableBean.getTbName())
 						.build())
 				.toSink(toSink)
 				.fromSink(DataTransJobVo.Sink.builder()
 						.url(setup.getEndpoint())
 						.username(setup.getAccessId())
-						.password(setup.getAccessId())
+						.password(setup.getAccessKey())
 						.type(dbBean.getDbType())
+						.catalog(dbBean.getDsName())
 						.build())
 				.build();
 	}
 
+	public static String base64Encode(byte[] src, String altchars) {
+		String base64Str = Base64.getEncoder().encodeToString(src);
+		if (altchars.length() < 2) {
+			return base64Str;
+		}
+
+		base64Str = base64Str.replace('+', altchars.charAt(0));
+		base64Str = base64Str.replace('/', altchars.charAt(1));
+
+		return base64Str;
+	}
+
+	public static String base64Decode(String src, String altchars) {
+		byte[] base64Dest = Base64.getDecoder().decode(src.getBytes(UTF_8));
+
+		String base64Str = new String(base64Dest, 0, base64Dest.length);
+		if (altchars.length() < 2) {
+			return base64Str;
+		}
+
+		base64Str = base64Str.replace(altchars.charAt(0), '+');
+		base64Str = base64Str.replace(altchars.charAt(1), '/');
+
+
+
+		return base64Str;
+	}
+
+	@SneakyThrows
+	public List<DataTransJobVo.Column> getFromColumns(DataTableDto.SyncConfigDto syncConfig,
+													  TDataBaseSourceBean tDataBaseSourceBean,
+													  String tableId,
+													  List<String> userConfigFields,
+													  String userId) {
+		String base64 = Base64.getEncoder()
+				.encodeToString((ZLibUtils.compress(tDataBaseSourceBean.getSetup().getBytes(UTF_8))));
+		base64 = base64.replace('/', '-');
+		String connectId = base64;
+		String ref = syncConfig.getRef();
+
+		DmcTableApi client = SpringUtils.getBean(DmcTableApi.class);
+		GetTableDataFieldResp tableDataFieldResp = client.getTableDataField(connectId, ref, tableId, userId);
+		List<GetTableDataFieldResp.Field> fieldList = tableDataFieldResp.getResult().getFields();
+
+		List<DataTransJobVo.Column> result = new ArrayList<>();
+
+		for (GetTableDataFieldResp.Field field : fieldList) {
+			if (ObjectUtils.isEmpty(userConfigFields) || userConfigFields.contains(field.getName())) {
+				result.add(DataTransJobVo.Column.builder()
+						.name(field.getName()).remark(field.getRemark()).uniqIndex(field.isUniq_index())
+						.type(field.getType()).build());
+			}
+		}
+
+		return result;
+	}
+
 	@Override
 	public String updateJobStatus(String jobId, Integer jobStatus, Long startTime, Long endTime) {
-		TSchedulerBean schedulerBean = tSchedulerRepo.getOne(jobId);
+		TSchedulerBean schedulerBean = tSchedulerRepo.findBySchedulerId(jobId)
+				.orElseThrow(() -> new DatabridgeException("job not exist"));
 		schedulerBean.setStartAt(new Timestamp(startTime));
 		if (null != endTime) {
 			schedulerBean.setFinishAt(new Timestamp(endTime));
@@ -490,24 +601,45 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 	@Override
 	public String updateJobExecUnit(JobUnitStateForm form) {
-		TTableBean tTableBean = tTableRepo.getOne(form.getFromTableId());
+		TTableBean tTableBean = tTableRepo.findByTableId(form.getFromTableId())
+				.orElseThrow(() -> new DatabridgeException("table not exist"));
 		tTableBean.setStartAt(new Timestamp(form.getStartTime()));
 		if (!ObjectUtils.isEmpty(form.getEndTime())) {
 			tTableBean.setFinishAt(new Timestamp(form.getEndTime()));
 		}
 
+		String outputRef = "";
+		if (!StringUtils.isEmpty(form.getToFolder()) && !StringUtils.isEmpty(form.getToTableId())) {
+			outputRef = base64Encode(JsonUtils.toJson(Arrays.asList(form.getToFolder(), form.getToTableId())).getBytes(UTF_8),
+					"+-");
+		}
+
 		String status = "";
 		switch (form.getTableStatus()) {
-			case 0: status = "syncing"; break;
-			case 1: status = "error"; break;
-			case 2: status = "finished"; break;
-			default: break;
+			case 0:
+				status = "syncing";
+				break;
+			case 1:
+				status = "error";
+				break;
+			case 2:
+				status = "finished";
+				break;
+			default:
+				break;
 		}
 		tTableBean.setStatus(status);
 		DataTableDto.SyncConfigDto syncConfig =
 				JsonUtils.toObject(tTableBean.getSyncConfig(), DataTableDto.SyncConfigDto.class);
-		syncConfig.getIncrease().getMaximum().getStart().setValue(form.getStartLocation());
-		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
+		if (!StringUtils.isEmpty(outputRef)) {
+			syncConfig.setOutputRef(outputRef);
+		}
+
+		if (syncConfig.getIncrease() != null) {
+			syncConfig.getIncrease().getMaximum().getStart().setValue(form.getStartLocation());
+			tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
+		}
+
 		tTableRepo.update(tTableBean);
 		return null;
 	}
@@ -524,7 +656,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		String cronExpr = genCrontab(createForm.getTiming());
 		DataTransJobParam dataTransJobParam = new DataTransJobParam();
 		dataTransJobParam.setJobId(schedulerId);
-		dataTransJobParam.setTaskType(IMPORT);
+		dataTransJobParam.setJobType(IMPORT);
 		jobClientApi.add(cronExpr, CRON, dataTransJobParam);
 		jobClientApi.start(schedulerId);
 	}
@@ -590,7 +722,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	private void updateJob(String schedulerId, String timing) {
 		DataTransJobParam dataTransJobParam = new DataTransJobParam();
 		dataTransJobParam.setJobId(schedulerId);
-		dataTransJobParam.setTaskType(IMPORT);
+		dataTransJobParam.setJobType(IMPORT);
 		jobClientApi.update(schedulerId,
 				genCrontab(JsonUtils.toObject(timing, DataSchedulerDto.TimingDto.class)),
 				IMPORT,

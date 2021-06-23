@@ -1,13 +1,21 @@
 package com.haizhi.dataclient.connection.dmc.client.tassadar.request;
 
-import javax.validation.constraints.NotBlank;
+import java.util.List;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Builder.Default;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import retrofit2.http.Field;
+import retrofit2.http.JsonBeanParam;
 
 @Data
 @SuperBuilder
@@ -20,12 +28,9 @@ public class CreateTbReq extends TassadarReqBase {
 	@NotBlank
 	@Field("name")
 	private String name;
-	@NotBlank
+	@NotNull
 	@Field("type")
-	private String type;
-	@NotBlank
-	@Field("fields")
-	private String fields;
+	private Integer type;
 	@Default
 	@Field("title")
 	private String title = "";
@@ -63,4 +68,19 @@ public class CreateTbReq extends TassadarReqBase {
 	@Field("tag")
 	private String tag = null;
 
+	@JsonBeanParam
+	@Field("fields")
+	List<TbField> fields;
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	@Builder
+	public static class TbField {
+		String name;
+		Integer type;
+		@JsonProperty("uniq_index")
+		Boolean uniqIndex;
+		String remark;
+	}
 }

@@ -2,6 +2,7 @@ package com.haizhi.dataio.bean;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -49,6 +50,8 @@ public class DataTransJobDetail extends JobDetail {
     public static class Reader {
         String tableId;
         String tableName;
+        String tablePath;
+        String realName;
         List<Column> columns;
         Sync sync;
         Filter filter;
@@ -61,6 +64,7 @@ public class DataTransJobDetail extends JobDetail {
     public static class Writer {
         String tableId;
         String tableName;
+        String realName;
         String tablePath;
         List<Column> columns;
     }
@@ -71,8 +75,13 @@ public class DataTransJobDetail extends JobDetail {
     @Builder
     public static class Column {
         String name;
+        String realName;
         String type;
         String value;
+        @JsonProperty("uniq_index")
+        Boolean uniqIndex;
+        String remark;
+
     }
 
     @Data
@@ -107,6 +116,7 @@ public class DataTransJobDetail extends JobDetail {
         @Builder
         public static class SyncCondition {
             String field;
+            String fieldType;
             Conditon start;
             Conditon end;
 

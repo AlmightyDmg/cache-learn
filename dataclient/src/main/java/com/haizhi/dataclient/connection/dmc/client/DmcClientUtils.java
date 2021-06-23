@@ -15,6 +15,7 @@ import com.haizhi.dataclient.connection.dmc.client.endpoint.EndpointClient;
 import com.haizhi.dataclient.connection.dmc.client.mobius.MobiusClient;
 import com.haizhi.dataclient.connection.dmc.client.noah.NoahClient;
 import com.haizhi.dataclient.connection.dmc.client.pentagon.PentagonClient;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.TassadarClient;
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
 
 /**
@@ -46,6 +47,10 @@ public final class DmcClientUtils {
 
     public static PentagonClient pentagonClient(DmcConfig.ServicePropertieBean properties) {
         return createClient("pentagon", properties, PentagonClient.class);
+    }
+
+    public static TassadarClient tassadarClient(DmcConfig.ServicePropertieBean properties) {
+        return createClient("tassadar", properties, TassadarClient.class);
     }
 
     public static <T> T createClient(String serviceName, DmcConfig.ServicePropertieBean properties, Class<T> clazz) {

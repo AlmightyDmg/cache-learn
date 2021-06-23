@@ -111,6 +111,7 @@ public class WebConfig implements WebMvcConfigurer {
 				.mobiusProp(localDsProp.getMobius())
 				.noahProp(localDsProp.getNoah())
 				.pentagonProp(localDsProp.getPentagon())
+				.tassadarProp(localDsProp.getTassadar())
 				.build());
 	}
 }

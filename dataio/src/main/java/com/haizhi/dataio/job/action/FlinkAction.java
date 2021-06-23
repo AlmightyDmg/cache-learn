@@ -1,10 +1,13 @@
 package com.haizhi.dataio.job.action;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -16,10 +19,16 @@ import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
-import com.haizhi.dataclient.connection.dmc.client.tassadar.response.CreateTbResp;
-import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
+import com.haizhi.dataclient.connection.dmc.client.mobius.common.TbCol;
+import com.haizhi.dataclient.connection.dmc.client.mobius.request.GetReaderReq;
+import com.haizhi.dataclient.connection.dmc.client.mobius.request.GetWriterReq;
+import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcReader;
+import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcWriter;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.response.InfoTbResp;
 import com.haizhi.dataclient.datapi.dmc.DmcApiFactory;
 import com.haizhi.dataclient.datapi.dmc.DmcTableApi;
 import com.haizhi.dataio.bean.DataTransJobDetail;
@@ -28,6 +37,12 @@ import com.haizhi.dataio.bean.JobUnitStateForm;
 import com.haizhi.dataio.client.databridge.DatabridgeClient;
 import com.haizhi.dataio.client.flinkx.FlinkxClient;
 import com.haizhi.dataio.exception.DataioException;
+import com.haizhi.dataio.job.column.Connection;
+import com.haizhi.dataio.job.column.MetaColumn;
+import com.haizhi.dataio.job.reader.JdbcReader;
+import com.haizhi.dataio.job.reader.Reader;
+import com.haizhi.dataio.job.writer.JdbcWriter;
+import com.haizhi.dataio.job.writer.Writer;
 import com.haizhi.dataio.utils.JsonUtils;
 
 /**
@@ -41,13 +56,33 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
     private static ThreadLocal<Long> startTime = new ThreadLocal<>();
     private static ThreadLocal<Map<String, Long>> unitStartTime = new ThreadLocal<>();
     public static final long SLEEP_TIME = 2000L;
+    public static final int DEFAULT_FETCH_SIZE = 20000;
+
+    private static Map<Integer, String> fieldTypeMap = new HashMap<>();
+    private static Map<String, Integer> fieldTypeIndexMap = new HashMap<>();
+
+    private static final int NUMBER_TYPE = 0;
+    private static final int DOUBLE_TYPE = 1;
+    private static final int STRING_TYPE = 2;
+    private static final int DATE_TYPE = 3;
 
     static {
         unitStartTime.set(new HashMap<>());
+
+        fieldTypeMap.put(NUMBER_TYPE, "bigint");
+        fieldTypeMap.put(DOUBLE_TYPE, "double");
+        fieldTypeMap.put(STRING_TYPE, "string");
+        fieldTypeMap.put(DATE_TYPE, "date");
+
+        fieldTypeIndexMap.put("bigint", NUMBER_TYPE);
+        fieldTypeIndexMap.put("double", DOUBLE_TYPE);
+        fieldTypeIndexMap.put("string", STRING_TYPE);
+        fieldTypeIndexMap.put("date", DATE_TYPE);
     }
     private static Set<String> useFlinkDbType = new HashSet<>();
     static {
         useFlinkDbType.add("greenplum");
+        useFlinkDbType.add("mysql");
     }
 
     @Autowired
@@ -62,7 +97,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
     @SuperBuilder
     @FieldNameConstants
     public static class FlinkActionParam {
-        String taskType;
+        String jobType;
         String jobId;
         String taskId;
         DataTransJobDetail.Sink fromSink;
@@ -73,7 +108,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
     }
 
     public static boolean isSupportedDb(String fromDbType, String toDbTYpe) {
-        return useFlinkDbType.contains(fromDbType) || useFlinkDbType.contains(toDbTYpe);
+        return useFlinkDbType.contains(fromDbType.toLowerCase()) || useFlinkDbType.contains(toDbTYpe.toLowerCase());
     }
 
     @Override
@@ -89,49 +124,56 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
         databridgeClient.updateJobStatus(info.getJobId(), info.getJobType(), success ? 2 : 1, startTime.get(), endTime);
     }
 
+    private List<String> createDmcTable(FlinkActionParam unit) {
+        DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
+        List<CreateTbReq.TbField> fields = unit.getWriter().getColumns().stream()
+                .map(col -> CreateTbReq.TbField.builder().name(col.getName())
+                        .type(fieldTypeIndexMap.getOrDefault(col.getType(), 2))
+                        .remark(col.getRemark()).uniqIndex(col.getUniqIndex()).build()).collect(Collectors.toList());
+        List<String> folderTb = dmcTableApi.createTb(unit.getWriter().getTableName(), fields,
+                unit.getUserId(), unit.getToSink().getSchema(), unit.getToSink().getCatalog());
+
+        return folderTb;
+    }
     @Override
     protected void beforeExec(FlinkActionParam unit) throws DataioException {
         String fromDbType = unit.getFromSink().getType();
         String toDbType = unit.getToSink().getType();
         if (!FlinkAction.isSupportedDb(fromDbType, toDbType)) {
-            String errInfo = String.format("flink not support from %s to %s", fromDbType, toDbType);
-            log.error(errInfo);
+            log.error(String.format("flink not support from %s to %s", fromDbType, toDbType));
             return;
         }
 
-        DmcConfig dmcConfig = null;
+        unitStartTime.set(Optional.ofNullable(unitStartTime.get()).orElse(new HashMap<>()));
+        unitStartTime.get().put(unit.getReader().getTableName(), new Date().getTime());
+
         // 同步表状态
-        if ("DMC".equals(unit.getToSink().getType())) {
-            dmcConfig = JsonUtils.toObject(unit.getToSink().getUrl(), DmcConfig.class);
-            DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(dmcConfig);
+        if ("DMC".equalsIgnoreCase(unit.getToSink().getType())) {
+            DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
             String tableId = unit.getWriter().getTableId();
-            if (StringUtils.isEmpty(tableId)) {
-                String fields = unit.getWriter().getColumns().stream()
-                        .map(DataTransJobDetail.Column::getName).collect(Collectors.joining(","));
-                CreateTbResp resp = dmcTableApi.createTb(unit.getWriter().getTableName(), fields, unit.getWriter().getTableName());
-                tableId = resp.getTbId();
+            if (StringUtils.isEmpty(unit.getWriter().getTableId())) {
+                List<String> folderTb = createDmcTable(unit);
+                tableId = folderTb.get(1);
+                unit.getWriter().setTablePath(folderTb.get(0));
+                unit.getWriter().setTableId(folderTb.get(1));
             }
 
-            String tableStorPath = dmcTableApi.getDmcWriterPath(tableId, unit.getUserId());
+            InfoTbResp dmcTbInfo = dmcTableApi.getDmcTbInfo(tableId);
+            Map<String, InfoTbResp.TbField> fieldMap = dmcTbInfo.getFields().stream()
+                    .collect(Collectors.toMap(InfoTbResp.TbField::getName, x -> x));
+
+            unit.getWriter().getColumns().forEach(col -> {
+                col.setRealName(fieldMap.get(col.getName()).getFieldId());
+                col.setType(fieldTypeMap.get(fieldMap.get(col.getName()).getType()));
+            });
             unit.getWriter().setTableId(tableId);
-            unit.getWriter().setTablePath(tableStorPath);
+            unit.getWriter().setRealName(dmcTbInfo.getStorageId());
 
             // 0:CREATE|1:SYNCING|2:SYNC_FINISH|3:SYNC_ERROR|4:MIGRATE|5:MIGRATE_ERROR|6:MERGE_ERROR
             dmcTableApi.updateTableStatus(tableId, 1, unit.getUserId());
-        }
 
-        if (!"DMC".equals(unit.getFromSink().getType())) {
-            if (unitStartTime.get() == null) {
-                unitStartTime.set(new HashMap<>());
-            }
-            unitStartTime.get().put(unit.getReader().getTableId(), new Date().getTime());
-            databridgeClient.updateJobExecUnit(JobUnitStateForm.builder().jobId(unit.getJobId())
-                    .fromTableId(unit.getReader().getTableId()).toTableId(unit.getWriter().getTableId())
-                    .startTime(unitStartTime.get().get(unit.getReader().getTableId())).endTime(new Date().getTime())
-                    .jobType(unit.getTaskType()).tableStatus(0).userId(unit.getUserId()).build());
         } else {
-            dmcConfig = JsonUtils.toObject(unit.getFromSink().getUrl(), DmcConfig.class);
-            DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(dmcConfig);
+            DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
             if (unit.getReader().getSync().getCheckRule().getFailureStrategy() == 0) {
                 if (!dmcTableApi.checkTableRule()) {
                     throw new DataioException("check failed.");
@@ -146,6 +188,61 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
                 unit.getReader().getFilter().getSqlConditions().addAll(checkSqlList);
             }
         }
+
+        databridgeClient.updateJobExecUnit(JobUnitStateForm.builder().jobId(unit.getJobId())
+                .fromTableId(unit.getReader().getTableId()).toTableId(unit.getWriter().getTableId())
+                .toFolderId(unit.getWriter().getTablePath())
+                .startTime(unitStartTime.get().get(unit.getReader().getTableName()))
+                .jobType(unit.getJobType()).tableStatus(0).userId(unit.getUserId()).build());
+    }
+
+    private Reader<JdbcReader> buildJdbcReader(FlinkActionParam unit) {
+        Reader<JdbcReader> jdbcReader = new Reader<>();
+        jdbcReader.setName(unit.getFromSink().getType().toLowerCase() + "reader");
+        jdbcReader.setParameter(JdbcReader.builder()
+                .username(unit.getFromSink().getUsername())
+                .password(unit.getFromSink().getPassword())
+                .fetchSize(Optional.ofNullable(unit.getReader().getSync().getFetchSize()).orElse(DEFAULT_FETCH_SIZE))
+                .connection(Arrays.asList(Connection.builder()
+                        .jdbcUrl(Arrays.asList(String.format(Connection.TYPE_PATTERN.get(unit.getFromSink().getType().toLowerCase()),
+                                unit.getFromSink().getUrl(),
+                                unit.getFromSink().getCatalog())))
+                        .build()))
+                .column(unit.getReader().getColumns().stream().map(col ->
+                        MetaColumn.builder().name(col.getName()).type(col.getType()).value(col.getValue()).build())
+                        .collect(Collectors.toList()))
+                .where(genWhere(unit))
+                .build());
+        return jdbcReader;
+    }
+
+    private Writer<JdbcWriter> buildJdbcWriter(FlinkActionParam unit) {
+        Writer<JdbcWriter> jdbcWriter = new Writer<>();
+
+        List<String> preSql = new ArrayList<>();
+        if (unit.getReader().getSync().getIsTruncate() == 1) {
+            preSql.add(String.format("truncate table %s", unit.getWriter().getTableName()));
+        }
+
+        jdbcWriter.setName(unit.getToSink().getType().toLowerCase() + "writer");
+        jdbcWriter.setParameter(JdbcWriter.builder()
+                .username(unit.getToSink().getUsername())
+                .password(unit.getToSink().getPassword())
+                .connection(Arrays.asList(Connection.builder()
+                        .jdbcUrl(Arrays.asList(String.format(Connection.TYPE_PATTERN.get(unit.getToSink().getType().toLowerCase()),
+                                unit.getToSink().getUrl(),
+                                unit.getToSink().getCatalog())))
+                        .table(Arrays.asList(unit.getWriter().getTableName()))
+                        .build()))
+                .column(unit.getWriter().getColumns().stream().map(col ->
+                        MetaColumn.builder().name(col.getName()).type(col.getType()).value(col.getValue()).build())
+                        .collect(Collectors.toList()))
+                .insertSqlMode("copy")
+                .writeMode("insert")
+                .preSql(preSql)
+                .build());
+
+        return jdbcWriter;
     }
 
     @Override
@@ -153,19 +250,120 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
         String taskId = unit.getTaskId();
         try {
             // 同步操作
-            if (StringUtils.isEmpty(taskId)) {
-                taskId = flinkxClient.startJob(unit).getResult();
-
-                unit.setTaskId(taskId);
-                // 更新task
-                databridgeClient.updateJobTaskRel(unit.getJobId(), taskId, unit.getReader().getTableId(),
-                        unit.getWriter().getTableId());
+            if (!StringUtils.isEmpty(taskId)) {
+                return taskId;
             }
+
+            Object reader;
+            Object writer;
+            if ("import".equalsIgnoreCase(unit.getJobType())) {
+                DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
+
+                Reader<JdbcReader> jdbcReader = buildJdbcReader(unit);
+
+                GetWriterReq req = GetWriterReq.builder()
+                        .jobId(unit.getJobId()).storageId(unit.getWriter().getRealName())
+                        .column(unit.getWriter().getColumns().stream().map(col ->
+                                TbCol.builder().name(col.getRealName())
+                                        .type(col.getType()).build()).collect(Collectors.toList())).build();
+                DmcWriter dmcWriter = dmcTableApi.getDmcWriter(req);
+                writer = dmcWriter.getWriter();
+                reader = jdbcReader;
+            } else {
+                Writer<JdbcWriter> jdbcWriter = buildJdbcWriter(unit);
+
+                GetReaderReq req = new GetReaderReq();
+                req.setJobId(unit.getJobId());
+                req.setStorageId(unit.getReader().getRealName());
+                String selCols = unit.getReader().getColumns().stream()
+                        .map(DataTransJobDetail.Column::getRealName).collect(Collectors.joining(","));
+                req.setTmpSql(String.format("select %s from %s where %s", selCols, unit.getReader().getRealName(),
+                        genWhere(unit)));
+
+                String maxSql = "";
+                if (unit.getReader().getSync() != null && unit.getReader().getSync().getSyncCondition() != null) {
+                    String idCol = unit.getReader().getSync().getSyncCondition().getField();
+                    maxSql = String.format("select max(cast(%s as string)) from %s_%s", idCol,
+                            unit.getReader().getRealName(), unit.getJobId());
+                }
+                req.setMaxSql(maxSql);
+
+                DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
+                DmcReader dmcReader = dmcTableApi.getDmcReader(req);
+
+                unit.getReader().setRealName(dmcReader.getTabName().split("_")[0]);
+
+                writer = jdbcWriter;
+                reader = dmcReader.getReader();
+            }
+
+            taskId = flinkxClient.startJob(JsonUtils.toJson(reader), JsonUtils.toJson(writer)).getResult().getJobId();
+
+            unit.setTaskId(taskId);
+            // 更新task
+            databridgeClient.updateJobTaskRel(unit.getJobId(), taskId, unit.getReader().getTableId(),
+                    unit.getWriter().getTableId());
         } catch (DataioException e) {
             log.error("flink sync failed", e);
         }
 
         return taskId;
+    }
+
+   public String getQuot(String type) {
+        if ("string".equalsIgnoreCase(type) || "date".equalsIgnoreCase(type)) {
+            return "'";
+        }
+
+        return "";
+   }
+
+    private String genWhere(FlinkActionParam unit) {
+        String comparePattern = " %s %s %s ";
+        List<String> condList = new ArrayList<>();
+
+        if (unit.getReader().getSync().getSyncCondition() != null) {
+            String field = unit.getReader().getSync().getSyncCondition().getField();
+            String fieldType = unit.getReader().getSync().getSyncCondition().getFieldType();
+            String quot = getQuot(fieldType);
+            String fromCond = String.format(comparePattern,
+                    field,
+                    unit.getReader().getSync().getSyncCondition().getStart().getOperator(),
+                    quot + unit.getReader().getSync().getSyncCondition().getStart().getValue() + quot);
+
+            String toCond = String.format(comparePattern,
+                    field,
+                    unit.getReader().getSync().getSyncCondition().getEnd().getOperator(),
+                    quot + unit.getReader().getSync().getSyncCondition().getEnd().getValue() + quot);
+
+            condList.add(fromCond);
+            condList.add(toCond);
+        }
+
+
+        if (unit.getReader().getFilter() != null) {
+            if (!ObjectUtils.isEmpty(unit.getReader().getFilter().getFilterConditions())) {
+                List<String> filterList = unit.getReader().getFilter().getFilterConditions().getConditions().stream().map(con -> {
+                    String quota = getQuot(con.getType());
+                    return String.format(comparePattern, con.getName(), con.getType(), quota + con.getValue() + quota);
+                }).collect(Collectors.toList());
+                String filterCond = String.join(" " + unit.getReader().getFilter().getFilterConditions().getRelationType() + " ",
+                        filterList);
+                condList.add(filterCond);
+            }
+
+            if (!ObjectUtils.isEmpty(unit.getReader().getFilter().getSqlConditions())) {
+
+                condList.addAll(unit.getReader().getFilter().getSqlConditions());
+            }
+        }
+
+
+        if (condList.isEmpty()) {
+            return " (1=1) ";
+        }
+
+        return condList.stream().map(con -> String.format(" (%s) ", con)).collect(Collectors.joining(" and "));
     }
 
     @Override
@@ -183,9 +381,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
     @Override
     protected void afterExec(FlinkActionParam unit, boolean success) {
         // 同步表状态
-        if ("dmc".equals(unit.getToSink().getType())) {
-            DmcConfig dmcConfig = JsonUtils.toObject(unit.getToSink().getUrl(), DmcConfig.class);
-            DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(dmcConfig);
+        if ("dmc".equalsIgnoreCase(unit.getToSink().getType())) {
+            DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
 
             /* 合表 */
             dmcTableApi.mergeTbFile(unit.getWriter().getTableId(), unit.getWriter().getTableId());
@@ -194,16 +391,20 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
             dmcTableApi.updateTableStatus(unit.getWriter().getTableId(), 1, unit.getUserId());
         }
 
-        if (!"dmc".equals(unit.getFromSink().getType())) {
+        if (!"dmc".equalsIgnoreCase(unit.getFromSink().getType())) {
             databridgeClient.updateJobExecUnit(JobUnitStateForm.builder()
                     .jobId(unit.getJobId())
                     .fromTableId(unit.getReader().getTableId())
                     .toTableId(unit.getWriter().getTableId())
-                    .startTime(unitStartTime.get().get(unit.getReader().getTableId()))
+                    .startTime(unitStartTime.get().get(unit.getReader().getTableName()))
                     .endTime(new Date().getTime())
-                    .jobType(unit.getTaskType())
+                    .jobType(unit.getJobType())
                     .tableStatus(success ? 2 : 1)
                     .build());
+        } else {
+            // 删除导出时生成的临时文件
+            DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
+            dmcTableApi.deleteOldData(unit.getReader().getRealName(), unit.getJobId());
         }
     }
 
@@ -215,7 +416,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
                     .reader(syncUnit.getReader())
                     .writer(syncUnit.getWriter())
                     .jobId(jobDetail.getJobId())
-                    .taskType(jobDetail.getJobType())
+                    .jobType(jobDetail.getJobType())
                     .userId(jobDetail.getUserId())
                     .build()).collect(Collectors.toList());
     }

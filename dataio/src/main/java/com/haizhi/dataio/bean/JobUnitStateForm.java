@@ -42,4 +42,7 @@ public class JobUnitStateForm {
 
     @Field("userId")
     private String userId;
+
+    @Field("toFolderId")
+    private String toFolderId;
 }

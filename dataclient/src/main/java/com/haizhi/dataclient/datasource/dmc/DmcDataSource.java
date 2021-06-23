@@ -32,6 +32,7 @@ public class DmcDataSource implements DataSource<DmcConnection> {
                     .mobiusClient(DmcClientUtils.mobiusClient(dmcConfig.getMobiusProp()))
                     .noahClient(DmcClientUtils.noahClient(dmcConfig.getNoahProp()))
                     .pentagonClient(DmcClientUtils.pentagonClient(dmcConfig.getPentagonProp()))
+                    .tassadarClient(DmcClientUtils.tassadarClient(dmcConfig.getTassadarProp()))
                     .build();
 
             cntThreadLocal.set(dmcConnection);

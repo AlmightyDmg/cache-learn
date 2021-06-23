@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,14 +54,14 @@ public class JobClientApi {
                 .jobGroup(1)
                 .executorFailRetryCount(1)
                 .executorTimeout(0)
-                .executorHandler("demoJobHandler")
+                .executorHandler("dataTransJobHandler")
                 .build());
 
         return genJobId(Integer.parseInt(handleResult(result)), jobDesc);
     }
 
     public String update(String jobId, String cronExpr, String scheduleType, DataTransJobParam dataTransJobParam) {
-        String jobDesc = jobId.split("_")[1];
+        String jobDesc = jobId.split("-")[1];
         int xxlJobId = getXxlJobId(jobId);
 
         Map<String, Object> jobMap = client.pageList(PageQueryParam.builder()
@@ -74,7 +73,8 @@ public class JobClientApi {
                 .build());
 
         List<XxlJobInfo> matchJobList =
-                ((List<XxlJobInfo>) jobMap.get(DATA_FIELD)).stream().filter(job -> job.getId() == xxlJobId).collect(Collectors.toList());
+                ((List<Map<String, Object>>) jobMap.get(DATA_FIELD)).stream().filter(job -> job.get("id").equals(xxlJobId))
+                        .map(x -> JsonUtils.toObject(JsonUtils.map2Json(x), XxlJobInfo.class)).collect(Collectors.toList());
 
         if (matchJobList.isEmpty()) {
             throw new DatabridgeException("xxljob not exist");
@@ -111,18 +111,18 @@ public class JobClientApi {
             throw new DatabridgeException("invalid xxl job id");
         }
 
-        return Integer.parseInt(jobId.split("_")[0]);
+        return Integer.parseInt(jobId.split("-")[0]);
     }
 
     private String handleResult(ReturnT<String> returnT) {
         if (returnT.getCode() == SUCCESS_CODE) {
             return returnT.getContent();
         } else {
-            throw new DatabridgeException("call xxl-job create job error.");
+            throw new DatabridgeException(String.format("call xxl-job create job error: .", returnT.getContent()));
         }
     }
 
     public String genJobId(Integer id, String jobDesc) {
-        return String.format("%d_%s", id, jobDesc);
+        return String.format("%d-%s", id, jobDesc);
     }
 }

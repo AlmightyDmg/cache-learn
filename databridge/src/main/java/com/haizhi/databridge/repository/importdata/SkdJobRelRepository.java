@@ -18,7 +18,7 @@ import com.haizhi.databridge.bean.domain.importdata.JobRelBean;
  */
 @Repository
 public interface SkdJobRelRepository extends HaizhiBaseRepository<JobRelBean, String> {
-    Optional<List<JobRelBean>> findByDistJobId(String jobId);
+    Optional<List<JobRelBean>> findByJobId(String jobId);
 
     @Modifying
     @Transactional
