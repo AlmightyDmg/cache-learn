@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -51,9 +52,12 @@ import com.haizhi.databridge.repository.importdata.SkdJobRelRepository;
 import com.haizhi.databridge.repository.importdata.TblTransTaskRelRepository;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
+import com.haizhi.databridge.util.SpringUtils;
 import com.haizhi.databridge.web.controller.form.ExportJobForm;
 import com.haizhi.databridge.web.controller.form.JobUnitStateForm;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.response.InfoTbResp;
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
+import com.haizhi.dataclient.datapi.dmc.DmcTableApi;
 
 /**
  * @author zhaohuanhuan
@@ -287,7 +291,7 @@ public class ExportJobService extends RequestCommonData {
 		// create xxljob
 		String xxljobId = jobClientApi.add(schedulerConfForm.getSyncConfig(),
 				getExecuteMode(form.getSchedulerConf().getMode()),
-				DataTransJobParam.builder().taskType("export").jobId(jobId).build());
+				DataTransJobParam.builder().jobType("export").jobId(jobId).build());
 
 		// save relation between scheduler and xxljob
 		skdJobRelRepository.save(JobRelBean.builder()
@@ -370,21 +374,12 @@ public class ExportJobService extends RequestCommonData {
 				form.getSchedulerConf().setSyncConfig(form.getSchedulerConf().getSyncConfig() + " ?");
 				checkCrontabValid(form.getSchedulerConf().getSyncConfig());
 			}
+
+			changeDistJob(jobBean, form);
+
 			jobBean.setSyncConfigBack(toJson(form.getSchedulerConf()));
 		}
 
-
-		List<JobRelBean> xxlJobIds = skdJobRelRepository.findByDistJobId(jobId).orElse(new ArrayList<>());
-
-		if (xxlJobIds.isEmpty()) {
-			String xxljobId = jobClientApi.add(jobId, getExecuteMode(form.getSchedulerConf().getMode()),
-					DataTransJobParam.builder().taskType("export").jobId(jobId).build());
-			skdJobRelRepository.save(JobRelBean.builder().jobId(jobId).distJobId(xxljobId).build());
-		} else {
-			String xxljobId = xxlJobIds.get(0).getDistJobId();
-			jobClientApi.update(xxljobId, jobId, getExecuteMode(form.getSchedulerConf().getMode()),
-					DataTransJobParam.builder().taskType("export").jobId(jobId).build());
-		}
 
 		// 更改导出策略
 		Integer expFailureStrategy = form.getExportFailureStrategy();
@@ -394,6 +389,34 @@ public class ExportJobService extends RequestCommonData {
 		jobRepository.save(jobBean);
 	}
 
+	private void changeDistJob(JobBean jobBean, ExportJobForm.ExportJobModifyForm form) {
+		ExportJobVo.SchedulerConfVo oldSync = toObject(jobBean.getSyncConfigBack(), ExportJobVo.SchedulerConfVo.class);
+
+		String jobId = jobBean.getJobId();
+		if (!Objects.equals(oldSync.getMode(), form.getSchedulerConf().getMode())
+				|| !Objects.equals(oldSync.getSyncConfig(), form.getSchedulerConf().getSyncConfig())) {
+			String scheduleType = "";
+			String cron = "";
+			if (form.getSchedulerConf().getMode() == 1 || form.getSchedulerConf().getMode() == 0) {
+				scheduleType = "CRON";
+				cron = form.getSchedulerConf().getSyncConfig();
+			} else {
+				scheduleType = "NONE";
+				cron = "";
+			}
+
+			List<JobRelBean> xxlJobIds = skdJobRelRepository.findByJobId(jobId).orElse(new ArrayList<>());
+			if (xxlJobIds.isEmpty()) {
+				String xxljobId = jobClientApi.add(cron, scheduleType,
+						DataTransJobParam.builder().jobType("export").jobId(jobId).build());
+				skdJobRelRepository.save(JobRelBean.builder().jobId(jobId).distJobId(xxljobId).owner(getUserId()).build());
+			} else {
+				String xxljobId = xxlJobIds.get(0).getDistJobId();
+				jobClientApi.update(xxljobId, cron, scheduleType,
+						DataTransJobParam.builder().jobType("export").jobId(jobId).build());
+			}
+		}
+	}
 
 	/**
 	* @Description //获取历史任务
@@ -439,7 +462,7 @@ public class ExportJobService extends RequestCommonData {
 	public void jobDelete(String jobId) {
 		Optional<JobBean> jobBeanOptional = jobRepository.findByJobId(jobId);
 		if (jobBeanOptional.isPresent()) {
-			Optional<List<JobRelBean>> distJobOptional = skdJobRelRepository.findByDistJobId(jobId);
+			Optional<List<JobRelBean>> distJobOptional = skdJobRelRepository.findByJobId(jobId);
 			if (distJobOptional.isPresent()) {
 				for (JobRelBean jobRelBean : distJobOptional.get()) {
 					jobClientApi.remove(jobRelBean.getDistJobId());
@@ -460,7 +483,7 @@ public class ExportJobService extends RequestCommonData {
 	* @return void
 	**/
 	public void jobStart(String jobId) {
-		String xxljobId = skdJobRelRepository.findByDistJobId(jobId).orElse(Collections.singletonList(new JobRelBean()))
+		String xxljobId = skdJobRelRepository.findByJobId(jobId).orElse(Collections.singletonList(new JobRelBean()))
 				.get(0).getDistJobId();
 		if (!StringUtils.isEmpty(xxljobId)) {
 			jobClientApi.start(xxljobId);
@@ -468,7 +491,7 @@ public class ExportJobService extends RequestCommonData {
 	}
 
 	public void jobExec(String jobId) {
-		String xxljobId = skdJobRelRepository.findByDistJobId(jobId).orElse(Collections.singletonList(new JobRelBean()))
+		String xxljobId = skdJobRelRepository.findByJobId(jobId).orElse(Collections.singletonList(new JobRelBean()))
 				.get(0).getDistJobId();
 		if (!StringUtils.isEmpty(xxljobId)) {
 			jobClientApi.trigger(xxljobId);
@@ -482,7 +505,7 @@ public class ExportJobService extends RequestCommonData {
 	* @return void
 	**/
 	public void jobStop(String jobId) {
-		String xxljobId = skdJobRelRepository.findByDistJobId(jobId).orElse(Collections.singletonList(new JobRelBean()))
+		String xxljobId = skdJobRelRepository.findByJobId(jobId).orElse(Collections.singletonList(new JobRelBean()))
 				.get(0).getDistJobId();
 		if (!StringUtils.isEmpty(xxljobId)) {
 			jobClientApi.stop(xxljobId);
@@ -530,6 +553,59 @@ public class ExportJobService extends RequestCommonData {
 		return typeToDbNameMap;
 	}
 
+	private DataTransJobVo.Sync.SyncCondition getSyncCond(String exportMode, List<InfoTbResp.TbField> fields) {
+		DataTransJobVo.Sync.SyncCondition syncCon = null;
+		if ("increment".equalsIgnoreCase(exportMode)) {
+			for (InfoTbResp.TbField field : fields) {
+				if (field.getUniqIndex() != 1) {
+					continue;
+				}
+				String synFieldType = DmcTableApi.fieldTypeMap.getOrDefault(field.getType(), "string");
+				syncCon = DataTransJobVo.Sync.SyncCondition.builder().field(field.getFieldId()).fieldType(synFieldType)
+						.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder().enable(1).operator(">").value("").build())
+						.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder().enable(0).build()).build();
+			}
+		}
+
+		return syncCon;
+	}
+
+	private DataTransJobVo.Reader getReader(ExportJobVo.JobConfigInnerVo jobConf, JobBean jobBean) {
+		ExportJobForm.ExportModeForm exportMode =
+				JsonUtils.toObject(jobBean.getExportMode(), ExportJobForm.ExportModeForm.class);
+
+		List<ExportJobVo.RuleFilterVo> ruleList = ruleService.getRuleInfosByXtbId(jobBean.getXtbId());
+		DataTransJobVo.CheckRule checkRule = DataTransJobVo.CheckRule.builder()
+				.failureStrategy(Optional.ofNullable(jobConf.getExportFailureStrategy()).orElse(0))
+				.rules(Optional.ofNullable(ruleList).orElse(new ArrayList<>()).stream()
+						.map(x -> x.getCond().replace("${" + x.getMappingName() + "}", x.getMappingName()))
+						.collect(Collectors.toList())).build();
+
+		DmcTableApi dmcTableApi = SpringUtils.getBean(DmcTableApi.class);
+		InfoTbResp dmcTbInfo = dmcTableApi.getDmcTbInfo(jobBean.getRelaId());
+
+		DataTransJobVo.Sync.SyncCondition syncCon = getSyncCond(exportMode.getMode(), dmcTbInfo.getFields());
+
+		DataTransJobVo.Sync sync = DataTransJobVo.Sync.builder()
+				.isTruncate(exportMode.getIsTruncate() == null ? 0 : Integer.parseInt(exportMode.getIsTruncate()))
+				.type(exportMode.getMode()).checkRule(checkRule).syncCondition(syncCon).build();
+
+		Map<String, InfoTbResp.TbField> fieldMap = dmcTbInfo.getFields().stream()
+				.collect(Collectors.toMap(InfoTbResp.TbField::getName, x -> x));
+
+		List<DataTransJobVo.Column> fromCols = jobConf.getFieldsMapping().stream()
+				.map(x -> DataTransJobVo.Column.builder()
+						.name(x.getOriginalName())
+						.realName(fieldMap.get(x.getOriginalName()).getFieldId())
+						.type(DmcTableApi.fieldTypeMap.getOrDefault(fieldMap.get(x.getOriginalName()).getType(), "string"))
+						.build())
+				.collect(Collectors.toList());
+
+		DataTransJobVo.Reader reader = DataTransJobVo.Reader.builder().tableId(jobBean.getRelaId())
+				.tableName(jobBean.getRelaId()).realName(dmcTbInfo.getStorageId()).sync(sync).columns(fromCols).build();
+
+		return reader;
+	}
 	/**
 	 * @Description // 获取任务执行需要的信息
 	 * @Date 2021/5/276 7:10 下午
@@ -539,54 +615,38 @@ public class ExportJobService extends RequestCommonData {
 	public DataTransJobVo getJobExecInfo(String jobId) {
 		JobBean jobBean = jobRepository.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("job not exist"));
 		ExportJobVo.JobConfigInnerVo jobConf = JsonUtils.toObject(jobBean.getConfig(), ExportJobVo.JobConfigInnerVo.class);
-		List<ExportJobVo.RuleFilterVo> ruleList = ruleService.getRuleInfosByXtbId(jobBean.getXtbId());
-		DataTransJobVo.CheckRule checkRule = DataTransJobVo.CheckRule.builder()
-				.failureStrategy(jobConf.getExportFailureStrategy())
-				.rules(Optional.ofNullable(ruleList).orElse(new ArrayList<>()).stream()
-						.map(x -> x.getCond().replace("${" + x.getMappingName() + "}", x.getMappingName()))
-						.collect(Collectors.toList())).build();
-		ExportJobForm.ExportModeForm exportMode =
-				JsonUtils.toObject(jobBean.getSyncConfigBack(), ExportJobForm.ExportModeForm.class);
+
 
 		String taskId = null;
 		if (jobBean.getStatus() == 1) {
-			taskId = tblTransTaskRelRepo.findTransTask(jobBean.getJobId(), jobBean.getEntId(), jobBean.getXtbId())
+			taskId = tblTransTaskRelRepo.findTransTask(jobBean.getJobId(), jobBean.getRelaId(), jobBean.getXtbId())
 					.orElse(TblTransTaskRelBean.builder().build()).getTransTaskId();
 		}
 
-		DsBean dsBean = dsRepository.findByDsId(jobBean.getDsId()).orElseThrow(() -> new DatabridgeException("ds not exist"));
-		ExportDsTbBean exportDsTbBean = exportTbRepo.findByXtbId(jobBean.getXtbId())
-				.orElseThrow(() -> new DatabridgeException("xtable not exist"));
-		DataTransJobVo.Sync sync = DataTransJobVo.Sync.builder()
-				.isTruncate(exportMode.getIsTruncate() == null ? 0 : Integer.parseInt(exportMode.getIsTruncate()))
-				.type(exportMode.getMode()).checkRule(checkRule).build();
-		String dmcUrl = JsonUtils.toJson(DmcConfig.builder().pentagonProp(dmcProp.getPentagon()).noahProp(dmcProp.getNoah())
-				.mobiusProp(dmcProp.getMobius()).build());
-		DataTransJobVo.Sink fromSink = DataTransJobVo.Sink.builder().url(dmcUrl)
-				.type("dmc").subType("hdfs").otherConfig(JsonUtils.toJson(dmcProp.getOtherConfig())).build();
-		DataTransJobVo.Sink toSink = DataTransJobVo.Sink.builder().url(dsBean.getHost() + ":" + dsBean.getPort())
-				.type(Optional.ofNullable(genTypeToDbNameMap().get(dsBean.getType())).orElse("greenplum").toLowerCase())
-				.username(dsBean.getUsername())
-				.password(dsBean.getPassword()).catalog(dsBean.getDatabase())
-				.build();
-		List<DataTransJobVo.Column> fromCols = jobConf.getFieldsMapping().stream()
-				.map(x -> DataTransJobVo.Column.builder().name(x.getOriginalName()).build()).collect(Collectors.toList());
-		List<DataTransJobVo.Column> toCols = jobConf.getFieldsMapping().stream()
-				.map(x -> DataTransJobVo.Column.builder().name(x.getOriginalName()).build())
-				.collect(Collectors.toList());
 
-		return DataTransJobVo.builder().jobType("export").jobId(jobId).userId(jobBean.getUserId())
-				.exportFailureStrategy(jobBean.getExportFailureStrategy())
-				.syncUnits(Arrays.asList(DataTransJobVo.SyncUnit.builder()
-						.taskId(taskId)
-						.fromSink(fromSink)
-						.toSink(toSink)
-						.reader(DataTransJobVo.Reader.builder().tableId(jobBean.getEntId()).tableName(jobBean.getEntId())
-								.sync(sync).columns(fromCols).build())
-						.writer(DataTransJobVo.Writer.builder().tableId(jobBean.getXtbId())
-								.tableName(exportDsTbBean.getName()).columns(toCols).build())
-						.build()))
+		DsBean dsBean = dsRepository.findByDsId(jobBean.getDsId()).orElseThrow(() -> new DatabridgeException("ds not exist"));
+		ExportDsTbBean tbBean =
+				exportTbRepo.findByXtbId(jobBean.getXtbId()).orElseThrow(() -> new DatabridgeException("xtable not exist"));
+
+		String dmcUrl = JsonUtils.toJson(DmcConfig.builder().pentagonProp(dmcProp.getPentagon()).noahProp(dmcProp.getNoah())
+				.mobiusProp(dmcProp.getMobius()).tassadarProp(dmcProp.getTassadar()).build());
+
+		String toType = Optional.ofNullable(genTypeToDbNameMap().get(dsBean.getType())).orElse("greenplum").toLowerCase();
+
+		DataTransJobVo.Sink fromSink = DataTransJobVo.Sink.builder().url(dmcUrl).type("dmc").build();
+		DataTransJobVo.Sink toSink = DataTransJobVo.Sink.builder().url(dsBean.getHost() + ":" + dsBean.getPort())
+				.type(toType).username(dsBean.getUsername()).password(dsBean.getPassword()).catalog(dsBean.getDatabase())
 				.build();
+		List<DataTransJobVo.Column> toCols = jobConf.getFieldsMapping().stream()
+				.map(x -> DataTransJobVo.Column.builder().name(x.getOriginalName()).build()).collect(Collectors.toList());
+
+
+		DataTransJobVo.Writer writer = DataTransJobVo.Writer.builder().tableId(jobBean.getXtbId())
+				.tableName(tbBean.getName()).columns(toCols).build();
+		DataTransJobVo.SyncUnit syncUnit = DataTransJobVo.SyncUnit.builder()
+				.taskId(taskId).fromSink(fromSink).toSink(toSink).reader(getReader(jobConf, jobBean)).writer(writer).build();
+		return DataTransJobVo.builder().jobType("export").jobId(jobId).userId(jobBean.getUserId())
+				.exportFailureStrategy(jobBean.getExportFailureStrategy()).syncUnits(Arrays.asList(syncUnit)).build();
 	}
 
 	@Transactional

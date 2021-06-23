@@ -1,5 +1,7 @@
 package com.haizhi.dataclient.datapi.dmc;
 
+import java.util.List;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -18,7 +20,7 @@ public class DmcJobApi extends DataApi<DmcConnection> {
         getDataConnection().getPentagonClient().startExportJob(jobId);
     }
 
-    public void startImportJob(String jobId) {
-        getDataConnection().getNoahClient().startImportJob(jobId);
+    public void startImportJob(String userId, String jobId, List<String> tables, Integer full) {
+        getDataConnection().getNoahClient().startImportJob(userId, jobId, tables, full);
     }
 }

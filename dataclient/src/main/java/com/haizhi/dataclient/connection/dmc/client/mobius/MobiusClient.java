@@ -4,15 +4,22 @@ package com.haizhi.dataclient.connection.dmc.client.mobius;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 
+import retrofit2.http.Body;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
+import retrofit2.http.JsonBeanParam;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
 import retrofit2.http.QueryBean;
 
+import com.haizhi.dataclient.connection.dmc.client.mobius.request.DelOldDataReq;
+import com.haizhi.dataclient.connection.dmc.client.mobius.request.GetReaderReq;
+import com.haizhi.dataclient.connection.dmc.client.mobius.request.GetWriterReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.QueryExplainReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.TableCreateReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.CreateTableResp;
+import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcReader;
+import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcWriter;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.ExplainResp;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.MergePatchResp;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.MobiusResult;
@@ -50,11 +57,16 @@ public interface MobiusClient {
 											@Field("dataCount") Long dataCount, @Field("keys") String keys, @Field("timeout") Long timeout,
 											@NotBlank @Field("params") String params, @Field("forceMerge") Integer forceMerge);
 
-	@POST("/tb/getDmcWriterPath")
+	@POST("/tb/getDmcWriter")
 	@FormUrlEncoded
-	MobiusResult<String> getDmcWriterPath(@Valid @Query("storageId") String storageId);
+	MobiusResult<String> getDmcWriter(@QueryBean GetWriterReq getWriterReq);
 
-	@POST("/tb/getDmcWriterPath")
+	@POST("/tb/getDmcReadwer")
 	@FormUrlEncoded
-	MobiusResult<String> getDmcTableData(@Valid @Query("storageId") String storageId);
+	MobiusResult<String> getDmcReader(@QueryBean GetReaderReq getReaderReq);
+
+
+	@POST("/view/deleteOldData")
+	@FormUrlEncoded
+	MobiusResult<String> deleteOldData(@QueryBean DelOldDataReq delOldDataReq);
 }

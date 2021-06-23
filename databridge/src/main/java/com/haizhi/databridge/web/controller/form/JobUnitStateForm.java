@@ -24,4 +24,5 @@ public class JobUnitStateForm {
     private String jobType;
     private String startLocation;
     private String userId;
+    private String toFolder;
 }

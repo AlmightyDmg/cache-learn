@@ -20,10 +20,5 @@ public class ExportAction implements IAction<OldDtsParam> {
     public void doAction(OldDtsParam actionInfo) {
         DmcConfig dmcConfig = JsonUtils.toObject(actionInfo.getEndpoint(), DmcConfig.class);
         DmcApiFactory.getDmcJobApi(dmcConfig).startExportJob(actionInfo.getJobId());
-//        try {
-////            Thread.sleep(3000L);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
     }
 }

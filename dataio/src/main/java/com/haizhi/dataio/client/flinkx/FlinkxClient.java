@@ -1,14 +1,13 @@
 package com.haizhi.dataio.client.flinkx;
 
 import com.github.lianjiatech.retrofit.spring.boot.annotation.RetrofitClient;
-import retrofit2.http.Body;
+import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.POST;
-import retrofit2.http.Query;
 
+import com.haizhi.dataio.client.flinkx.response.FlinkJobStartStopResp;
 import com.haizhi.dataio.client.flinkx.response.FlinkxJobStatus;
 import com.haizhi.dataio.client.flinkx.response.FlinkxResult;
-import com.haizhi.dataio.job.action.FlinkAction;
 
 /**
  * @author duanxiaoyi
@@ -18,14 +17,15 @@ import com.haizhi.dataio.job.action.FlinkAction;
 @RetrofitClient(baseUrl = "${flinkx.url}")
 public interface FlinkxClient {
 
-    @POST("/mock/11/flinkx/start")
-    FlinkxResult<String> startJob(@Body FlinkAction.FlinkActionParam flinkActionParam);
-
-    @POST("/mock/11/flinkx/status")
+    @POST("/flinkx/start")
     @FormUrlEncoded
-    FlinkxResult<FlinkxJobStatus> getStatus(@Query("jobId") String jobId);
+    FlinkxResult<FlinkJobStartStopResp> startJob(@Field("reader") String reader, @Field("writer") String writer);
 
-    @POST("/mock/11/flinkx/stop")
+    @POST("/flinkx/status")
     @FormUrlEncoded
-    FlinkxResult<String> stopJob(@Query("jobId") String jobId);
+    FlinkxResult<FlinkxJobStatus> getStatus(@Field("jobId") String jobId);
+
+    @POST("/flinkx/stop")
+    @FormUrlEncoded
+    FlinkxResult<FlinkJobStartStopResp> stopJob(@Field("jobId") String jobId);
 }

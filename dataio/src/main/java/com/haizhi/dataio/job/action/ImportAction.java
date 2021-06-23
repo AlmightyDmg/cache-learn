@@ -15,8 +15,9 @@ import com.haizhi.dataio.utils.JsonUtils;
 @Component
 public class ImportAction implements IAction<OldDtsParam> {
     @Override
-    public void doAction(OldDtsParam actionInfo) {
-        DmcConfig dmcConfig = JsonUtils.toObject(actionInfo.getEndpoint(), DmcConfig.class);
-        DmcApiFactory.getDmcJobApi(dmcConfig).startImportJob(actionInfo.getJobId());
+    public void doAction(OldDtsParam param) {
+        DmcConfig dmcConfig = JsonUtils.toObject(param.getEndpoint(), DmcConfig.class);
+        DmcApiFactory.getDmcJobApi(dmcConfig).startImportJob(param.getUserId(),
+                param.getJobId(), param.getTables(), param.getFull());
     }
 }
