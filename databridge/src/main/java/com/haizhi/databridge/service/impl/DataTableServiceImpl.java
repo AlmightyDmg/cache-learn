@@ -274,11 +274,8 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 
 		Optional<List<TTableBean>> optionalTTableBeans = tTableRepo.findAllByDbIdAndOwner(
 				listUpdateForm.getDbId(), listUpdateForm.getUserId());
-		if (!optionalTTableBeans.isPresent()) {
-			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, "该源下没有表");
-		}
-		Map<String, String> tableName2TableId = optionalTTableBeans.get().stream()
-				.collect(Collectors.toMap(TTableBean::getTbName, TTableBean::getTableId));
+		Map<String, String> tableName2TableId = optionalTTableBeans.isPresent() ? optionalTTableBeans.get().stream()
+				.collect(Collectors.toMap(TTableBean::getTbName, TTableBean::getTableId)) : new HashMap<>();
 
 		if (!ObjectUtils.isEmpty(listUpdateForm.getDeleteTables())) {
 			for (String tbName: listUpdateForm.getDeleteTables()) {
@@ -464,7 +461,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 	}
 
 	public Map<String, DataTableVo.TableVo> buildTableId2TableVoMap(String owner, List<TTableBean> tableBeans
-	) throws UnsupportedEncodingException {
+	) throws IOException {
 		List<String> dbIds = tableBeans.stream().distinct().map(TTableBean::getDbId).collect(Collectors.toList());
 		Map<String, DataBaseSourceVo.RetrieveVo> buildDbId2DbRetrieveVo = dataSourceServiceImpl.buildDbId2DbRetrieveVo(owner, dbIds);
 		Map<String, DataTableVo.TableVo> tableVoMap = new HashMap<>();
@@ -500,7 +497,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 	}
 
 	public List<DataTableVo.TableVo> getTableVosByDbIds(String owner, List<String> dbIds, String tbStatus, String tbName
-	) throws UnsupportedEncodingException {
+	) throws IOException {
 		List<DataTableVo.TableVo> result = new ArrayList<>();
 
 		List<TTableBean> tTableBeans = new ArrayList<>();
@@ -508,16 +505,17 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		if (!optionalTTableBeans.isPresent()) {
 			return result;
 		}
+		tTableBeans = optionalTTableBeans.get();
 		if (!ObjectUtils.isEmpty(tbStatus)) {
-			tTableBeans = optionalTTableBeans.get().stream().filter(
+			tTableBeans = tTableBeans.stream().filter(
 					tTableBean -> tbStatus.equals(tTableBean.getStatus())).collect(Collectors.toList());
 		}
 		if (!ObjectUtils.isEmpty(tbName)) {
-			tTableBeans = optionalTTableBeans.get().stream().filter(
+			tTableBeans = tTableBeans.stream().filter(
 					tTableBean -> tbName.equals(tTableBean.getTbName())).collect(Collectors.toList());
 		}
-		Map<String, DataTableVo.TableVo> tableId2TableVoMap = buildTableId2TableVoMap(owner, optionalTTableBeans.get());
-		return tableId2TableVoMap.values().stream().collect(Collectors.toList());
+		Map<String, DataTableVo.TableVo> tableId2TableVoMap = buildTableId2TableVoMap(owner, tTableBeans);
+		return new ArrayList<>(tableId2TableVoMap.values());
 	}
 
 	public Map<String, Integer> getDbId2TablesNumMap(String owner, List<String> dbIds)  {
@@ -528,8 +526,12 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 //		}
 		Map<String, Integer> dbId2TableNumMap = new HashMap<>();
 		for (Map<String, Object> obj: optionalDbId2TablesNumMapList) {
-			dbId2TableNumMap.put(obj.get("db_id").toString(), Integer.valueOf(obj.get("count").toString()));
+			if (!ObjectUtils.isEmpty(obj.get("db_id"))) {
+				dbId2TableNumMap.put(obj.get("db_id").toString(), Integer.valueOf(obj.get("count").toString()));
+			}
 		}
 		return dbId2TableNumMap;
 	}
+
+
 }

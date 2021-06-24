@@ -20,6 +20,7 @@ public class DataTableForm {
 
     @Data
     public static class DataTableCreateBaseForm {
+        @JsonProperty("tb_name")
         private String tbName;
         private String type;
         private String model;

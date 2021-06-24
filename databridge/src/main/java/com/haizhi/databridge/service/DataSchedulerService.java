@@ -14,7 +14,7 @@ public interface DataSchedulerService {
 	void create(DataSchedulerForm.CreateForm createForm) throws UnsupportedEncodingException;
 	void update(DataSchedulerForm.UpdateForm updateForm) throws UnsupportedEncodingException;
 	void delete(DataSchedulerForm.DeleteForm updateForm);
-	DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws UnsupportedEncodingException;
+	DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws IOException;
 	DataTransJobVo getJobExecInfo(String jobId);
 	String updateJobStatus(String jobId, Integer jobStatus, Long startTime, Long endTime);
 	String updateJobExecUnit(JobUnitStateForm form);

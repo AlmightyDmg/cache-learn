@@ -66,4 +66,8 @@ public final class DataSourceConstants {
 		public static final String IMPORT =  "import";
 		public static final String EXPORT = "export";
 	}
+
+	public static final class DataBaseCrypterKey {
+    	public static final String KEY = "nmdsPVv2z699voVC";
+	}
 }

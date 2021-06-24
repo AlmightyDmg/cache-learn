@@ -32,6 +32,8 @@ public final class DataSourceObjDto {
 		private String accessKey;
 		private String project;
 		private String endpoint;
+		private String pwd;
+		private Integer port;
 	}
 
 	@Data
