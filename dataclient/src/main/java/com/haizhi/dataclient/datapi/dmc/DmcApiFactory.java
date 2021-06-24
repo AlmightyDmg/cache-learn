@@ -2,6 +2,7 @@ package com.haizhi.dataclient.datapi.dmc;
 
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
 import com.haizhi.dataclient.datapi.DataApiFactory;
+import com.haizhi.dataclient.utils.JsonUtils;
 
 /**
  * @author duanxiaoyi
@@ -14,6 +15,11 @@ public final class DmcApiFactory {
     }
 
     public static DmcTableApi getDmcTableApi(DmcConfig dmcConfig) {
+        return DataApiFactory.getApi(dmcConfig, DmcTableApi.class);
+    }
+
+    public static DmcTableApi getDmcTableApi(String dmcConfigStr) {
+        DmcConfig dmcConfig = JsonUtils.toObject(dmcConfigStr, DmcConfig.class);
         return DataApiFactory.getApi(dmcConfig, DmcTableApi.class);
     }
 

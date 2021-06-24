@@ -57,12 +57,12 @@ public class DataTransHandler {
         XxlJobHelper.log("begin dataTransJobHandler. ");
         DataTransJobParam jobParam = JsonUtils.toObject(XxlJobHelper.getJobParam(), DataTransJobParam.class);
 
-        DataTransJobDetail dataTransJobDetail = getJobDetail(jobParam);
+        DataTransJobDetail jobDetail = getJobDetail(jobParam);
         try {
-            if (useFlink(dataTransJobDetail)) {
+            if (useFlink(jobDetail)) {
                 flinkAction.doAction(jobParam);
             } else {
-                if (dataTransJobDetail.getSyncUnits().isEmpty()) {
+                if (jobDetail.getSyncUnits().isEmpty()) {
                     XxlJobHelper.handleFail("sync unit is empty");
                     return;
                 }
@@ -74,13 +74,14 @@ public class DataTransHandler {
                     importAction.doAction(OldDtsParam.builder()
                             .jobId(jobParam.getJobId())
                             .jobType(jobParam.getJobType())
-                            .endpoint(dataTransJobDetail.getSyncUnits().get(0).getToSink().getUrl()).build());
+                            .userId(jobDetail.getUserId())
+                            .full(0)
+                            .endpoint(jobDetail.getSyncUnits().get(0).getToSink().getUrl()).build());
                 } else if ("export".equals(jobParam.getJobType())) {
                     // old export
                     exportAction.doAction(OldDtsParam.builder()
                             .jobId(jobParam.getJobId())
-                            .jobType(jobParam.getJobType())
-                            .endpoint(dataTransJobDetail.getSyncUnits().get(0).getFromSink().getUrl()).build());
+                            .endpoint(jobDetail.getSyncUnits().get(0).getFromSink().getUrl()).build());
                 }
             }
         } catch (Exception e) {

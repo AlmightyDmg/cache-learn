@@ -37,6 +37,10 @@ public interface TTableRepository extends HaizhiBaseRepository<TTableBean, Strin
 			+ "and t_table.deleted=0", nativeQuery = true)
 	Optional<List<TTableBean>> findByOwner(String owner);
 
+	@Query(value = "select *  from t_table  WHERE t_table.table_id = ?1 "
+			+ "and t_table.deleted=0", nativeQuery = true)
+	Optional<TTableBean> findByTableId(String tableId);
+
 	@Query(value = "select *  from t_table  WHERE t_table.owner = ?1 and t_table.scheduler_id in (?2) "
 			+ "and t_table.deleted=0", nativeQuery = true)
 	Optional<List<TTableBean>> findTableBeanByOwnerAndSchedulerIds(String owner, List<String> schdulerIds);

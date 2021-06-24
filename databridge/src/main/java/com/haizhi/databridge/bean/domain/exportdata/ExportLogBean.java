@@ -9,6 +9,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -53,7 +54,7 @@ public class ExportLogBean extends HaizhiBaseDomainBean {
 	@NotBlank
 	@Column(name = "count", nullable = false, columnDefinition = "text")
 	private String count;
-	@NotBlank
+	@NotNull
 	@Column(name = "error_msg", nullable = false, columnDefinition = "longtext")
 	private String errorMsg;
 	@Column(name = "start_time", nullable = false, columnDefinition = "timestamp")

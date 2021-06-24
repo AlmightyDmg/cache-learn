@@ -2,6 +2,7 @@ package com.haizhi.databridge.bean.vo;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -45,6 +46,7 @@ public class DataTransJobVo {
     public static class Reader {
         String tableId;
         String tableName;
+        String realName;
         List<Column> columns;
         Sync sync;
         Filter filter;
@@ -57,6 +59,7 @@ public class DataTransJobVo {
     public static class Writer {
         String tableId;
         String tableName;
+        String realName;
         String tablePath;
         List<Column> columns;
     }
@@ -67,8 +70,13 @@ public class DataTransJobVo {
     @Builder
     public static class Column {
         String name;
+        String realName;
         String type;
         String value;
+
+        @JsonProperty("uniq_index")
+        Boolean uniqIndex = false;
+        String remark;
     }
 
     @Data
@@ -103,6 +111,7 @@ public class DataTransJobVo {
         @Builder
         public static class SyncCondition {
             String field;
+            String fieldType;
             Conditon start;
             Conditon end;
 

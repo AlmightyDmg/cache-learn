@@ -1,11 +1,15 @@
 package com.haizhi.dataclient.connection.dmc.client.tassadar;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 
+import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.POST;
 import retrofit2.http.QueryBean;
 
+import com.haizhi.dataclient.connection.dmc.client.mobius.response.CreateFolderResp;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ChangeFolderReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.InfoTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbFileReq;
@@ -32,4 +36,15 @@ public interface TassadarClient {
     @POST("tb/info")
     @FormUrlEncoded
     TassadarResult<InfoTbResp> infoTb(@Valid @QueryBean InfoTbReq request);
+
+    @POST("folder/createifnotexist")
+    @FormUrlEncoded
+    TassadarResult<CreateFolderResp> createFolderIfNotExist(@NotBlank @Field("role") Integer role,
+                                                            @NotBlank @Field("user_id") String userId,
+                                                            @NotBlank @Field("folder_name") String folderName,
+                                                            @Field("ent_id") String entId);
+
+    @POST("folder/change")
+    @FormUrlEncoded
+    TassadarResult<String> changeFolder(@Valid @QueryBean ChangeFolderReq request);
 }

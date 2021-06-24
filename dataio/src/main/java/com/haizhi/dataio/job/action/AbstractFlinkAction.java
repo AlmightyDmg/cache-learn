@@ -81,7 +81,7 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
                             totalSuccess = false;
                         }
                     } catch (Exception e) {
-                        log.error("");
+                        log.error("", e);
                         unitCount--;
                     }
                 }
