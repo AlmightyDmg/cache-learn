@@ -83,7 +83,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		options.setTableComments(dataSourceCreateForm.getTableComments());
 
 		TDataBaseSourceBean dbBean = new TDataBaseSourceBean();
-		dbBean.setDbType(dbBean.getDbType());
+		dbBean.setDbType(setup.getType());
 		dbBean.setDsName(dataSourceCreateForm.getDsName());
 		dbBean.setRemark(dataSourceCreateForm.getRemark());
 		dbBean.setOptions(JsonUtils.toJson(options));

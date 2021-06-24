@@ -72,34 +72,30 @@ public class TDataBaseSourceBean extends HaizhiStandardDomainBean {
 //    private Timestamp updateAt;
 
     @ApiModelProperty(value = "所有者")
-    @Column(name = "owner", length = 40, nullable = false)
+    @Column(name = "owner", length = 40, nullable = true)
     private String owner;
 
-    @NotBlank
     @ApiModelProperty(value = "options")
-    @Column(name = "options", nullable = false, columnDefinition = "longtext")
+    @Column(name = "options", nullable = true, columnDefinition = "longtext")
     private String options;
 
-    @NotBlank
     @ApiModelProperty(value = "exception")
-    @Column(name = "exception", nullable = false, columnDefinition = "longtext")
+    @Column(name = "exception", nullable = true, columnDefinition = "longtext")
     private String exception;
 
-    @NotBlank
     @ApiModelProperty(value = "traceback")
-    @Column(name = "traceback", nullable = false, columnDefinition = "longtext")
+    @Column(name = "traceback", nullable = true, columnDefinition = "longtext")
     private String traceback;
 
 //    @ApiModelProperty(value = "逻辑删除")
 //    @Column(name = "deleted", nullable = false, columnDefinition = "int(4)")
 //    private Integer deleted;
 
-    @NotBlank
     @ApiModelProperty(value = "remark")
-    @Column(name = "remark", nullable = false, columnDefinition = "longtext")
+    @Column(name = "remark", nullable = true, columnDefinition = "longtext")
     private String remark;
 
     @ApiModelProperty(value = "资源来源， 0：db, 1：streaming， 2：api")
-    @Column(name = "source_type", nullable = false, columnDefinition = "int(4)")
+    @Column(name = "source_type", nullable = true, columnDefinition = "int(4)")
     private Integer sourceType;
 }

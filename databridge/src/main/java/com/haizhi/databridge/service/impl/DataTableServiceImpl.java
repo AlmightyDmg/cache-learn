@@ -274,11 +274,8 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 
 		Optional<List<TTableBean>> optionalTTableBeans = tTableRepo.findAllByDbIdAndOwner(
 				listUpdateForm.getDbId(), listUpdateForm.getUserId());
-		if (!optionalTTableBeans.isPresent()) {
-			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, "该源下没有表");
-		}
-		Map<String, String> tableName2TableId = optionalTTableBeans.get().stream()
-				.collect(Collectors.toMap(TTableBean::getTbName, TTableBean::getTableId));
+		Map<String, String> tableName2TableId = optionalTTableBeans.isPresent() ? optionalTTableBeans.get().stream()
+				.collect(Collectors.toMap(TTableBean::getTbName, TTableBean::getTableId)) : new HashMap<>();
 
 		if (!ObjectUtils.isEmpty(listUpdateForm.getDeleteTables())) {
 			for (String tbName: listUpdateForm.getDeleteTables()) {
@@ -516,8 +513,8 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 			tTableBeans = optionalTTableBeans.get().stream().filter(
 					tTableBean -> tbName.equals(tTableBean.getTbName())).collect(Collectors.toList());
 		}
-		Map<String, DataTableVo.TableVo> tableId2TableVoMap = buildTableId2TableVoMap(owner, optionalTTableBeans.get());
-		return tableId2TableVoMap.values().stream().collect(Collectors.toList());
+		Map<String, DataTableVo.TableVo> tableId2TableVoMap = buildTableId2TableVoMap(owner, tTableBeans);
+		return new ArrayList<>(tableId2TableVoMap.values());
 	}
 
 	public Map<String, Integer> getDbId2TablesNumMap(String owner, List<String> dbIds)  {
@@ -532,4 +529,6 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		}
 		return dbId2TableNumMap;
 	}
+
+
 }
