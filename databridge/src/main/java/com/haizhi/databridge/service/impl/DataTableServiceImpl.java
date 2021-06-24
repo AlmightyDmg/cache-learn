@@ -525,7 +525,9 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 //		}
 		Map<String, Integer> dbId2TableNumMap = new HashMap<>();
 		for (Map<String, Object> obj: optionalDbId2TablesNumMapList) {
-			dbId2TableNumMap.put(obj.get("db_id").toString(), Integer.valueOf(obj.get("count").toString()));
+			if (!ObjectUtils.isEmpty(obj.get("db_id"))) {
+				dbId2TableNumMap.put(obj.get("db_id").toString(), Integer.valueOf(obj.get("count").toString()));
+			}
 		}
 		return dbId2TableNumMap;
 	}

@@ -67,7 +67,7 @@ public final class CrypterUtils {
 
     public static String decryptData(String inData, String ssid) throws IOException {
         String allData = "";
-        if (!inData.startsWith("H")) {
+        if (inData == null || !inData.startsWith("H")) {
             return inData;
         }
         byte[] inDataByte = Base64Utils.decodeBase64(inData.substring(1));

@@ -591,7 +591,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		tSchedulerBean.setOwner(changeBaseForm.getUserId());
 		tSchedulerBean.setOptions(JsonUtils.toJson(optionsDto));
 		tSchedulerRepo.save(tSchedulerBean);
-		updateJob(tSchedulerBean.getSchedulerId(), tSchedulerBean.getTiming());
+		if (!ObjectUtils.isEmpty(tSchedulerBean.getTiming())) {
+			updateJob(tSchedulerBean.getSchedulerId(), tSchedulerBean.getTiming());
+		}
 	}
 
 	private void updateJob(String schedulerId, String timing) {
