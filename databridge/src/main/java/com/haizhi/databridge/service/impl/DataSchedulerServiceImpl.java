@@ -55,6 +55,7 @@ import com.haizhi.databridge.repository.importdata.TSchedulerRepository;
 import com.haizhi.databridge.repository.importdata.TTableRepository;
 import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSchedulerService;
+import com.haizhi.databridge.util.CrypterUtils;
 import com.haizhi.databridge.util.IdUtils;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
@@ -147,7 +148,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		jobClientApi.remove(optionalTSchedulerBean.get().getSchedulerId());
 	}
 
-	public DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws UnsupportedEncodingException {
+	public DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws IOException {
 		// 不管是搜索还是全量，总的思想就是先拿到该拿到的scheduler和table，然后构建返回结果
 		List<TSchedulerBean> querySchedulerBeanResult = new ArrayList<>();
 		List<TTableBean> queryTableBeanResult = new ArrayList<>();
@@ -220,7 +221,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	}
 
 	public Map<String, DataSchedulerVo.SchedulerVo> buildSchedulerId2Map(
-			String owner, List<TTableBean> tableBeans, List<TSchedulerBean> schedulerBeans) throws UnsupportedEncodingException {
+			String owner, List<TTableBean> tableBeans, List<TSchedulerBean> schedulerBeans) throws IOException {
 		Map<String, DataTableVo.TableVo> tableVoMap = tableServiceImpl.buildTableId2TableVoMap(owner, tableBeans);
 		SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		// 构建scheduler
@@ -410,15 +411,21 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				.syncUnits(tableBeans.stream().map(tableBean -> {
 					DataTableDto.SyncConfigDto syncConfig =
 							JsonUtils.toObject(tableBean.getSyncConfig(), DataTableDto.SyncConfigDto.class);
-							return getSyncUnit(syncConfig, tableBean, toSink);
-					 }).collect(Collectors.toList())
+							try {
+								return getSyncUnit(syncConfig, tableBean, toSink);
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+							return null;
+						}).collect(Collectors.toList())
 					).build();
 	}
 
 	private DataTransJobVo.SyncUnit getSyncUnit(DataTableDto.SyncConfigDto syncConfig, TTableBean tableBean,
-												DataTransJobVo.Sink toSink) {
+												DataTransJobVo.Sink toSink) throws IOException {
 		TDataBaseSourceBean dbBean = databaseRepo.findByDbId(tableBean.getDbId()).orElse(new TDataBaseSourceBean());
 		DataSourceObjDto.SetUp setup = JsonUtils.toObject(dbBean.getSetup(), DataSourceObjDto.SetUp.class);
+		setup.setPwd(CrypterUtils.decryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
 		List<DataTransJobVo.Column> columns = syncConfig.getFields().stream().map(field -> DataTransJobVo.Column.builder()
 						.name(field).build()).collect(Collectors.toList());
 		DataTransJobVo.Sync.SyncCondition syncCondition = DataTransJobVo.Sync.SyncCondition.builder()

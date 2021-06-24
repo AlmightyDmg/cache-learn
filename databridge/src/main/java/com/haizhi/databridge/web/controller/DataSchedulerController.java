@@ -35,7 +35,7 @@ public class DataSchedulerController extends BaseController {
      **/
     @RequestMapping("/list")
     @ApiOperation("列表展示")
-    DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws UnsupportedEncodingException {
+    DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws IOException {
         return dataSchedulerService.list(listForm);
     }
 

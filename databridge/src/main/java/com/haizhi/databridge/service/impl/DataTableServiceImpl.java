@@ -461,7 +461,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 	}
 
 	public Map<String, DataTableVo.TableVo> buildTableId2TableVoMap(String owner, List<TTableBean> tableBeans
-	) throws UnsupportedEncodingException {
+	) throws IOException {
 		List<String> dbIds = tableBeans.stream().distinct().map(TTableBean::getDbId).collect(Collectors.toList());
 		Map<String, DataBaseSourceVo.RetrieveVo> buildDbId2DbRetrieveVo = dataSourceServiceImpl.buildDbId2DbRetrieveVo(owner, dbIds);
 		Map<String, DataTableVo.TableVo> tableVoMap = new HashMap<>();
@@ -497,7 +497,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 	}
 
 	public List<DataTableVo.TableVo> getTableVosByDbIds(String owner, List<String> dbIds, String tbStatus, String tbName
-	) throws UnsupportedEncodingException {
+	) throws IOException {
 		List<DataTableVo.TableVo> result = new ArrayList<>();
 
 		List<TTableBean> tTableBeans = new ArrayList<>();
