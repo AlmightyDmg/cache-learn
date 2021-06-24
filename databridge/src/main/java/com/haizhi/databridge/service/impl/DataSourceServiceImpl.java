@@ -28,6 +28,7 @@ import com.haizhi.databridge.exception.DatabridgeException;
 import com.haizhi.databridge.repository.importdata.TTableRepository;
 import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSourceService;
+import com.haizhi.databridge.util.CrypterUtils;
 import com.haizhi.databridge.util.GzipUtils;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
@@ -77,13 +78,15 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 
 		String connStr = GzipUtils.uncompress2Str(dataSourceCreateForm.getConnectId(), "+-");
 		DataSourceObjDto.SetUp setup = JsonUtils.toObject(connStr, DataSourceObjDto.SetUp.class);
+		// 前传过来的密码是明文，只不过用base64压缩了而已
+		setup.setPwd(CrypterUtils.encryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
 		DataSourceObjDto.Options options = new DataSourceObjDto.Options();
 //		DataSourceObjDto.Output output = new DataSourceObjDto.Output();
 		options.setFieldComments(dataSourceCreateForm.getFieldComments());
 		options.setTableComments(dataSourceCreateForm.getTableComments());
 
 		TDataBaseSourceBean dbBean = new TDataBaseSourceBean();
-		dbBean.setDbType(dbBean.getDbType());
+		dbBean.setDbType(setup.getType());
 		dbBean.setDsName(dataSourceCreateForm.getDsName());
 		dbBean.setRemark(dataSourceCreateForm.getRemark());
 		dbBean.setOptions(JsonUtils.toJson(options));
@@ -150,7 +153,12 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	) throws UnsupportedEncodingException {
 		List<String> dbIds = new ArrayList<>();
 		dbIds.add(dataSourceRetrieveForm.getDbId());
-		List<DataBaseSourceVo.RetrieveVo> retrieveVos = retrieves(dataSourceRetrieveForm.getOwner(), dbIds);
+		List<DataBaseSourceVo.RetrieveVo> retrieveVos = null;
+		try {
+			retrieveVos = retrieves(dataSourceRetrieveForm.getOwner(), dbIds);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		if (ObjectUtils.isEmpty(retrieveVos)) {
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, "不存在的数据源");
 		}
@@ -177,7 +185,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		return optionalTDataBaseSourceBean.isPresent();
 	}
 
-	public List<DataBaseSourceVo.RetrieveVo> retrieves(String owner, List<String> dbIds) throws UnsupportedEncodingException {
+	public List<DataBaseSourceVo.RetrieveVo> retrieves(String owner, List<String> dbIds) throws IOException {
 
 		List<DataBaseSourceVo.RetrieveVo> result = new ArrayList<>();
 		Optional<List<TDataBaseSourceBean>> optionalTDataBaseSourceBeans = tdbsRepo.findByOwnerAndDbIdIn(
@@ -186,7 +194,9 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 			return result;
 		}
 		for (TDataBaseSourceBean tDataBaseSourceBean: optionalTDataBaseSourceBeans.get()) {
-			String connectId = encodeConnectId(JsonUtils.toJson(tDataBaseSourceBean.getSetup()));
+			DataSourceObjDto.SetUp setup = JsonUtils.toObject(tDataBaseSourceBean.getSetup(), DataSourceObjDto.SetUp.class);
+			setup.setPwd(CrypterUtils.decryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
+			String connectId = encodeConnectId(JsonUtils.toJson(setup));
 			DataSourceObjDto.Options options = JsonUtils.toObject(tDataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
 			result.add(DataBaseSourceVo.RetrieveVo.builder()
 					.connectId(connectId)
@@ -202,7 +212,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 
 	}
 
-	public Map<String, DataBaseSourceVo.RetrieveVo> buildDbId2DbRetrieveVo(String owner, List<String> dbIds) throws UnsupportedEncodingException {
+	public Map<String, DataBaseSourceVo.RetrieveVo> buildDbId2DbRetrieveVo(String owner, List<String> dbIds) throws IOException {
 		Map<String, DataBaseSourceVo.RetrieveVo> retrieveVoMap = new HashMap<>();
 		List<DataBaseSourceVo.RetrieveVo> dbRetrieveVos = retrieves(owner, dbIds);
 		for (DataBaseSourceVo.RetrieveVo retrieveVo: dbRetrieveVos) {
@@ -262,6 +272,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		Map<String, Integer> dbId2TableNumMap = tableServiceImpl.getDbId2TablesNumMap(owner, dbIds);
 		for (TDataBaseSourceBean dataBaseSourceBean: dataBaseSourceBeans) {
 			DataSourceObjDto.SetUp setUp = JsonUtils.toObject(dataBaseSourceBean.getSetup(), DataSourceObjDto.SetUp.class);
+			setUp.setPwd(CrypterUtils.decryptData(setUp.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
 			DataSourceObjDto.Options options = JsonUtils.toObject(dataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
 			dataSourceVos.add(DataBaseSourceVo.DataSourceVo.builder()
 					.connectId(encodeConnectId(JsonUtils.toJson(setUp)))
@@ -272,10 +283,8 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 					.dsName(dataBaseSourceBean.getDsName())
 					.labels(options.getLabels())
 					.remark(dataBaseSourceBean.getRemark())
-					.tbCount(dbId2TableNumMap.getOrDefault("db_id", 0))
+					.tbCount(dbId2TableNumMap.getOrDefault(dataBaseSourceBean.getDbId(), 0))
 					.build());
-			decodeConnectId(encodeConnectId(JsonUtils.toJson(setUp)));
-
 		}
 		return dataSourceVos;
 	}

@@ -156,7 +156,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		jobClientApi.remove(optionalTSchedulerBean.get().getSchedulerId());
 	}
 
-	public DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws UnsupportedEncodingException {
+	public DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws IOException {
 		// 不管是搜索还是全量，总的思想就是先拿到该拿到的scheduler和table，然后构建返回结果
 		List<TSchedulerBean> querySchedulerBeanResult = new ArrayList<>();
 		List<TTableBean> queryTableBeanResult = new ArrayList<>();
@@ -229,7 +229,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	}
 
 	public Map<String, DataSchedulerVo.SchedulerVo> buildSchedulerId2Map(
-			String owner, List<TTableBean> tableBeans, List<TSchedulerBean> schedulerBeans) throws UnsupportedEncodingException {
+			String owner, List<TTableBean> tableBeans, List<TSchedulerBean> schedulerBeans) throws IOException {
 		Map<String, DataTableVo.TableVo> tableVoMap = tableServiceImpl.buildTableId2TableVoMap(owner, tableBeans);
 		SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		// 构建scheduler
@@ -264,7 +264,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 
 	public DataSchedulerVo.QueryVo buildQueryVo(String keyword, Integer limit, Integer page) {
-		 return DataSchedulerVo.QueryVo.builder()
+		return DataSchedulerVo.QueryVo.builder()
 				.keyword(keyword)
 				.limit(limit)
 				.page(page)
@@ -417,11 +417,12 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				.jobType("import")
 				.userId(tSchedulerBean.getOwner())
 				.syncUnits(tableBeans.stream().map(tableBean -> {
-					DataTableDto.SyncConfigDto syncConfig =
-							JsonUtils.toObject(tableBean.getSyncConfig(), DataTableDto.SyncConfigDto.class);
+							DataTableDto.SyncConfigDto syncConfig =
+									JsonUtils.toObject(
+											tableBean.getSyncConfig(), DataTableDto.SyncConfigDto.class);
 							return getSyncUnit(syncConfig, tableBean, dmcUrl, tSchedulerBean.getOwner());
-					 }).collect(Collectors.toList())
-					).build();
+						}).collect(Collectors.toList())
+				).build();
 	}
 
 	private DataTransJobVo.Sync.SyncCondition getSyncCondition(DataTableDto.SyncConfigDto syncConfig) {
@@ -431,16 +432,17 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		} else {
 			if ("maximum".equalsIgnoreCase(syncConfig.getIncrease().getType())) {
 				syncCondition = DataTransJobVo.Sync.SyncCondition.builder()
-					.field(syncConfig.getIncrease().getField())
-					.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
-							.operator(syncConfig.getIncrease().getMaximum().getStart().getCompare())
-							.enable("true".equals(syncConfig.getIncrease().getMaximum().getStart().getEnable()) ? 1 : 0)
-							.value(syncConfig.getIncrease().getMaximum().getStart().getValue()).build())
-					.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
-							.operator(syncConfig.getIncrease().getMaximum().getEnd().getMode())
-							.enable(syncConfig.getIncrease().getMaximum().getEnd().getEnable() ? 1 : 0)
-							.value(syncConfig.getIncrease().getMaximum().getEnd().getValue().toString()).build())
-					.build();
+						.field(syncConfig.getIncrease().getField())
+						.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
+								.operator(syncConfig.getIncrease().getMaximum().getStart().getCompare())
+								.enable("true".equals(
+										syncConfig.getIncrease().getMaximum().getStart().getEnable()) ? 1 : 0)
+								.value(syncConfig.getIncrease().getMaximum().getStart().getValue()).build())
+						.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
+								.operator(syncConfig.getIncrease().getMaximum().getEnd().getMode())
+								.enable(syncConfig.getIncrease().getMaximum().getEnd().getEnable() ? 1 : 0)
+								.value(syncConfig.getIncrease().getMaximum().getEnd().getValue().toString()).build())
+						.build();
 			} else if ("relativetime".equalsIgnoreCase(syncConfig.getIncrease().getType())) {
 				syncCondition = null;
 			}
@@ -716,7 +718,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		tSchedulerBean.setOwner(changeBaseForm.getUserId());
 		tSchedulerBean.setOptions(JsonUtils.toJson(optionsDto));
 		tSchedulerRepo.save(tSchedulerBean);
-		updateJob(tSchedulerBean.getSchedulerId(), tSchedulerBean.getTiming());
+		if (!ObjectUtils.isEmpty(tSchedulerBean.getTiming())) {
+			updateJob(tSchedulerBean.getSchedulerId(), tSchedulerBean.getTiming());
+		}
 	}
 
 	private void updateJob(String schedulerId, String timing) {
