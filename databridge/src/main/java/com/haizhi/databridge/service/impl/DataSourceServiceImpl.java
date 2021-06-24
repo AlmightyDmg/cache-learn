@@ -283,10 +283,8 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 					.dsName(dataBaseSourceBean.getDsName())
 					.labels(options.getLabels())
 					.remark(dataBaseSourceBean.getRemark())
-					.tbCount(dbId2TableNumMap.getOrDefault("db_id", 0))
+					.tbCount(dbId2TableNumMap.getOrDefault(dataBaseSourceBean.getDbId(), 0))
 					.build());
-			decodeConnectId(encodeConnectId(JsonUtils.toJson(setUp)));
-
 		}
 		return dataSourceVos;
 	}
