@@ -418,7 +418,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				.userId(tSchedulerBean.getOwner())
 				.syncUnits(tableBeans.stream().map(tableBean -> {
 							DataTableDto.SyncConfigDto syncConfig =
-									JsonUtils.toObject(tableBean.getSyncConfig(), DataTableDto.SyncConfigDto.class);
+									JsonUtils.toObject(
+											tableBean.getSyncConfig(), DataTableDto.SyncConfigDto.class);
 							return getSyncUnit(syncConfig, tableBean, dmcUrl, tSchedulerBean.getOwner());
 						}).collect(Collectors.toList())
 				).build();
@@ -434,7 +435,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 						.field(syncConfig.getIncrease().getField())
 						.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
 								.operator(syncConfig.getIncrease().getMaximum().getStart().getCompare())
-								.enable("true".equals(syncConfig.getIncrease().getMaximum().getStart().getEnable()) ? 1 : 0)
+								.enable("true".equals(
+										syncConfig.getIncrease().getMaximum().getStart().getEnable()) ? 1 : 0)
 								.value(syncConfig.getIncrease().getMaximum().getStart().getValue()).build())
 						.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
 								.operator(syncConfig.getIncrease().getMaximum().getEnd().getMode())
