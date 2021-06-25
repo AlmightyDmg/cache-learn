@@ -8,6 +8,7 @@ import retrofit2.http.POST;
 import retrofit2.http.Query;
 
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataFieldResp;
+import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataResp;
 
 /**
  * @author duanxiaoyi
@@ -28,4 +29,10 @@ public interface NoahClient {
                                             @Field("ref") String ref,
                                             @Field("table_id") String tableId,
                                             @Query("user_id") String userId);
+
+    @POST("/api/noah/connector/query")
+    @FormUrlEncoded
+    GetTableDataResp getTableDataQuery(@Field("connect_id") String connectId,
+                                       @Field("sql") String sql,
+                                       @Query("user_id") String userId);
 }

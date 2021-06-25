@@ -43,6 +43,7 @@ import com.haizhi.dataio.job.reader.JdbcReader;
 import com.haizhi.dataio.job.reader.Reader;
 import com.haizhi.dataio.job.sql.BaseSqlOperator;
 import com.haizhi.dataio.job.sql.CompareOperator;
+import com.haizhi.dataio.job.sql.EmptyOperator;
 import com.haizhi.dataio.job.sql.NotOperator;
 import com.haizhi.dataio.job.sql.RelOperator;
 import com.haizhi.dataio.job.sql.SqlOperator;
@@ -343,18 +344,25 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
         if (unit.getReader().getSync().getSyncCondition() != null) {
             String field = unit.getReader().getSync().getSyncCondition().getField();
             String fieldType = unit.getReader().getSync().getSyncCondition().getFieldType();
-            CompareOperator fromOp = new CompareOperator(field,
-                    unit.getReader().getSync().getSyncCondition().getStart().getOperator(),
-                    fieldType,
-                    unit.getReader().getSync().getSyncCondition().getStart().getValue());
+            Object value = unit.getReader().getSync().getSyncCondition().getStart().getValue();
+            if (ObjectUtils.isEmpty(value)) {
+                return new EmptyOperator();
+            }
 
-            CompareOperator toOp = new CompareOperator(field,
-                    fieldType,
-                    unit.getReader().getSync().getSyncCondition().getEnd().getOperator(),
-                    unit.getReader().getSync().getSyncCondition().getEnd().getValue());
+            if ("increment".equalsIgnoreCase(unit.getReader().getSync().getType())) {
+                CompareOperator fromOp = new CompareOperator(field,
+                        unit.getReader().getSync().getSyncCondition().getStart().getOperator(),
+                        fieldType,
+                        unit.getReader().getSync().getSyncCondition().getStart().getValue());
 
-            sqlOperatorList.add(fromOp);
-            sqlOperatorList.add(toOp);
+                CompareOperator toOp = new CompareOperator(field,
+                        fieldType,
+                        unit.getReader().getSync().getSyncCondition().getEnd().getOperator(),
+                        unit.getReader().getSync().getSyncCondition().getEnd().getValue());
+
+                sqlOperatorList.add(fromOp);
+                sqlOperatorList.add(toOp);
+            }
         }
 
         if (unit.getReader().getFilter() != null) {

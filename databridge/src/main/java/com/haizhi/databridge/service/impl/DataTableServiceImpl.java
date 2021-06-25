@@ -411,17 +411,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		if (ObjectUtils.isEmpty(ref)) {
 			return null;
 		}
-		List<String> schemaList = new ArrayList<>();
-		List refList = JsonUtils.toObject(refDecode(ref), List.class);
-		if (ObjectUtils.isEmpty(refList)) {
-			return schemaList;
-		}
-		for (int i = 0; i < refList.size() - 1; i++) {
-			if (!ObjectUtils.isEmpty(refList.get(i))) {
-				schemaList.add((String) refList.get(i));
-			}
-		}
-		return schemaList;
+		return JsonUtils.toList(refDecode(ref), String.class);
 	}
 
 	public void updateSchedulerId(String tableId, String userId, String schedulerId) {
