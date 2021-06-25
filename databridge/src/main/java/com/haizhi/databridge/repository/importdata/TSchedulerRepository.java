@@ -40,6 +40,10 @@ public interface TSchedulerRepository extends HaizhiBaseRepository<TSchedulerBea
 			+ "from t_scheduler where t_scheduler.deleted=0 and t_scheduler.owner=?1", nativeQuery = true)
 	Map<String, BigInteger> countTSchedulerBeanByOwner(String owner);
 
+	@Query(value = "select count(1) as count "
+			+ "from t_scheduler where t_scheduler.deleted=0 and t_scheduler.owner=?1 and t_scheduler.status=?2", nativeQuery = true)
+	Map<String, BigInteger> countTSchedulerBeanByOwnerAndStatus(String owner, String status);
+
 	@Query(value = "SELECT *  FROM t_scheduler WHERE t_scheduler.deleted=0  "
 			+ "and t_scheduler.owner = ?1 "
 			+ " ORDER BY t_scheduler.create_at LIMIT ?2, ?3", nativeQuery = true)
@@ -49,7 +53,7 @@ public interface TSchedulerRepository extends HaizhiBaseRepository<TSchedulerBea
 	Optional<List<TSchedulerBean>> findTSchedulerBeanBySchedulerIds(List<String> schdulerIds);
 
 	@Query(value = "select * from t_scheduler where  t_scheduler.owner = ?1 "
-			+ "and t_scheduler.`scheduler_name` like concat('%', (?2) ,'%')", nativeQuery = true)
+			+ "and t_scheduler.`scheduler_name` like concat('%', (?2) ,'%') and t_scheduler.deleted=0", nativeQuery = true)
 	Optional<List<TSchedulerBean>> findTSchedulerByOwnerAndSchedulerNameLike(String owner, String searchKey);
 
 }

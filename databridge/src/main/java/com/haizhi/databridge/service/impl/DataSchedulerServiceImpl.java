@@ -158,8 +158,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 	public DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws IOException {
 		// 不管是搜索还是全量，总的思想就是先拿到该拿到的scheduler和table，然后构建返回结果
-		List<TSchedulerBean> querySchedulerBeanResult = new ArrayList<>();
-		List<TTableBean> queryTableBeanResult = new ArrayList<>();
+		List<TSchedulerBean> queryScheduler = new ArrayList<>();
+		List<TTableBean> queryTable = new ArrayList<>();
 		int pageCount;
 		Integer total;
 
@@ -168,18 +168,19 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			// 分页操作
 			//limit查询scheduler
 			//查table
+			total = ObjectUtils.isEmpty(listForm.getStatus()) ? buildSchedulerCount(listForm.getUserId())
+					: buildSchedulerCount(listForm.getUserId(), listForm.getStatus());
 
-			total = buildSchedulerCount(listForm.getUserId());
 			Integer pageSize = listForm.getLimit() > total ? total : listForm.getLimit();
 			// mysql查询是从0开始的
 			Integer startNum = (listForm.getPage() - 1) * pageSize;
-			Integer endNum = listForm.getPage() * pageSize - 1;
+			Integer endNum = startNum + listForm.getPage() * pageSize;
 			Optional<List<TSchedulerBean>> optionalSchedulerList = tSchedulerRepo.findSchedulerByOwner(
 					listForm.getUserId(), startNum, endNum);
 			// 通过查询到的scheduler拿到schedulerId获取table
 			if (optionalSchedulerList.isPresent()) {
-				querySchedulerBeanResult = optionalSchedulerList.get();
-				queryTableBeanResult = getTableBeanBySchedulerIds(listForm.getUserId(), querySchedulerBeanResult
+				queryScheduler = optionalSchedulerList.get();
+				queryTable = getTableBeanBySchedulerIds(listForm.getUserId(), queryScheduler
 						.stream().map(TSchedulerBean::getSchedulerId).collect(Collectors.toList()));
 			}
 
@@ -191,41 +192,58 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			Optional<List<TSchedulerBean>> optionalTSchedulerBeans = tSchedulerRepo.findTSchedulerByOwnerAndSchedulerNameLike(
 					listForm.getUserId(), listForm.getKeyword());
 			if (optionalTSchedulerBeans.isPresent()) {
-				querySchedulerBeanResult.addAll(optionalTSchedulerBeans.get());
+				queryScheduler.addAll(optionalTSchedulerBeans.get());
 
 				List<String> schedulerIds = optionalTSchedulerBeans.get().stream().map(
 						TSchedulerBean::getSchedulerId).collect(Collectors.toList());
-				if (!ObjectUtils.isEmpty(schedulerIds)) {
-					queryTableBeanResult.addAll(
-							tableServiceImpl.getTableBeanListBySchedulerIds(listForm.getUserId(), schedulerIds));
-				}
+				queryTable.addAll(
+						tableServiceImpl.getTableBeanListBySchedulerIds(listForm.getUserId(), schedulerIds));
+
 			}
 
 			// // 通过搜索table拿到命中的tableBean，添加到queryTableBeanResult中，然后再通过table中的schedulerIds查询scheduler下，并添加到queryTableBeanResult
 			List<TTableBean> tTableBeans = tableServiceImpl.getTableListByOwnerAndTbNameLike(listForm.getUserId(), listForm.getKeyword());
 			if (!ObjectUtils.isEmpty(tTableBeans)) {
-				queryTableBeanResult.addAll(tTableBeans);
-				queryTableBeanResult.addAll(getTableBeanBySchedulerIds(listForm.getUserId(),
+				queryTable.addAll(tTableBeans);
+				queryTable.addAll(getTableBeanBySchedulerIds(listForm.getUserId(),
 						tTableBeans.stream().map(TTableBean::getSchedulerId).collect(Collectors.toList())));
 			}
 			//table去重
-			queryTableBeanResult = queryTableBeanResult.stream().distinct().collect(Collectors.toList());
-//			// scheduler去重
-			querySchedulerBeanResult = sortAndDistinctSchedulerBean(querySchedulerBeanResult);
-			total = querySchedulerBeanResult.size();
+			queryTable = queryTable.stream().distinct().collect(Collectors.toList());
+
+			// 根据关键字过滤
+			queryScheduler = ObjectUtils.isEmpty(listForm.getStatus())
+					? sortSchedulerBean(queryScheduler) : sortSchedulerBean(queryScheduler, listForm.getStatus());
+			total = queryScheduler.size();
 			// 搜索先全量吧，理论上来说需要根据limt对querySchedulerBeanResult进行截取
 		}
 
 		pageCount = (int) Math.ceil((double) total / listForm.getLimit());
 		Map<String, DataSchedulerVo.SchedulerVo> schedulerVoMap = buildSchedulerId2Map(
-				listForm.getUserId(), queryTableBeanResult, querySchedulerBeanResult);
+				listForm.getUserId(), queryTable, queryScheduler);
 		return DataSchedulerVo.ListVo.builder()
 				.pagecount(pageCount)
 				.query(buildQueryVo(listForm.getKeyword(), listForm.getLimit(), listForm.getPage()))
-				.schedulers(querySchedulerBeanResult.stream().map(TSchedulerBean::getSchedulerId)
+				.schedulers(queryScheduler.stream().map(TSchedulerBean::getSchedulerId)
 						.map(schedulerVoMap::get).collect(Collectors.toList()))
 				.status(DataSchedulerVo.StatusVo.builder().total(total).build())
 				.totalitems(total).build();
+	}
+
+	public List<TSchedulerBean> sortSchedulerBean(List<TSchedulerBean> schedulerBeans) {
+		// 根据关键字过滤
+		List<TSchedulerBean> result = new ArrayList<>();
+		result = sortAndDistinctSchedulerBean(result);
+		return result;
+	}
+
+	public List<TSchedulerBean> sortSchedulerBean(List<TSchedulerBean> schedulerBeans, String status) {
+		// 根据关键字过滤
+		List<TSchedulerBean> result = new ArrayList<>();
+		result = schedulerBeans.stream().filter(
+				schedulerBean -> schedulerBean.getStatus().equals(status)).collect(Collectors.toList());
+		result = sortAndDistinctSchedulerBean(result);
+		return result;
 	}
 
 	public Map<String, DataSchedulerVo.SchedulerVo> buildSchedulerId2Map(
@@ -237,7 +255,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		for (TSchedulerBean schedulerBean: schedulerBeans) {
 			DataSchedulerDto.OptionsDto optionsDto = JsonUtils.toObject(schedulerBean.getOptions(), DataSchedulerDto.OptionsDto.class);
 			schedulerId2SchedulerVoMap.put(schedulerBean.getSchedulerId(), DataSchedulerVo.SchedulerVo.builder()
-					.database(optionsDto.getTables().stream().map(tableId -> tableVoMap.get(tableId).getDbType())
+					.database(optionsDto.getTables().stream().map(tableId -> tableVoMap.getOrDefault(tableId, null).getDbType())
 							.distinct().collect(Collectors.toList()))
 					.exception(schedulerBean.getException())
 					.posted(optionsDto.getTables().stream().map(tableVoMap::get).mapToInt(DataTableVo.TableVo::getPosted).sum())
@@ -250,7 +268,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 					.schedulerDesc(schedulerBean.getSchedulerDesc())
 					.schedulerId(schedulerBean.getSchedulerId())
 					.schedulerName(schedulerBean.getSchedulerName())
-					.startAt(ft.format(schedulerBean.getStartAt()))
+					.startAt(!ObjectUtils.isEmpty(schedulerBean.getStartAt()) ? ft.format(schedulerBean.getStartAt()) : null)
 					.status(schedulerBean.getStatus())
 					.syncCycle(getSyncCycle(schedulerBean.getTiming()))
 					.tables(optionsDto.getTables().stream().map(tableVoMap::get)
@@ -292,18 +310,24 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	}
 
 	public Integer buildSchedulerCount(String owner) {
+
 		Map<String, BigInteger> schedulerCountMap = tSchedulerRepo.countTSchedulerBeanByOwner(owner);
-		Integer schedulerCount = Integer.parseInt(String.valueOf(schedulerCountMap.get("count")));
-		return schedulerCount;
+		return Integer.parseInt(String.valueOf(schedulerCountMap.get("count")));
+
+	}
+
+	public Integer buildSchedulerCount(String owner, String status) {
+		Map<String, BigInteger> schedulerCountMap = tSchedulerRepo.countTSchedulerBeanByOwnerAndStatus(owner, status);
+		return Integer.parseInt(String.valueOf(schedulerCountMap.get("count")));
 	}
 
 	private List<TTableBean> getTableBeanBySchedulerIds(String owner, List<String> schedulerIds) {
 		List<TTableBean> result;
 		result = tableServiceImpl.getTableBeanListBySchedulerIds(owner, schedulerIds);
 		result.sort((o1, o2) -> {
-			Timestamp createAt1 = o1.getCreateAt();
-			Timestamp createAt2 = o2.getCreateAt();
-			return createAt1.compareTo(createAt2);
+			Long id1 = o1.getId();
+			Long id2 = o2.getId();
+			return id1.compareTo(id2);
 		});
 		return result;
 	}
@@ -312,9 +336,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		schedulerBeans = schedulerBeans.stream().distinct().collect(Collectors.toList());
 		// 根据要显示的scheduler和table进行构建返回结果
 		schedulerBeans.sort((o1, o2) -> {
-			Timestamp createAt1 = o1.getCreateAt();
-			Timestamp createAt2 = o2.getCreateAt();
-			return createAt1.compareTo(createAt2);
+			Long id1 = o1.getId();
+			Long id2 = o2.getId();
+			return id1.compareTo(id2);
 		});
 		return schedulerBeans;
 	}

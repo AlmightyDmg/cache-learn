@@ -51,7 +51,7 @@ public interface TTableRepository extends HaizhiBaseRepository<TTableBean, Strin
 	Optional<List<TTableBean>> findTableBeanByOwnerAndSchedulerIds(String owner, List<String> schdulerIds);
 
 	@Query(value = "select * from t_table where  t_table.owner = ?1 "
-			+ "and t_table.`tb_name` like concat('%', (?2) ,'%'))", nativeQuery = true)
+			+ "and t_table.`tb_name` like concat( '%', (?2), '%' )", nativeQuery = true)
 	Optional<List<TTableBean>> findTableByOwnerAndTbNameLike(String owner, String searchKey);
 
 	@Query(value = "select *  from t_table  WHERE t_table.owner = ?1 and t_table.db_id in (?2) "
