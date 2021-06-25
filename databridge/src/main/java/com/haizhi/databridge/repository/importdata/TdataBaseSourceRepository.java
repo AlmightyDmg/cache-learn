@@ -36,6 +36,7 @@ public interface TdataBaseSourceRepository extends HaizhiBaseRepository<TDataBas
 	@Query(value = "update t_database set deleted = 1 where db_id = ?1 and deleted=0", nativeQuery = true)
 	void logicDeleteByDbId(String dbId);
 
+	@Query(value = "select *  from t_database  WHERE t_database.db_id = (?1) and t_database.deleted=0", nativeQuery = true)
 	Optional<TDataBaseSourceBean> findByDbId(String dbId);
 
 	@Query(value = "select count(1) as count "

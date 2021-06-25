@@ -82,7 +82,7 @@ public class JobClientApi {
 
         matchJobList.get(0).setScheduleConf(cronExpr);
         matchJobList.get(0).setScheduleType(scheduleType);
-        matchJobList.get(0).setJobDesc(JsonUtils.toJson(dataTransJobParam));
+        matchJobList.get(0).setJobDesc(jobDesc);
         return handleResult(client.update(matchJobList.get(0)));
     }
 

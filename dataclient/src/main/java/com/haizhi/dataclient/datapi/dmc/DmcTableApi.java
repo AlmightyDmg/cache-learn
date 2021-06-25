@@ -10,6 +10,8 @@ import javax.validation.Valid;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import retrofit2.http.Field;
+import retrofit2.http.Query;
 import retrofit2.http.QueryBean;
 
 import com.haizhi.dataclient.connection.dmc.DmcConnection;
@@ -22,6 +24,7 @@ import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcReader;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcWriter;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.ExplainResp;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataFieldResp;
+import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataResp;
 import com.haizhi.dataclient.connection.dmc.client.pentagon.dto.PentagonResult;
 import com.haizhi.dataclient.connection.dmc.client.pentagon.response.GetTableSchemaResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ChangeFolderReq;
@@ -145,5 +148,9 @@ public class DmcTableApi extends DataApi<DmcConnection> {
 
     public void deleteOldData(String storageId, String jobId) {
         getDataConnection().getMobiusClient().deleteOldData(DelOldDataReq.builder().tbName(storageId).tag(jobId).build());
+    }
+
+    public GetTableDataResp getTableDataQuery(String connectId, String sql, String userId) {
+        return getDataConnection().getNoahClient().getTableDataQuery(connectId, sql, userId);
     }
 }

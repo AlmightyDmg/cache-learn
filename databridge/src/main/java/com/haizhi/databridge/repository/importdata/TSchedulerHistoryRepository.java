@@ -1,0 +1,14 @@
+package com.haizhi.databridge.repository.importdata;
+
+import javax.transaction.Transactional;
+
+import org.springframework.stereotype.Repository;
+
+import com.haizhi.data.jpa.HaizhiBaseRepository;
+import com.haizhi.databridge.bean.domain.importdata.TSchedulerHistory;
+
+
+@Transactional
+@Repository
+public interface TSchedulerHistoryRepository extends HaizhiBaseRepository<TSchedulerHistory, String> {
+}

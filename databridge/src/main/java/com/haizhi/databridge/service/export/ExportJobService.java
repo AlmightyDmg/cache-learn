@@ -69,6 +69,8 @@ import com.haizhi.dataclient.datapi.dmc.DmcTableApi;
 @Service
 @Log4j2
 public class ExportJobService extends RequestCommonData {
+	private static final int FAILED = 3;
+	private static final int SUCCESS = 2;
 
 	@Autowired
 	private DsRepository dsRepository;
@@ -653,7 +655,17 @@ public class ExportJobService extends RequestCommonData {
 
 	@Transactional
 	public String updateJobStatus(String jobId, Integer jobStatus, Long startTime, Long endTime) {
-		jobRepository.updateJob(jobId, jobStatus);
+		JobBean jobBean = jobRepository.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("job not exist"));
+		int status = 2;
+		switch (jobStatus) {
+			case 0: status = 1; break;
+			case 1: status = FAILED; break;
+			case 2: status = SUCCESS; break;
+			default: status = 2; break;
+		}
+		jobBean.setStatus(status);
+		jobRepository.update(jobBean);
+
 		if (endTime != null) {
 			exportLogRepo.save(ExportLogBean.builder()
 					.jobId(jobId)
