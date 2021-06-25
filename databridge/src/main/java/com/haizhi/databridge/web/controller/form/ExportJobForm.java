@@ -128,6 +128,10 @@ public class ExportJobForm {
 		private String mode;
 		@JsonProperty("increate_mode")
 		private String increateMode;
+		@JsonProperty("increate_field")
+		private String increateField;
+		@JsonProperty("increate_value")
+		private String increateValue;
 		@ApiModelProperty(value = "是否清空数据")
 		@JsonProperty("is_truncate")
 		private String isTruncate;

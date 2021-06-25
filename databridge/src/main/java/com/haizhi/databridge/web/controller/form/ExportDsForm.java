@@ -234,6 +234,12 @@ public class ExportDsForm {
 		private String mode;
 		@JsonProperty("increate_mode")
 		private String increateMode;
+		@ApiModelProperty(value = "增量字段")
+		@JsonProperty("increate_field")
+		private String increateField;
+		@ApiModelProperty(value = "增量字段最大值")
+		@JsonProperty("increate_value")
+		private String increateValue;
 		@ApiModelProperty(value = "是否清空数据")
 		@JsonProperty("is_truncate")
 		private String isTruncate;

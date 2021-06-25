@@ -36,7 +36,7 @@ public class CommonJobController {
     }
 
     @PostMapping("/update_job_task_rel")
-    public void updateJobTaskRel(String jobId, String taskId, String fromTableId, String toTableId) {
-        dtsJobService.updateJobTaskRel(jobId, fromTableId, toTableId, taskId);
+    public void updateJobTaskRel(String jobId, String taskId, String fromTableId, String toTableId, String owner) {
+        dtsJobService.updateJobTaskRel(jobId, fromTableId, toTableId, taskId, owner);
     }
 }

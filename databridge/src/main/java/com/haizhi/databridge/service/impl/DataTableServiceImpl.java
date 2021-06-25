@@ -399,15 +399,15 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 	}
 
 
-	public String refEncode(String ref) throws UnsupportedEncodingException {
+	public static String refEncode(String ref) throws UnsupportedEncodingException {
 		return Base64Utils.encodeBase64(ref.getBytes("UTF-8"));
 	}
 
-	public String refDecode(String ref) throws UnsupportedEncodingException {
+	public static String refDecode(String ref) throws UnsupportedEncodingException {
 		return new String(Base64Utils.decodeBase64(ref), "UTF-8");
 	}
 
-	public List<String> getSchemafromRef(String ref) throws UnsupportedEncodingException {
+	public static List<String> getSchemafromRef(String ref) throws UnsupportedEncodingException {
 		if (ObjectUtils.isEmpty(ref)) {
 			return null;
 		}

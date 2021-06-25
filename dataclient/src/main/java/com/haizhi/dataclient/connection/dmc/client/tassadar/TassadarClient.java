@@ -16,7 +16,7 @@ import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbFileR
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ModifyTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.CreateTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.InfoTbResp;
-import com.haizhi.dataclient.connection.dmc.client.tassadar.response.MergeTbFileResp;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.response.MergeTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.ModifyTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.TassadarResult;
 
@@ -25,9 +25,9 @@ public interface TassadarClient {
     @FormUrlEncoded
     TassadarResult<CreateTbResp> createTb(@Valid @QueryBean CreateTbReq request);
 
-    @POST("tb/data/mergefile")
+    @POST("tb/data/merge")
     @FormUrlEncoded
-    TassadarResult<MergeTbFileResp> mergeTbFile(@Valid @QueryBean MergeTbFileReq request);
+    TassadarResult<MergeTbResp> mergeTb(@Valid @QueryBean MergeTbFileReq request);
 
     @POST("tb/modify")
     @FormUrlEncoded

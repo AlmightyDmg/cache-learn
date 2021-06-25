@@ -124,6 +124,12 @@ public class ExportJobVo {
 		@ApiModelProperty(value = "增量时要传，目前就是append，即追加")
 		@JsonProperty("increate_mode")
 		private String increateMode;
+		@ApiModelProperty(value = "增量字段")
+		@JsonProperty("increate_field")
+		private String increateField;
+		@ApiModelProperty(value = "增量字段最大值")
+		@JsonProperty("increate_value")
+		private String increateValue;
 		@ApiModelProperty(value = "是否清空数据，mode为increment时需要传，0：不清空，1：清空")
 		@JsonProperty("is_truncate")
 		private Integer isTruncate = 0;
