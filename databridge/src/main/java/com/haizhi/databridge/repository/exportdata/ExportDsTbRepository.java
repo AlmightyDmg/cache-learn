@@ -29,6 +29,8 @@ public interface ExportDsTbRepository extends HaizhiBaseRepository<ExportDsTbBea
 	@Query(value = "update EXPORT_DS_TB set is_del = 1 where xtb_id = ?1 and is_del=0", nativeQuery = true)
 	void logicDeleteByXtbId(String xtbId);
 
+	@Modifying
+	@org.springframework.transaction.annotation.Transactional
 	@Query(value = "select ds_id, count(ds_id) from EXPORT_DS_TB where ds_id in (?1) and is_del=0 group by ds_id", nativeQuery = true)
 	List<Map<String, Object>> countExportDsTbBeanByDsIdIn(List<String> dsIds);
 

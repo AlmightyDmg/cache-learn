@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import javax.transaction.Transactional;
 
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -30,6 +31,8 @@ public interface TSchedulerRepository extends HaizhiBaseRepository<TSchedulerBea
 			+ "AND t_scheduler.owner = ?2 AND t_scheduler.deleted=0", nativeQuery = true)
 	Optional<TSchedulerBean> findBySchedulerNameAndOwner(String schedulerName, String owner);
 
+	@Modifying
+	@org.springframework.transaction.annotation.Transactional
 	@Query(value = "update t_scheduler set deleted = 1 where scheduler_id = ?1 and deleted=0", nativeQuery = true)
 	void logicDeleteBySchedulerId(String schedulerId);
 

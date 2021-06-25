@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import javax.transaction.Transactional;
 
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -27,9 +28,13 @@ public interface TTableRepository extends HaizhiBaseRepository<TTableBean, Strin
 
 	Optional<List<TTableBean>> findBySchedulerIdAndOwner(String schedulerId, String owner);
 
+	@Modifying
+	@org.springframework.transaction.annotation.Transactional
 	@Query(value = "update t_table set t_table.deleted = 1 where t_table.table_id = ?1", nativeQuery = true)
-	Object logicDeleteByTableId(String tableId);
+	void logicDeleteByTableId(String tableId);
 
+	@Modifying
+	@org.springframework.transaction.annotation.Transactional
 	@Query(value = "update t_table set t_table.deleted = 1 where t_table.scheduler_id = ?1", nativeQuery = true)
 	void logicDeleteBySchedulerId(String schedulerId);
 
