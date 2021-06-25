@@ -18,6 +18,7 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -115,10 +116,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			tableRetrievesVo.add(tableVo);
 		}
 		TSchedulerBean tSchedulerBean = optionalTSchedulerBean.get();
-		Timestamp bastTimeStamp = tSchedulerBean.getCreateAt().after(tSchedulerBean.getCreateAt())
-				? tSchedulerBean.getCreateAt() : tSchedulerBean.getCreateAt();
-		Date bastDt = new Date(bastTimeStamp.getTime());
-
+		Date bastDt = getBastDateTime(tSchedulerBean.getStartAt(), tSchedulerBean.getCreateAt());
 		String nextTime = "";
 		if (!ObjectUtils.isEmpty(getNextTime(JsonUtils.toObject(tSchedulerBean.getTiming(),
 				DataSchedulerDto.TimingDto.class), bastDt))) {
@@ -132,6 +130,41 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				.tables(tableRetrievesVo)
 				.timing(JsonUtils.toObject(tSchedulerBean.getTiming(), DataSchedulerDto.TimingDto.class))
 				.build();
+	}
+
+	private Date getBastDateTime(Timestamp start, Timestamp create) {
+		Timestamp maxTimeStamp = null;
+		Timestamp newStart = null;
+		Timestamp newCreate = null;
+		final int base = 2000;
+		LocalDateTime date = LocalDateTime.of(base, 1, 1, 0, 0, 0);
+		Timestamp compareTime = Timestamp.valueOf(date);
+		if (!ObjectUtils.isEmpty(start)) {
+			if (start.after(compareTime))  {
+				newStart = start;
+			} else {
+				newStart = compareTime;
+			}
+		} else {
+			newStart = compareTime;
+		}
+
+		if (!ObjectUtils.isEmpty(create)) {
+			if (start.after(compareTime))  {
+				newCreate = create;
+			} else {
+				newCreate = compareTime;
+			}
+		} else {
+			newCreate = compareTime;
+		}
+
+		if (newStart.after(newCreate)) {
+			maxTimeStamp = newStart;
+		} else {
+			maxTimeStamp = newCreate;
+		}
+		return new Date(maxTimeStamp.getTime());
 	}
 
 	//	@Override
@@ -347,7 +380,6 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		if (ObjectUtils.isEmpty(timingDto) || ObjectUtils.isEmpty(timingDto.getEnable())) {
 			return null;
 		}
-
 		if (TIMING_TYPE_ORIGIN.equals(timingDto.getType())) {
 			List<Date> timeLineList = getTimeLine(baseDt, timingDto);
 			Date minDate = null;
@@ -370,7 +402,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			baseDt.setMinutes(date.getMinutes());
 			return baseDt;
 		} else if (TIMING_TYPE_CRONTAB.equals(timingDto.getType())) {
-			CronSequenceGenerator cronSequenceGenerator = new CronSequenceGenerator(timingDto.getCrontab());
+			CronSequenceGenerator cronSequenceGenerator = new CronSequenceGenerator(timingDto.getCrontab() + " * ");
 			Date nextNextTimePoint = cronSequenceGenerator.next(baseDt);
 			return nextNextTimePoint;
 		} else if (TIMING_TYPE_DELTA.equals(timingDto.getType())) {
