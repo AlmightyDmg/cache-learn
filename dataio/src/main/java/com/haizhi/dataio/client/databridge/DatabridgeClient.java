@@ -40,5 +40,6 @@ public interface DatabridgeClient {
     String updateJobTaskRel(@Field("jobId") String jobId,
                             @Field("taskId") String taskId,
                             @Field("fromTableId") String fromTableId,
-                            @Field("toTableId") String toTableId);
+                            @Field("toTableId") String toTableId,
+                            @Field("owner") String owner);
 }

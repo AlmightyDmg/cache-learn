@@ -99,6 +99,17 @@ public class ExportJobController extends BaseController {
 	}
 
 	/**
+	 * @Description //执行任务
+	 * @Date 2021/1/12 6:00 下午
+	 * @param jobId
+	 * @return void
+	 **/
+	@RequestMapping("job/exec")
+	public void jobExec(@NotNull @NotBlank @ApiParam("job_id") @RequestParam(name = "job_id") String jobId) {
+		exportJobService.jobExec(jobId);
+	}
+
+	/**
 	* @Description //任务的历史记录
 	* @Date 2021/1/12 6:01 下午
 	* @param jobId

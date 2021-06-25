@@ -41,6 +41,12 @@ import com.haizhi.dataio.job.column.Connection;
 import com.haizhi.dataio.job.column.MetaColumn;
 import com.haizhi.dataio.job.reader.JdbcReader;
 import com.haizhi.dataio.job.reader.Reader;
+import com.haizhi.dataio.job.sql.BaseSqlOperator;
+import com.haizhi.dataio.job.sql.CompareOperator;
+import com.haizhi.dataio.job.sql.EmptyOperator;
+import com.haizhi.dataio.job.sql.NotOperator;
+import com.haizhi.dataio.job.sql.RelOperator;
+import com.haizhi.dataio.job.sql.SqlOperator;
 import com.haizhi.dataio.job.writer.JdbcWriter;
 import com.haizhi.dataio.job.writer.Writer;
 import com.haizhi.dataio.utils.JsonUtils;
@@ -173,9 +179,10 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
             dmcTableApi.updateTableStatus(tableId, 1, unit.getUserId());
 
         } else {
-            DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
+            DmcTableApi dmcTblApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
             if (unit.getReader().getSync().getCheckRule().getFailureStrategy() == 0) {
-                if (!dmcTableApi.checkTableRule()) {
+                String whereSql = genCheckSql(genWhere(unit), unit.getReader().getSync().getCheckRule()).generate();
+                if (!dmcTblApi.checkTableRule(whereSql, unit.getReader().getRealName())) {
                     throw new DataioException("check failed.");
                 }
             }
@@ -196,6 +203,12 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
                 .jobType(unit.getJobType()).tableStatus(0).userId(unit.getUserId()).build());
     }
 
+    private SqlOperator genCheckSql(SqlOperator baseSqlOp, DataTransJobDetail.CheckRule checkRule) {
+        SqlOperator checkOp = new NotOperator(new RelOperator("and",
+                checkRule.getRules().stream().map(BaseSqlOperator::new).collect(Collectors.toList())));
+        return new RelOperator("and", Arrays.asList(baseSqlOp, checkOp));
+    }
+
     private Reader<JdbcReader> buildJdbcReader(FlinkActionParam unit) {
         Reader<JdbcReader> jdbcReader = new Reader<>();
         jdbcReader.setName(unit.getFromSink().getType().toLowerCase() + "reader");
@@ -207,11 +220,12 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
                         .jdbcUrl(Arrays.asList(String.format(Connection.TYPE_PATTERN.get(unit.getFromSink().getType().toLowerCase()),
                                 unit.getFromSink().getUrl(),
                                 unit.getFromSink().getCatalog())))
+                        .table(Arrays.asList(unit.getReader().getTableName()))
                         .build()))
                 .column(unit.getReader().getColumns().stream().map(col ->
                         MetaColumn.builder().name(col.getName()).type(col.getType()).value(col.getValue()).build())
                         .collect(Collectors.toList()))
-                .where(genWhere(unit))
+                .where(genWhere(unit).generate())
                 .build());
         return jdbcReader;
     }
@@ -278,13 +292,12 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
                 String selCols = unit.getReader().getColumns().stream()
                         .map(DataTransJobDetail.Column::getRealName).collect(Collectors.joining(","));
                 req.setTmpSql(String.format("select %s from %s where %s", selCols, unit.getReader().getRealName(),
-                        genWhere(unit)));
+                        genWhere(unit).generate()));
 
                 String maxSql = "";
                 if (unit.getReader().getSync() != null && unit.getReader().getSync().getSyncCondition() != null) {
-                    String idCol = unit.getReader().getSync().getSyncCondition().getField();
-                    maxSql = String.format("select max(cast(%s as string)) from %s_%s", idCol,
-                            unit.getReader().getRealName(), unit.getJobId());
+                    maxSql = String.format("select max(cast(%s as string)) from %s_%s",
+                            unit.getReader().getSync().getSyncCondition().getField(), unit.getReader().getRealName(), unit.getJobId());
                 }
                 req.setMaxSql(maxSql);
 
@@ -292,6 +305,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
                 DmcReader dmcReader = dmcTableApi.getDmcReader(req);
 
                 unit.getReader().setRealName(dmcReader.getTabName().split("_")[0]);
+
+                setNextMaxValue(unit, dmcReader.getMaxValue());
 
                 writer = jdbcWriter;
                 reader = dmcReader.getReader();
@@ -302,7 +317,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
             unit.setTaskId(taskId);
             // 更新task
             databridgeClient.updateJobTaskRel(unit.getJobId(), taskId, unit.getReader().getTableId(),
-                    unit.getWriter().getTableId());
+                    unit.getWriter().getTableId(), unit.getUserId());
         } catch (DataioException e) {
             log.error("flink sync failed", e);
         }
@@ -310,60 +325,67 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
         return taskId;
     }
 
-   public String getQuot(String type) {
-        if ("string".equalsIgnoreCase(type) || "date".equalsIgnoreCase(type)) {
-            return "'";
+    private void setNextMaxValue(FlinkActionParam unit, String maxValue) {
+        if ("increment".equalsIgnoreCase(unit.getReader().getSync().getType())) {
+            if (!ObjectUtils.isEmpty(unit.getReader().getSync().getSyncCondition())
+                    || !ObjectUtils.isEmpty(unit.getReader().getSync().getSyncCondition().getField())) {
+                DataTransJobDetail.Sync.SyncCondition.Conditon endCondition =
+                        DataTransJobDetail.Sync.SyncCondition.Conditon.builder()
+                                .operator(">").enable(1).value(maxValue).build();
+                unit.getReader().getSync().getSyncCondition().setEnd(endCondition);
+            }
         }
+    }
 
-        return "";
-   }
 
-    private String genWhere(FlinkActionParam unit) {
-        String comparePattern = " %s %s %s ";
-        List<String> condList = new ArrayList<>();
 
+    private SqlOperator genWhere(FlinkActionParam unit) {
+        List<SqlOperator> sqlOperatorList = new ArrayList<>();
         if (unit.getReader().getSync().getSyncCondition() != null) {
             String field = unit.getReader().getSync().getSyncCondition().getField();
             String fieldType = unit.getReader().getSync().getSyncCondition().getFieldType();
-            String quot = getQuot(fieldType);
-            String fromCond = String.format(comparePattern,
-                    field,
-                    unit.getReader().getSync().getSyncCondition().getStart().getOperator(),
-                    quot + unit.getReader().getSync().getSyncCondition().getStart().getValue() + quot);
+            Object value = unit.getReader().getSync().getSyncCondition().getStart().getValue();
+            if (ObjectUtils.isEmpty(value)) {
+                return new EmptyOperator();
+            }
 
-            String toCond = String.format(comparePattern,
-                    field,
-                    unit.getReader().getSync().getSyncCondition().getEnd().getOperator(),
-                    quot + unit.getReader().getSync().getSyncCondition().getEnd().getValue() + quot);
+            if ("increment".equalsIgnoreCase(unit.getReader().getSync().getType())) {
+                CompareOperator fromOp = new CompareOperator(field,
+                        unit.getReader().getSync().getSyncCondition().getStart().getOperator(),
+                        fieldType,
+                        unit.getReader().getSync().getSyncCondition().getStart().getValue());
 
-            condList.add(fromCond);
-            condList.add(toCond);
+                CompareOperator toOp = new CompareOperator(field,
+                        fieldType,
+                        unit.getReader().getSync().getSyncCondition().getEnd().getOperator(),
+                        unit.getReader().getSync().getSyncCondition().getEnd().getValue());
+
+                sqlOperatorList.add(fromOp);
+                sqlOperatorList.add(toOp);
+            }
         }
 
-
         if (unit.getReader().getFilter() != null) {
-            if (!ObjectUtils.isEmpty(unit.getReader().getFilter().getFilterConditions())) {
-                List<String> filterList = unit.getReader().getFilter().getFilterConditions().getConditions().stream().map(con -> {
-                    String quota = getQuot(con.getType());
-                    return String.format(comparePattern, con.getName(), con.getType(), quota + con.getValue() + quota);
-                }).collect(Collectors.toList());
-                String filterCond = String.join(" " + unit.getReader().getFilter().getFilterConditions().getRelationType() + " ",
-                        filterList);
-                condList.add(filterCond);
+            DataTransJobDetail.Filter.FilterCondition filterCon = unit.getReader().getFilter().getFilterConditions();
+            if (!ObjectUtils.isEmpty(filterCon)) {
+                List<SqlOperator> subList = new ArrayList<>();
+                for (DataTransJobDetail.Filter.FilterCondition.Condition cond : filterCon.getConditions()) {
+                    subList.add(new CompareOperator(cond.getName(), cond.getType(), "", cond.getValue()));
+                }
+
+                sqlOperatorList.add(new RelOperator(filterCon.getRelationType(), subList));
             }
 
             if (!ObjectUtils.isEmpty(unit.getReader().getFilter().getSqlConditions())) {
-
-                condList.addAll(unit.getReader().getFilter().getSqlConditions());
+                for (String sqlCondition : unit.getReader().getFilter().getSqlConditions()) {
+                    if (!StringUtils.isEmpty(sqlCondition)) {
+                        sqlOperatorList.add(new BaseSqlOperator(sqlCondition));
+                    }
+                }
             }
         }
 
-
-        if (condList.isEmpty()) {
-            return " (1=1) ";
-        }
-
-        return condList.stream().map(con -> String.format(" (%s) ", con)).collect(Collectors.joining(" and "));
+        return new RelOperator("and", sqlOperatorList);
     }
 
     @Override
@@ -385,27 +407,34 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
             DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
 
             /* 合表 */
-            dmcTableApi.mergeTbFile(unit.getWriter().getTableId(), unit.getWriter().getTableId());
+            dmcTableApi.mergeTbFile(unit.getWriter().getTableId(), unit.getUserId());
 
             /* 更新表状态 */
             dmcTableApi.updateTableStatus(unit.getWriter().getTableId(), 1, unit.getUserId());
-        }
-
-        if (!"dmc".equalsIgnoreCase(unit.getFromSink().getType())) {
-            databridgeClient.updateJobExecUnit(JobUnitStateForm.builder()
-                    .jobId(unit.getJobId())
-                    .fromTableId(unit.getReader().getTableId())
-                    .toTableId(unit.getWriter().getTableId())
-                    .startTime(unitStartTime.get().get(unit.getReader().getTableName()))
-                    .endTime(new Date().getTime())
-                    .jobType(unit.getJobType())
-                    .tableStatus(success ? 2 : 1)
-                    .build());
         } else {
+
             // 删除导出时生成的临时文件
             DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
             dmcTableApi.deleteOldData(unit.getReader().getRealName(), unit.getJobId());
         }
+
+        String nextIncrValue = null;
+        if (unit.getReader().getSync() != null
+                && unit.getReader().getSync().getSyncCondition() != null
+                && unit.getReader().getSync().getSyncCondition().getEnd() != null) {
+            nextIncrValue = unit.getReader().getSync().getSyncCondition().getEnd().getValue();
+        }
+        databridgeClient.updateJobExecUnit(JobUnitStateForm.builder()
+                .jobId(unit.getJobId())
+                .fromTableId(unit.getReader().getTableId())
+                .toTableId(unit.getWriter().getTableId())
+                .startTime(unitStartTime.get().get(unit.getReader().getTableName()))
+                .endTime(new Date().getTime())
+                .jobType(unit.getJobType())
+                .tableStatus(success ? 2 : 1)
+                .increateValue(nextIncrValue)
+                .userId(unit.getUserId())
+                .build());
     }
 
     @Override

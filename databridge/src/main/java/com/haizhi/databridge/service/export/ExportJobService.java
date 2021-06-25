@@ -69,6 +69,8 @@ import com.haizhi.dataclient.datapi.dmc.DmcTableApi;
 @Service
 @Log4j2
 public class ExportJobService extends RequestCommonData {
+	private static final int FAILED = 3;
+	private static final int SUCCESS = 2;
 
 	@Autowired
 	private DsRepository dsRepository;
@@ -553,16 +555,17 @@ public class ExportJobService extends RequestCommonData {
 		return typeToDbNameMap;
 	}
 
-	private DataTransJobVo.Sync.SyncCondition getSyncCond(String exportMode, List<InfoTbResp.TbField> fields) {
+	private DataTransJobVo.Sync.SyncCondition getSyncCond(ExportJobForm.ExportModeForm exportMode, List<InfoTbResp.TbField> fields) {
 		DataTransJobVo.Sync.SyncCondition syncCon = null;
-		if ("increment".equalsIgnoreCase(exportMode)) {
+		if ("increment".equalsIgnoreCase(exportMode.getMode())) {
 			for (InfoTbResp.TbField field : fields) {
-				if (field.getUniqIndex() != 1) {
+				if (!ObjectUtils.nullSafeEquals(field.getName(), exportMode.getIncreateField())) {
 					continue;
 				}
 				String synFieldType = DmcTableApi.fieldTypeMap.getOrDefault(field.getType(), "string");
 				syncCon = DataTransJobVo.Sync.SyncCondition.builder().field(field.getFieldId()).fieldType(synFieldType)
-						.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder().enable(1).operator(">").value("").build())
+						.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
+								.enable(1).operator(">").value(exportMode.getIncreateValue()).build())
 						.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder().enable(0).build()).build();
 			}
 		}
@@ -574,24 +577,25 @@ public class ExportJobService extends RequestCommonData {
 		ExportJobForm.ExportModeForm exportMode =
 				JsonUtils.toObject(jobBean.getExportMode(), ExportJobForm.ExportModeForm.class);
 
-		List<ExportJobVo.RuleFilterVo> ruleList = ruleService.getRuleInfosByXtbId(jobBean.getXtbId());
-		DataTransJobVo.CheckRule checkRule = DataTransJobVo.CheckRule.builder()
-				.failureStrategy(Optional.ofNullable(jobConf.getExportFailureStrategy()).orElse(0))
-				.rules(Optional.ofNullable(ruleList).orElse(new ArrayList<>()).stream()
-						.map(x -> x.getCond().replace("${" + x.getMappingName() + "}", x.getMappingName()))
-						.collect(Collectors.toList())).build();
-
 		DmcTableApi dmcTableApi = SpringUtils.getBean(DmcTableApi.class);
 		InfoTbResp dmcTbInfo = dmcTableApi.getDmcTbInfo(jobBean.getRelaId());
 
-		DataTransJobVo.Sync.SyncCondition syncCon = getSyncCond(exportMode.getMode(), dmcTbInfo.getFields());
+		Map<String, InfoTbResp.TbField> fieldMap = dmcTbInfo.getFields().stream()
+				.collect(Collectors.toMap(InfoTbResp.TbField::getName, x -> x));
+
+		List<ExportJobVo.RuleFilterVo> ruleList = ruleService.getRuleInfosByXtbId(jobBean.getXtbId());
+		DataTransJobVo.CheckRule checkRule = DataTransJobVo.CheckRule.builder()
+				.failureStrategy(Optional.ofNullable(jobBean.getExportFailureStrategy()).orElse(0))
+				.rules(Optional.ofNullable(ruleList).orElse(new ArrayList<>()).stream()
+						.map(x -> x.getCond().replace("${field}", fieldMap.get(x.getMappingName()).getFieldId()))
+						.collect(Collectors.toList())).build();
+
+		DataTransJobVo.Sync.SyncCondition syncCon = getSyncCond(exportMode, dmcTbInfo.getFields());
 
 		DataTransJobVo.Sync sync = DataTransJobVo.Sync.builder()
 				.isTruncate(exportMode.getIsTruncate() == null ? 0 : Integer.parseInt(exportMode.getIsTruncate()))
 				.type(exportMode.getMode()).checkRule(checkRule).syncCondition(syncCon).build();
 
-		Map<String, InfoTbResp.TbField> fieldMap = dmcTbInfo.getFields().stream()
-				.collect(Collectors.toMap(InfoTbResp.TbField::getName, x -> x));
 
 		List<DataTransJobVo.Column> fromCols = jobConf.getFieldsMapping().stream()
 				.map(x -> DataTransJobVo.Column.builder()
@@ -651,7 +655,17 @@ public class ExportJobService extends RequestCommonData {
 
 	@Transactional
 	public String updateJobStatus(String jobId, Integer jobStatus, Long startTime, Long endTime) {
-		jobRepository.updateJob(jobId, jobStatus);
+		JobBean jobBean = jobRepository.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("job not exist"));
+		int status = 2;
+		switch (jobStatus) {
+			case 0: status = 1; break;
+			case 1: status = FAILED; break;
+			case 2: status = SUCCESS; break;
+			default: status = 2; break;
+		}
+		jobBean.setStatus(status);
+		jobRepository.update(jobBean);
+
 		if (endTime != null) {
 			exportLogRepo.save(ExportLogBean.builder()
 					.jobId(jobId)
@@ -682,6 +696,13 @@ public class ExportJobService extends RequestCommonData {
 				.build());
 		tblTransTaskRelRepo.save(tblTransTaskRelBean);
 
+
+		JobBean jobBean = jobRepository.findByJobId(form.getJobId()).orElseThrow(() -> new DatabridgeException("job not exist"));
+		ExportJobForm.ExportModeForm exportMode =
+				JsonUtils.toObject(jobBean.getExportMode(), ExportJobForm.ExportModeForm.class);
+		exportMode.setIncreateValue(form.getIncreateValue());
+		jobBean.setExportMode(JsonUtils.toJson(exportMode));
+		jobRepository.update(jobBean);
 		// 若是导入，更新table的状态， 同步开始和结束的位置，以及tablehistory
 
 		return "";

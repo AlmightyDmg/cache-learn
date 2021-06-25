@@ -289,11 +289,11 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		return dataSourceVos;
 	}
 
-	public String encodeConnectId(String s) throws UnsupportedEncodingException {
+	public static String encodeConnectId(String s) throws UnsupportedEncodingException {
 		return GzipUtils.compress2Str(s, "+-");
 	}
 
-	public String decodeConnectId(String s) throws IOException {
+	public static String decodeConnectId(String s) throws IOException {
 		return GzipUtils.uncompress2Str(s, "+-");
 	}
 

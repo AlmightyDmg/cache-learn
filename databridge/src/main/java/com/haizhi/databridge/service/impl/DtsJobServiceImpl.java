@@ -60,13 +60,14 @@ public class DtsJobServiceImpl implements DtsJobService {
         return "";
     }
 
-    public void updateJobTaskRel(String jobId, String fromTableId, String toTableId, String taskId) {
+    public void updateJobTaskRel(String jobId, String fromTableId, String toTableId, String taskId, String owner) {
         TblTransTaskRelBean tblTransTaskRelBean = tblTransTaskRelRepo.findTransTask(jobId, fromTableId, toTableId)
                 .orElse(TblTransTaskRelBean.builder()
                         .jobId(jobId)
                         .fromTableId(fromTableId)
                         .toTableId(toTableId)
                         .transTaskId(taskId)
+                        .owner(owner)
                         .build());
         tblTransTaskRelRepo.save(tblTransTaskRelBean);
     }
