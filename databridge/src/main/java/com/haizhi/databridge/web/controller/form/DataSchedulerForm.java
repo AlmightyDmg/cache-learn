@@ -33,6 +33,7 @@ public class DataSchedulerForm {
         private Integer limit;
         private String keyword;
         private Integer page;
+        private String status;
     }
 
     @Data

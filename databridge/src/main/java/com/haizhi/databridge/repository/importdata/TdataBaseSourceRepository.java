@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import javax.transaction.Transactional;
 
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -33,6 +34,8 @@ public interface TdataBaseSourceRepository extends HaizhiBaseRepository<TDataBas
 			+ "and t_database.db_id in (?2) and t_database.deleted=0", nativeQuery = true)
 	Optional<List<TDataBaseSourceBean>> findByOwnerAndDbIdIn(String owner, List<String> dbIds);
 
+	@Modifying
+	@org.springframework.transaction.annotation.Transactional
 	@Query(value = "update t_database set deleted = 1 where db_id = ?1 and deleted=0", nativeQuery = true)
 	void logicDeleteByDbId(String dbId);
 

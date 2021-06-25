@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import javax.transaction.Transactional;
 
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -27,9 +28,13 @@ public interface TTableRepository extends HaizhiBaseRepository<TTableBean, Strin
 
 	Optional<List<TTableBean>> findBySchedulerIdAndOwner(String schedulerId, String owner);
 
+	@Modifying
+	@org.springframework.transaction.annotation.Transactional
 	@Query(value = "update t_table set t_table.deleted = 1 where t_table.table_id = ?1", nativeQuery = true)
-	Object logicDeleteByTableId(String tableId);
+	void logicDeleteByTableId(String tableId);
 
+	@Modifying
+	@org.springframework.transaction.annotation.Transactional
 	@Query(value = "update t_table set t_table.deleted = 1 where t_table.scheduler_id = ?1", nativeQuery = true)
 	void logicDeleteBySchedulerId(String schedulerId);
 
@@ -46,7 +51,7 @@ public interface TTableRepository extends HaizhiBaseRepository<TTableBean, Strin
 	Optional<List<TTableBean>> findTableBeanByOwnerAndSchedulerIds(String owner, List<String> schdulerIds);
 
 	@Query(value = "select * from t_table where  t_table.owner = ?1 "
-			+ "and t_table.`tb_name` like concat('%', (?2) ,'%'))", nativeQuery = true)
+			+ "and t_table.`tb_name` like concat( '%', (?2), '%' )", nativeQuery = true)
 	Optional<List<TTableBean>> findTableByOwnerAndTbNameLike(String owner, String searchKey);
 
 	@Query(value = "select *  from t_table  WHERE t_table.owner = ?1 and t_table.db_id in (?2) "
