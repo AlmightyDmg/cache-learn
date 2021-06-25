@@ -66,9 +66,9 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
 
                         // 调用接口去检查执行的task的状态
                         state = checkResult(unit);
-                        boolean isSuccess = "success".equalsIgnoreCase(state);
+                        boolean isSuccess = "success".equalsIgnoreCase(state) || "finished".equalsIgnoreCase(state);
 
-                        if ("success".equalsIgnoreCase(state) || "failed".equalsIgnoreCase(state)) {
+                        if ("finished".equalsIgnoreCase(state) || "failed".equalsIgnoreCase(state)) {
                             // task结束后的处理
                             afterExec(unit, isSuccess);
 

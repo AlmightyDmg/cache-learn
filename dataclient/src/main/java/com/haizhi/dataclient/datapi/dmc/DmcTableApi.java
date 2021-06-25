@@ -8,26 +8,19 @@ import java.util.Map;
 
 import javax.validation.Valid;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import retrofit2.http.Field;
-import retrofit2.http.FormUrlEncoded;
-import retrofit2.http.POST;
-import retrofit2.http.Query;
 import retrofit2.http.QueryBean;
 
 import com.haizhi.dataclient.connection.dmc.DmcConnection;
+import com.haizhi.dataclient.connection.dmc.client.mobius.request.DbQueryReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.DelOldDataReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.GetReaderReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.GetWriterReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.QueryExplainReq;
-import com.haizhi.dataclient.connection.dmc.client.mobius.request.TableCreateReq;
-import com.haizhi.dataclient.connection.dmc.client.mobius.response.CreateTableResp;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcReader;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcWriter;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.ExplainResp;
-import com.haizhi.dataclient.connection.dmc.client.mobius.response.MobiusResult;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataFieldResp;
 import com.haizhi.dataclient.connection.dmc.client.pentagon.dto.PentagonResult;
 import com.haizhi.dataclient.connection.dmc.client.pentagon.response.GetTableSchemaResp;
@@ -36,15 +29,10 @@ import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.InfoTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbFileReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ModifyTbReq;
-import com.haizhi.dataclient.connection.dmc.client.tassadar.response.CreateTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.InfoTbResp;
-import com.haizhi.dataclient.connection.dmc.client.tassadar.response.MergeTbFileResp;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.response.MergeTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.TassadarResult;
 import com.haizhi.dataclient.datapi.DataApi;
-import com.haizhi.dataclient.datapi.TableApi;
-import com.haizhi.dataclient.datapi.dmc.bean.DmcTableConfig;
-import com.haizhi.dataclient.datapi.dmc.bean.DmcTableDetail;
-import com.haizhi.dataclient.datapi.dmc.bean.DmcTableId;
 import com.haizhi.dataclient.exception.SDKException;
 import com.haizhi.dataclient.utils.JsonUtils;
 
@@ -71,8 +59,12 @@ public class DmcTableApi extends DataApi<DmcConnection> {
         super(dmcConnection);
     }
 
-    public boolean checkTableRule() {
-        return true;
+    public boolean checkTableRule(String whereSql, String storageId) {
+        String execSql = String.format("select count(*) from %s where %s", storageId, whereSql);
+        Integer count = Integer.valueOf(getDataConnection().getMobiusClient()
+                .query(DbQueryReq.builder().sql(execSql).build()).getData().get(0).get(0));
+
+        return Integer.valueOf(0).equals(count);
     }
 
     public List<String> jobGetTables(String name, String url, String user, String password,
@@ -133,9 +125,9 @@ public class DmcTableApi extends DataApi<DmcConnection> {
         return Arrays.asList(folder, tbId);
     }
 
-    public TassadarResult<MergeTbFileResp> mergeTbFile(String tableId, String userId) {
-        MergeTbFileReq request = MergeTbFileReq.builder().tbId(tableId).userId(userId).build();
-        return getDataConnection().getTassadarClient().mergeTbFile(request);
+    public TassadarResult<MergeTbResp> mergeTbFile(String tableId, String userId) {
+        MergeTbFileReq request = MergeTbFileReq.builder().tbId(tableId).userId(userId).forceMerge(1).build();
+        return getDataConnection().getTassadarClient().mergeTb(request);
     }
 
     public GetTableDataFieldResp getTableDataField(String connectId, String ref, String tableId, String userId) {

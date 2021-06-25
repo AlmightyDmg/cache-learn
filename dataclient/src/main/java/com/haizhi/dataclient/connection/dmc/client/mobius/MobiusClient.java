@@ -12,17 +12,20 @@ import retrofit2.http.POST;
 import retrofit2.http.Query;
 import retrofit2.http.QueryBean;
 
+import com.haizhi.dataclient.connection.dmc.client.mobius.request.DbQueryReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.DelOldDataReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.GetReaderReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.GetWriterReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.QueryExplainReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.TableCreateReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.CreateTableResp;
+import com.haizhi.dataclient.connection.dmc.client.mobius.response.DelOldDataResp;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcReader;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcWriter;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.ExplainResp;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.MergePatchResp;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.MobiusResult;
+import com.haizhi.dataclient.connection.dmc.client.mobius.response.QueryResp;
 
 
 /**
@@ -66,7 +69,14 @@ public interface MobiusClient {
 	MobiusResult<String> getDmcReader(@QueryBean GetReaderReq getReaderReq);
 
 
-	@POST("/view/deleteOldData")
+	@POST("/view/deleteTagData")
 	@FormUrlEncoded
-	MobiusResult<String> deleteOldData(@QueryBean DelOldDataReq delOldDataReq);
+	DelOldDataResp deleteOldData(@QueryBean DelOldDataReq delOldDataReq);
+
+	/**
+	 * 工作表查询
+	 */
+	@POST("/db/query")
+	@FormUrlEncoded
+	QueryResp query(@Valid @QueryBean DbQueryReq dbQuery);
 }

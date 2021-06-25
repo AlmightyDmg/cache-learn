@@ -11,6 +11,7 @@ import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_ORIGIN;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_STOP;
 import static com.haizhi.databridge.constants.DataSourceConstants.TaskType.IMPORT;
+import static com.haizhi.databridge.service.impl.DataTableServiceImpl.getSchemafromRef;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
@@ -29,6 +30,7 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -495,6 +497,14 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			toTablePath = folderTable.get(0);
 			toTableId = folderTable.get(1);
 		}
+
+		List<String> schemaList = new ArrayList<>();
+		try {
+			schemaList = getSchemafromRef(syncConfig.getRef());
+		} catch (UnsupportedEncodingException e) {
+			log.error(e);
+		}
+		assert schemaList != null;
 		return DataTransJobVo.SyncUnit.builder()
 				.reader(DataTransJobVo.Reader.builder()
 						.columns(columns)
@@ -512,11 +522,11 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 						.build())
 				.toSink(toSink)
 				.fromSink(DataTransJobVo.Sink.builder()
-						.url(setup.getEndpoint())
-						.username(setup.getAccessId())
-						.password(setup.getAccessKey())
+						.url(setup.getServer() + ":" + setup.getPort())
+						.username(setup.getUid())
+						.password(setup.getPwd())
 						.type(dbBean.getDbType())
-						.catalog(dbBean.getDsName())
+						.catalog(Objects.requireNonNull(schemaList).get(0))
 						.build())
 				.build();
 	}
@@ -568,6 +578,10 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		List<DataTransJobVo.Column> result = new ArrayList<>();
 
 		for (GetTableDataFieldResp.Field field : fieldList) {
+			if ("BDP_AUDIT".equalsIgnoreCase(field.getName())) {
+				continue;
+			}
+
 			if (ObjectUtils.isEmpty(userConfigFields) || userConfigFields.contains(field.getName())) {
 				result.add(DataTransJobVo.Column.builder()
 						.name(field.getName()).remark(field.getRemark()).uniqIndex(field.isUniq_index())
@@ -611,8 +625,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 
 		String outputRef = "";
-		if (!StringUtils.isEmpty(form.getToFolder()) && !StringUtils.isEmpty(form.getToTableId())) {
-			outputRef = base64Encode(JsonUtils.toJson(Arrays.asList(form.getToFolder(), form.getToTableId())).getBytes(UTF_8),
+		if (!StringUtils.isEmpty(form.getToFolderId()) && !StringUtils.isEmpty(form.getToTableId())) {
+			outputRef = base64Encode(JsonUtils.toJson(Arrays.asList(form.getToFolderId(), form.getToTableId())).getBytes(UTF_8),
 					"+-");
 		}
 
@@ -639,8 +653,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 		if (syncConfig.getIncrease() != null) {
 			syncConfig.getIncrease().getMaximum().getStart().setValue(form.getStartLocation());
-			tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
 		}
+
+		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
 
 		tTableRepo.update(tTableBean);
 		return null;

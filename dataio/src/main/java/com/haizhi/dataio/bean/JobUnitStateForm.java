@@ -45,4 +45,7 @@ public class JobUnitStateForm {
 
     @Field("toFolderId")
     private String toFolderId;
+
+    @Field("increateValue")
+    private String increateValue;
 }
