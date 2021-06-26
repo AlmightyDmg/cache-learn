@@ -41,6 +41,7 @@ public class DataTransJobDetail extends JobDetail {
         Sink toSink;
         Reader reader;
         Writer writer;
+        String userId;
     }
 
     @Data

@@ -11,6 +11,7 @@ import com.haizhi.databridge.repository.importdata.TblTransTaskRelRepository;
 import com.haizhi.databridge.service.DataSchedulerService;
 import com.haizhi.databridge.service.DtsJobService;
 import com.haizhi.databridge.service.export.ExportJobService;
+import com.haizhi.databridge.web.controller.form.JobStateForm;
 import com.haizhi.databridge.web.controller.form.JobUnitStateForm;
 
 @Service
@@ -39,11 +40,11 @@ public class DtsJobServiceImpl implements DtsJobService {
     }
 
     @Transactional
-    public String updateJobStatus(String jobId, String jobType, Integer jobStatus, Long startTime, Long endTime) {
-        if ("import".equals(jobType)) {
-            dataSchedulerService.updateJobStatus(jobId, jobStatus, startTime, endTime);
+    public String updateJobStatus(JobStateForm jobStateForm) {
+        if ("import".equals(jobStateForm.getJobType())) {
+            dataSchedulerService.updateJobStatus(jobStateForm);
         } else {
-            exportJobService.updateJobStatus(jobId, jobStatus, startTime, endTime);
+            exportJobService.updateJobStatus(jobStateForm);
         }
 
         return "";

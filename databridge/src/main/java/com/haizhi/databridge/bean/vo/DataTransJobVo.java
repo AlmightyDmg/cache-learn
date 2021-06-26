@@ -37,6 +37,7 @@ public class DataTransJobVo {
         Sink toSink;
         Reader reader;
         Writer writer;
+        String userId;
     }
 
     @Data

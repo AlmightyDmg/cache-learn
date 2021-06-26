@@ -1,5 +1,7 @@
 package com.haizhi.dataio.bean;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,4 +26,6 @@ import lombok.experimental.FieldNameConstants;
 public class DataTransJobParam extends JobParam {
     String jobType; // [import, export]
     String jobId;  // 导入schedulerId，导出为jobId
+    List<String> readerTables;
+    Integer full;
 }

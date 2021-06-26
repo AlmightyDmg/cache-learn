@@ -10,10 +10,21 @@ xxl:
     executor:
       address: ''
       appname: dataTransJobHandler
-      ip: ''
+      ip: '192.168.64.1'
       logpath: log/jobhandler
       logretentiondays: 30
       port: 9999
+
+spring:
+  kafka:
+    bootstrap-servers: dev121.haizhi.com:9092
+    producer:
+      retries: 1
+
+mq:
+  topics:
+    data-table-sync-status: data_table_sync
+
 
 logging:
   config: classpath:logback.xml

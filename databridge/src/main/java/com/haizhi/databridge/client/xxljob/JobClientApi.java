@@ -27,7 +27,7 @@ import com.haizhi.databridge.util.JsonUtils;
 public class JobClientApi {
     private static final String DATA_FIELD = "data";
     private static final int SUCCESS_CODE = 200;
-    private static final int PAGE_SIZE = 200;
+    private static final int PAGE_SIZE = 20000;
 
     @Autowired
     XxlJobClient client;
@@ -61,6 +61,53 @@ public class JobClientApi {
     }
 
     public String update(String jobId, String cronExpr, String scheduleType, DataTransJobParam dataTransJobParam) {
+        XxlJobInfo xxlJobInfo = getJobInfo(jobId);
+
+        String jobDesc = jobId.split("-")[1];
+        xxlJobInfo.setScheduleConf(cronExpr);
+        xxlJobInfo.setScheduleType(scheduleType);
+        xxlJobInfo.setJobDesc(jobDesc);
+        return handleResult(client.update(xxlJobInfo));
+    }
+
+    public Map<String, Object> pageList(PageQueryParam queryParam) {
+        return client.pageList(queryParam);
+    }
+
+    public String remove(String jobId) {
+        return handleResult(client.remove(getXxlJobId(jobId)));
+    }
+
+    public String start(String jobId) {
+        return handleResult(client.start(getXxlJobId(jobId)));
+    }
+
+    public String stop(String jobId) {
+        return handleResult(client.stop(getXxlJobId(jobId)));
+    }
+
+    public String trigger(String jobId, DataTransJobParam jobParam) {
+//        XxlJobInfo xxlJobInfo = getJobInfo(jobId);
+        return handleResult(client.trigger(getXxlJobId(jobId), JsonUtils.toJson(jobParam)));
+    }
+
+    private int getXxlJobId(String jobId) {
+        if (StringUtils.isEmpty(jobId)) {
+            throw new DatabridgeException("invalid xxl job id");
+        }
+
+        return Integer.parseInt(jobId.split("-")[0]);
+    }
+
+    private String handleResult(ReturnT<String> returnT) {
+        if (returnT.getCode() == SUCCESS_CODE) {
+            return returnT.getContent();
+        } else {
+            throw new DatabridgeException(String.format("call xxl-job create job error: .", returnT.getContent()));
+        }
+    }
+
+    private XxlJobInfo getJobInfo(String jobId) {
         String jobDesc = jobId.split("-")[1];
         int xxlJobId = getXxlJobId(jobId);
 
@@ -80,46 +127,7 @@ public class JobClientApi {
             throw new DatabridgeException("xxljob not exist");
         }
 
-        matchJobList.get(0).setScheduleConf(cronExpr);
-        matchJobList.get(0).setScheduleType(scheduleType);
-        matchJobList.get(0).setJobDesc(jobDesc);
-        return handleResult(client.update(matchJobList.get(0)));
-    }
-
-    public Map<String, Object> pageList(PageQueryParam queryParam) {
-        return client.pageList(queryParam);
-    }
-
-    public String remove(String jobId) {
-        return handleResult(client.remove(getXxlJobId(jobId)));
-    }
-
-    public String start(String jobId) {
-        return handleResult(client.start(getXxlJobId(jobId)));
-    }
-
-    public String stop(String jobId) {
-        return handleResult(client.stop(getXxlJobId(jobId)));
-    }
-
-    public String trigger(String jobId) {
-        return handleResult(client.trigger(getXxlJobId(jobId)));
-    }
-
-    private int getXxlJobId(String jobId) {
-        if (StringUtils.isEmpty(jobId)) {
-            throw new DatabridgeException("invalid xxl job id");
-        }
-
-        return Integer.parseInt(jobId.split("-")[0]);
-    }
-
-    private String handleResult(ReturnT<String> returnT) {
-        if (returnT.getCode() == SUCCESS_CODE) {
-            return returnT.getContent();
-        } else {
-            throw new DatabridgeException(String.format("call xxl-job create job error: .", returnT.getContent()));
-        }
+        return matchJobList.get(0);
     }
 
     public String genJobId(Integer id, String jobDesc) {

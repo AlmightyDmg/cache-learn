@@ -26,4 +26,11 @@ public class JobUnitStateForm {
     private String userId;
     private String toFolderId;
     private String increateValue;
+
+    private Integer appendCount = 0;
+    private Integer updateCount = 0;
+    private Integer deleteCount = 0;
+    private Integer failedCount = 0;
+    private Integer allCount = 0;
+    private Integer filterCount = 0;
 }

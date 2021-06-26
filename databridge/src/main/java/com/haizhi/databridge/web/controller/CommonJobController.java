@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.haizhi.databridge.bean.vo.DataTransJobVo;
 import com.haizhi.databridge.service.DtsJobService;
+import com.haizhi.databridge.web.controller.form.JobStateForm;
 import com.haizhi.databridge.web.controller.form.JobUnitStateForm;
 
 @Slf4j
@@ -26,8 +27,8 @@ public class CommonJobController {
     }
 
     @RequestMapping("/update_job")
-    public String updateJobStatus(String jobId, String jobType, Integer jobStatus, Long startTime, Long endTime) {
-        return dtsJobService.updateJobStatus(jobId, jobType, jobStatus, startTime, endTime);
+    public String updateJobStatus(JobStateForm jobStateForm) {
+        return dtsJobService.updateJobStatus(jobStateForm);
     }
 
     @RequestMapping("/update_job_task")
