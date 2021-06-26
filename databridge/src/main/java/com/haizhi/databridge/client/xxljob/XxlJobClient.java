@@ -48,7 +48,7 @@ public interface XxlJobClient {
 
     @FormUrlEncoded
     @POST("/xxl-job-admin/jobinfo/trigger")
-    ReturnT<String> trigger(@Field("id") int id);
+    ReturnT<String> trigger(@Field("id") int id, @Field("executorParam") String executorParam);
 
     @FormUrlEncoded
     @POST("/xxl-job-admin/login")

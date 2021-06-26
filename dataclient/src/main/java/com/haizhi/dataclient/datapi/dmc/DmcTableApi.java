@@ -116,7 +116,7 @@ public class DmcTableApi extends DataApi<DmcConnection> {
         String folder = getDataConnection().getTassadarClient()
                 .createFolderIfNotExist(1, userId, dbName, userId.substring(7)).getResult().getFolder();
         CreateTbReq createTbReq = CreateTbReq.builder()
-                .name(tableName).userId("3f821e3f30fe2055f8c1794c38bfbc54").manageType(1).treeType(0)
+                .name(tableName).userId(userId).manageType(1).treeType(0)
                 .dmcRequest(1).fields(fields).type(2)
                 .dbId(dbId)
                 .build();
@@ -128,7 +128,7 @@ public class DmcTableApi extends DataApi<DmcConnection> {
         return Arrays.asList(folder, tbId);
     }
 
-    public TassadarResult<MergeTbResp> mergeTbFile(String tableId, String userId) {
+    public TassadarResult<MergeTbResp> mergeTb(String tableId, String userId) {
         MergeTbFileReq request = MergeTbFileReq.builder().tbId(tableId).userId(userId).forceMerge(1).build();
         return getDataConnection().getTassadarClient().mergeTb(request);
     }

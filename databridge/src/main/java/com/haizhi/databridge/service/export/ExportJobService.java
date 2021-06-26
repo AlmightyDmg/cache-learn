@@ -1,5 +1,8 @@
 package com.haizhi.databridge.service.export;
 
+import static com.haizhi.databridge.constants.DataSourceConstants.TaskType.EXPORT;
+import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_CREATE;
+import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_STOP;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.DATAHUB;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.MYSQL;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.POSTGRESQL;
@@ -54,6 +57,7 @@ import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
 import com.haizhi.databridge.util.SpringUtils;
 import com.haizhi.databridge.web.controller.form.ExportJobForm;
+import com.haizhi.databridge.web.controller.form.JobStateForm;
 import com.haizhi.databridge.web.controller.form.JobUnitStateForm;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.InfoTbResp;
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
@@ -293,7 +297,7 @@ public class ExportJobService extends RequestCommonData {
 		// create xxljob
 		String xxljobId = jobClientApi.add(schedulerConfForm.getSyncConfig(),
 				getExecuteMode(form.getSchedulerConf().getMode()),
-				DataTransJobParam.builder().jobType("export").jobId(jobId).build());
+				DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
 
 		// save relation between scheduler and xxljob
 		skdJobRelRepository.save(JobRelBean.builder()
@@ -303,7 +307,7 @@ public class ExportJobService extends RequestCommonData {
 				.build());
 
 		// 创建完默认执行一次
-		jobClientApi.trigger(xxljobId);
+		jobClientApi.trigger(xxljobId, DataTransJobParam.builder().jobId(jobId).jobType(EXPORT).build());
 
 		if (!StringUtils.isEmpty(form.getSchedulerConf().getSyncConfig())) {
 			jobClientApi.start(xxljobId);
@@ -410,12 +414,12 @@ public class ExportJobService extends RequestCommonData {
 			List<JobRelBean> xxlJobIds = skdJobRelRepository.findByJobId(jobId).orElse(new ArrayList<>());
 			if (xxlJobIds.isEmpty()) {
 				String xxljobId = jobClientApi.add(cron, scheduleType,
-						DataTransJobParam.builder().jobType("export").jobId(jobId).build());
+						DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
 				skdJobRelRepository.save(JobRelBean.builder().jobId(jobId).distJobId(xxljobId).owner(getUserId()).build());
 			} else {
 				String xxljobId = xxlJobIds.get(0).getDistJobId();
 				jobClientApi.update(xxljobId, cron, scheduleType,
-						DataTransJobParam.builder().jobType("export").jobId(jobId).build());
+						DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
 			}
 		}
 	}
@@ -490,13 +494,15 @@ public class ExportJobService extends RequestCommonData {
 		if (!StringUtils.isEmpty(xxljobId)) {
 			jobClientApi.start(xxljobId);
 		}
+
+		jobRepository.updateJob(jobId, EXPORT_STATUS_CREATE);
 	}
 
 	public void jobExec(String jobId) {
 		String xxljobId = skdJobRelRepository.findByJobId(jobId).orElse(Collections.singletonList(new JobRelBean()))
 				.get(0).getDistJobId();
 		if (!StringUtils.isEmpty(xxljobId)) {
-			jobClientApi.trigger(xxljobId);
+			jobClientApi.trigger(xxljobId, DataTransJobParam.builder().jobId(jobId).jobType(EXPORT).build());
 		}
 	}
 
@@ -512,6 +518,8 @@ public class ExportJobService extends RequestCommonData {
 		if (!StringUtils.isEmpty(xxljobId)) {
 			jobClientApi.stop(xxljobId);
 		}
+
+		jobRepository.updateJob(jobId, EXPORT_STATUS_STOP);
 	}
 
 	/**
@@ -649,36 +657,43 @@ public class ExportJobService extends RequestCommonData {
 				.tableName(tbBean.getName()).columns(toCols).build();
 		DataTransJobVo.SyncUnit syncUnit = DataTransJobVo.SyncUnit.builder()
 				.taskId(taskId).fromSink(fromSink).toSink(toSink).reader(getReader(jobConf, jobBean)).writer(writer).build();
-		return DataTransJobVo.builder().jobType("export").jobId(jobId).userId(jobBean.getUserId())
+		return DataTransJobVo.builder().jobType(EXPORT).jobId(jobId).userId(jobBean.getUserId())
 				.exportFailureStrategy(jobBean.getExportFailureStrategy()).syncUnits(Arrays.asList(syncUnit)).build();
 	}
 
 	@Transactional
-	public String updateJobStatus(String jobId, Integer jobStatus, Long startTime, Long endTime) {
-		JobBean jobBean = jobRepository.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("job not exist"));
+	public String updateJobStatus(JobStateForm jobStateForm) {
+		JobBean jobBean = jobRepository.findByJobId(jobStateForm.getJobId())
+				.orElseThrow(() -> new DatabridgeException("job not exist"));
 		int status = 2;
-		switch (jobStatus) {
+		switch (jobStateForm.getJobStatus()) {
 			case 0: status = 1; break;
 			case 1: status = FAILED; break;
 			case 2: status = SUCCESS; break;
 			default: status = 2; break;
 		}
+
+		ExportJobVo.ExportDataCountVo countVo = ExportJobVo.ExportDataCountVo.builder()
+				.allCount(jobStateForm.getAllCount())
+				.appendCount(jobStateForm.getAppendCount())
+				.deleteCount(jobStateForm.getDeleteCount())
+				.failedCount(jobStateForm.getFailedCount())
+				.updateCount(jobStateForm.getUpdateCount())
+				.filterCount(jobStateForm.getFilterCount()).build();
 		jobBean.setStatus(status);
+		jobBean.setCount(JsonUtils.toJson(countVo));
 		jobRepository.update(jobBean);
 
-		if (endTime != null) {
+		if (jobStateForm.getEndTime() != null) {
 			exportLogRepo.save(ExportLogBean.builder()
-					.jobId(jobId)
-					.startTime(new Timestamp(startTime))
-					.status(jobStatus == 1 ? 0 : 1)
-					.endTime(new Timestamp(endTime))
-					.costTime((int) (endTime - startTime))
+					.jobId(jobStateForm.getJobId())
+					.startTime(new Timestamp(jobStateForm.getStartTime()))
+					.status(jobStateForm.getJobStatus() == 1 ? 0 : 1)
+					.endTime(new Timestamp(jobStateForm.getEndTime()))
+					.costTime((int) (jobStateForm.getStartTime() - jobStateForm.getEndTime()))
 					.errorMsg("success")
-					.count(JsonUtils.toJson(ExportJobVo.HistoryExportDataCountVo.builder()
-							.appendCount(0)
-							.updateCount(0)
-							.deleteCount(0)
-							.build()))
+					.count(JsonUtils.toJson(countVo))
+					.isDel(0)
 					.build());
 		}
 
@@ -696,13 +711,6 @@ public class ExportJobService extends RequestCommonData {
 				.build());
 		tblTransTaskRelRepo.save(tblTransTaskRelBean);
 
-
-		JobBean jobBean = jobRepository.findByJobId(form.getJobId()).orElseThrow(() -> new DatabridgeException("job not exist"));
-		ExportJobForm.ExportModeForm exportMode =
-				JsonUtils.toObject(jobBean.getExportMode(), ExportJobForm.ExportModeForm.class);
-		exportMode.setIncreateValue(form.getIncreateValue());
-		jobBean.setExportMode(JsonUtils.toJson(exportMode));
-		jobRepository.update(jobBean);
 		// 若是导入，更新table的状态， 同步开始和结束的位置，以及tablehistory
 
 		return "";

@@ -4,9 +4,9 @@ server:
 spring:
   application:
     name: databridge
-  profiles:
-    active:
-      - '@profile.active@'
+#  profiles:
+#    active:
+#      - '@profile.active@'
   datasource:
     primary:
       driver-class-name: com.mysql.cj.jdbc.Driver
@@ -52,9 +52,9 @@ spring:
   #    max-redirects: 2  # 最大重定向次数
 
 xxl-job:
-  url: http://192.168.64.4:18080
+  url: http://dev121.haizhi.com:8099
   username: admin
-  password: 123456
+  password: 1qaz@WSX
 
 localdmc:
   sub-type: hdfs

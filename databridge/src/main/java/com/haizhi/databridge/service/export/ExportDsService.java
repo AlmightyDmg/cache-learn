@@ -5,6 +5,7 @@ import static com.haizhi.databridge.bean.constants.BeanConstants.TbPermissionCon
 import static com.haizhi.databridge.bean.constants.BeanConstants.TbPermissionConstants.ROLE_TYPE_ROLEACCOUNT;
 import static com.haizhi.databridge.bean.constants.BeanConstants.TbPermissionConstants.ROLE_TYPE_USER;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.DATAHUB;
+import static com.haizhi.databridge.constants.MetaConstants.DsType.GREENPLUM;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.MYSQL;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.POSTGRESQL;
 import static com.haizhi.databridge.constants.MetaConstants.Job.JOB_SOURCE_FROM_DMC;
@@ -99,7 +100,8 @@ public class ExportDsService extends RequestCommonData {
 		dsBean.setOwner(getOwner());
 		dsBean.setSourceType(sourceType);
 		dsBean.setVersionInfo(form.getConfig().getVersion());
-		if (form.getType().equals(MYSQL) || form.getType().equals(POSTGRESQL)) {
+		if (form.getType().equals(MYSQL) || form.getType().equals(POSTGRESQL)
+				|| form.getType().equals(GREENPLUM)) {
 			dsBean.setPort(form.getConfig().getPort());
 		}
 		try {
@@ -865,7 +867,7 @@ public class ExportDsService extends RequestCommonData {
 
 	public String getDsUrl(String host, Integer port, Integer dbType) {
 		String url = "";
-		if (dbType.equals(MYSQL) || dbType.equals(POSTGRESQL)) {
+		if (dbType.equals(MYSQL) || dbType.equals(POSTGRESQL) || dbType.equals(GREENPLUM)) {
 			url = host + ":" +  port.toString();
 		} else if (dbType.equals(DATAHUB)) {
 			url = host;
@@ -901,6 +903,7 @@ public class ExportDsService extends RequestCommonData {
 		typeToDbNameMap.put(MYSQL, "mysql");
 		typeToDbNameMap.put(POSTGRESQL, "postgresql");
 		typeToDbNameMap.put(DATAHUB, "datahub");
+		typeToDbNameMap.put(GREENPLUM, "greenplum");
 		return typeToDbNameMap;
 	}
 
