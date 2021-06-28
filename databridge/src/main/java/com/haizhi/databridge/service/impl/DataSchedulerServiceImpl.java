@@ -841,7 +841,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			String cronExpr = !ObjectUtils.isEmpty(createForm.getTiming()) ? genCrontab(createForm.getTiming()) + " ? " : "";
 			String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
 			jobClientApi.add(schedulerId, cronExpr, cronType, dataTransJobParam);
-			if (!ObjectUtils.isEmpty(cronType)) {
+			if (!ObjectUtils.isEmpty(cronExpr) && !"NONE".equals(cronType)) {
 				jobClientApi.start(schedulerId);
 			}
 		}  catch (Exception e) {
