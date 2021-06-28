@@ -5,12 +5,16 @@ import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTimin
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTiming.TIMING_TYPE_MINUTE;
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTiming.TIMING_TYPE_ORIGIN;
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerType.CRON;
+import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerType.NORMAL;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_CRONTAB;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_DELTA;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_MINUTE;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_ORIGIN;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_STOP;
 import static com.haizhi.databridge.constants.DataSourceConstants.TaskType.IMPORT;
+import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_ERROR;
+import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_IDLE;
+import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_SYNCING;
 import static com.haizhi.databridge.service.impl.DataSourceServiceImpl.encodeConnectId;
 import static com.haizhi.databridge.service.impl.DataTableServiceImpl.getSchemafromRef;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -73,6 +77,7 @@ import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
 import com.haizhi.databridge.util.SpringUtils;
 import com.haizhi.databridge.web.controller.form.DataSchedulerForm;
+import com.haizhi.databridge.web.controller.form.JobStateForm;
 import com.haizhi.databridge.web.controller.form.JobUnitStateForm;
 import com.haizhi.databridge.web.result.StatusCode;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataFieldResp;
@@ -629,6 +634,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			toTableId = folderTable.get(1);
 		}
 
+		DataSourceObjDto.Options options = JsonUtils.toObject(dbBean.getOptions(), DataSourceObjDto.Options.class);
+
 		List<String> schemaList = new ArrayList<>();
 		try {
 			schemaList = getSchemafromRef(syncConfig.getRef());
@@ -637,6 +644,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 		assert schemaList != null;
 		return DataTransJobVo.SyncUnit.builder()
+				.userId(options.getRealUser())
 				.reader(DataTransJobVo.Reader.builder()
 						.columns(columns)
 						.sync(DataTransJobVo.Sync.builder().type(syncConfig.getModel()).fetchSize(syncConfig.getRows())
@@ -723,19 +731,19 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	}
 
 	@Override
-	public String updateJobStatus(String jobId, Integer jobStatus, Long startTime, Long endTime) {
-		TSchedulerBean schedulerBean = tSchedulerRepo.findBySchedulerId(jobId)
+	public String updateJobStatus(JobStateForm jobStateForm) {
+		TSchedulerBean schedulerBean = tSchedulerRepo.findBySchedulerId(jobStateForm.getJobId())
 				.orElseThrow(() -> new DatabridgeException("job not exist"));
-		schedulerBean.setStartAt(new Timestamp(startTime));
-		if (null != endTime) {
-			schedulerBean.setFinishAt(new Timestamp(endTime));
+		schedulerBean.setStartAt(new Timestamp(jobStateForm.getStartTime()));
+		if (null != jobStateForm.getEndTime()) {
+			schedulerBean.setFinishAt(new Timestamp(jobStateForm.getEndTime()));
 		}
 
 		String status = "";
-		switch (jobStatus) {
-			case 0: status = "inserting"; break;
-			case 1: status = "error"; break;
-			case 2: status = "finished"; break;
+		switch (jobStateForm.getJobStatus()) {
+			case 0: status = IMPORT_STATUS_SYNCING; break;
+			case 1: status = IMPORT_STATUS_ERROR; break;
+			case 2: status = IMPORT_STATUS_IDLE; break;
 			default: break;
 		}
 
@@ -763,7 +771,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		String status = "";
 		switch (form.getTableStatus()) {
 			case 0:
-				status = "syncing";
+				status = "inserting";
 				break;
 			case 1:
 				status = "error";
@@ -781,8 +789,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			syncConfig.setOutputRef(outputRef);
 		}
 
-		if (syncConfig.getIncrease() != null) {
-			syncConfig.getIncrease().getMaximum().getStart().setValue(form.getStartLocation());
+		if (syncConfig.getIncrease() != null && "maximum".equalsIgnoreCase(syncConfig.getIncrease().getType())) {
+			syncConfig.getIncrease().getMaximum().getStart().setValue(form.getIncreateValue());
 		}
 
 		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
@@ -815,11 +823,10 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		dataTransJobParam.setJobId(schedulerId);
 		dataTransJobParam.setJobType(IMPORT);
 		try {
-			if (!ObjectUtils.isEmpty(createForm.getTiming())) {
-				String cronExpr = genCrontab(createForm.getTiming());
-				jobClientApi.add(cronExpr, CRON, dataTransJobParam);
-				jobClientApi.start(schedulerId);
-			}
+			String cronExpr = genCrontab(createForm.getTiming());
+			String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
+			jobClientApi.add(schedulerId, cronExpr, cronType, dataTransJobParam);
+			jobClientApi.start(schedulerId);
 		}  catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -964,7 +971,11 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS,
 					String.format("任务不存在：%s", triggerForm.getSchedulerId()));
 		}
-		jobClientApi.trigger(triggerForm.getSchedulerId());
+		jobClientApi.trigger(triggerForm.getSchedulerId(),
+				DataTransJobParam.builder()
+						.jobId(triggerForm.getSchedulerId())
+						.jobType(IMPORT)
+						.build());
 	}
 
 	public void start(DataSchedulerForm.StartForm startForm) {

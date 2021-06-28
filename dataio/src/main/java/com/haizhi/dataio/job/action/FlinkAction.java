@@ -29,10 +29,13 @@ import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcReader;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcWriter;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.InfoTbResp;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.response.MergeTbResp;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.response.TassadarResult;
 import com.haizhi.dataclient.datapi.dmc.DmcApiFactory;
 import com.haizhi.dataclient.datapi.dmc.DmcTableApi;
 import com.haizhi.dataio.bean.DataTransJobDetail;
-import com.haizhi.dataio.bean.DataTransJobParam;
+import com.haizhi.dataio.bean.JobExecCountDto;
+import com.haizhi.dataio.bean.JobStateForm;
 import com.haizhi.dataio.bean.JobUnitStateForm;
 import com.haizhi.dataio.client.databridge.DatabridgeClient;
 import com.haizhi.dataio.client.flinkx.FlinkxClient;
@@ -58,9 +61,10 @@ import com.haizhi.dataio.utils.JsonUtils;
  */
 @Slf4j
 @Component
-public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTransJobDetail, FlinkAction.FlinkActionParam> {
+public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTransJobDetail, FlinkAction.FlinkActionParam> {
     private static ThreadLocal<Long> startTime = new ThreadLocal<>();
     private static ThreadLocal<Map<String, Long>> unitStartTime = new ThreadLocal<>();
+    private static ThreadLocal<Map<String, JobExecCountDto>> countRes = new ThreadLocal<>();
     public static final long SLEEP_TIME = 2000L;
     public static final int DEFAULT_FETCH_SIZE = 20000;
 
@@ -88,7 +92,6 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
     private static Set<String> useFlinkDbType = new HashSet<>();
     static {
         useFlinkDbType.add("greenplum");
-        useFlinkDbType.add("mysql");
     }
 
     @Autowired
@@ -121,13 +124,37 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
     protected void begin(DataTransJobDetail info) {
         // 更新同步任务的状态
         startTime.set(new Date().getTime());
-        databridgeClient.updateJobStatus(info.getJobId(), info.getJobType(), 0, startTime.get(), null);
+        JobExecCountDto jobExecCountDto = new JobExecCountDto();
+        databridgeClient.updateJobStatus(JobStateForm.builder().jobId(info.getJobId()).jobType(info.getJobType())
+                .jobStatus(0).startTime(startTime.get()).endTime(null)
+                .allCount(jobExecCountDto.getAllCount())
+                .appendCount(jobExecCountDto.getAppendCount())
+                .deleteCount(jobExecCountDto.getDeleteCount())
+                .failedCount(jobExecCountDto.getFailedCount())
+                .updateCount(jobExecCountDto.getUpdateCount())
+                .filterCount(jobExecCountDto.getFilterCount())
+                .build());
     }
 
     @Override
     protected void end(DataTransJobDetail info, boolean success) {
-        Long endTime = new Date().getTime();
-        databridgeClient.updateJobStatus(info.getJobId(), info.getJobType(), success ? 2 : 1, startTime.get(), endTime);
+        JobExecCountDto jobExecCountDto = new JobExecCountDto();
+        countRes.get().forEach((key, value) -> {
+            jobExecCountDto.setAllCount(jobExecCountDto.getAllCount() + value.getAllCount());
+            jobExecCountDto.setDeleteCount(jobExecCountDto.getDeleteCount() + value.getDeleteCount());
+            jobExecCountDto.setAppendCount(jobExecCountDto.getAppendCount() + value.getAppendCount());
+            jobExecCountDto.setUpdateCount(jobExecCountDto.getUpdateCount() + value.getUpdateCount());
+            jobExecCountDto.setFailedCount(jobExecCountDto.getFailedCount() + value.getFailedCount());
+            jobExecCountDto.setFilterCount(jobExecCountDto.getFilterCount() + value.getFilterCount());
+        });
+        databridgeClient.updateJobStatus(JobStateForm.builder().jobId(info.getJobId()).jobType(info.getJobType())
+                .jobStatus(success ? 2 : 1).startTime(startTime.get()).endTime(new Date().getTime())
+                .allCount(jobExecCountDto.getAllCount())
+                .appendCount(jobExecCountDto.getAppendCount())
+                .deleteCount(jobExecCountDto.getDeleteCount())
+                .failedCount(jobExecCountDto.getFailedCount())
+                .updateCount(jobExecCountDto.getUpdateCount())
+                .filterCount(jobExecCountDto.getFilterCount()).build());
     }
 
     private List<String> createDmcTable(FlinkActionParam unit) {
@@ -400,6 +427,17 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
         return state.toLowerCase();
     }
 
+    private JobExecCountDto getExecCount(String tableName) {
+        if (countRes.get() == null) {
+            countRes.set(new HashMap<>());
+        }
+
+        if (countRes.get().get(tableName) == null) {
+            countRes.get().put(tableName, new JobExecCountDto());
+        }
+        return countRes.get().get(tableName);
+    }
+
     @Override
     protected void afterExec(FlinkActionParam unit, boolean success) {
         // 同步表状态
@@ -407,7 +445,13 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
             DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
 
             /* 合表 */
-            dmcTableApi.mergeTbFile(unit.getWriter().getTableId(), unit.getUserId());
+            TassadarResult<MergeTbResp> merge = dmcTableApi.mergeTb(unit.getWriter().getTableId(), unit.getUserId());
+
+            String tableName = unit.getReader().getTableName();
+            getExecCount(tableName).setAllCount(getExecCount(tableName).getAllCount() + merge.getResult().getDataCount());
+            getExecCount(tableName).setAllCount(getExecCount(tableName).getAppendCount() + merge.getResult().getInsertCount());
+            getExecCount(tableName).setAllCount(getExecCount(tableName).getUpdateCount() + merge.getResult().getUpdateCount());
+            getExecCount(tableName).setAllCount(getExecCount(tableName).getDeleteCount() + merge.getResult().getDeleteCount());
 
             /* 更新表状态 */
             dmcTableApi.updateTableStatus(unit.getWriter().getTableId(), 1, unit.getUserId());
@@ -424,6 +468,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
                 && unit.getReader().getSync().getSyncCondition().getEnd() != null) {
             nextIncrValue = unit.getReader().getSync().getSyncCondition().getEnd().getValue();
         }
+        JobExecCountDto jobExecCountDto = getExecCount(unit.getReader().getTableName());
         databridgeClient.updateJobExecUnit(JobUnitStateForm.builder()
                 .jobId(unit.getJobId())
                 .fromTableId(unit.getReader().getTableId())
@@ -434,6 +479,12 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
                 .tableStatus(success ? 2 : 1)
                 .increateValue(nextIncrValue)
                 .userId(unit.getUserId())
+                .allCount(jobExecCountDto.getAllCount())
+                .appendCount(jobExecCountDto.getAppendCount())
+                .deleteCount(jobExecCountDto.getDeleteCount())
+                .failedCount(jobExecCountDto.getFailedCount())
+                .updateCount(jobExecCountDto.getUpdateCount())
+                .filterCount(jobExecCountDto.getFilterCount())
                 .build());
     }
 
@@ -446,13 +497,13 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobParam, DataTran
                     .writer(syncUnit.getWriter())
                     .jobId(jobDetail.getJobId())
                     .jobType(jobDetail.getJobType())
-                    .userId(jobDetail.getUserId())
+                    .userId(StringUtils.isEmpty(syncUnit.getUserId()) ? jobDetail.getUserId() : syncUnit.getUserId())
                     .build()).collect(Collectors.toList());
     }
 
     @Override
-    public DataTransJobDetail getJobDetail(DataTransJobParam jobParam) {
-        return databridgeClient.getJobExecInfo(jobParam.getJobId(), jobParam.getJobType());
+    public DataTransJobDetail getJobDetail(DataTransJobDetail jobParam) {
+        return jobParam;
     }
 }
 

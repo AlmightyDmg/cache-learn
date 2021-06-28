@@ -6,8 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ObjectUtils;
 
-import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
 import com.haizhi.dataio.bean.DataTransJobDetail;
 import com.haizhi.dataio.bean.DataTransJobParam;
 import com.haizhi.dataio.bean.OldDtsParam;
@@ -37,7 +37,15 @@ public class DataTransHandler {
     private DatabridgeClient databridgeClient;
 
     public DataTransJobDetail getJobDetail(DataTransJobParam jobParam) {
-        return databridgeClient.getJobExecInfo(jobParam.getJobId(), jobParam.getJobType());
+        DataTransJobDetail detail =  databridgeClient.getJobExecInfo(jobParam.getJobId(), jobParam.getJobType());
+
+        if (ObjectUtils.isEmpty(jobParam.getReaderTables())) {
+            return detail;
+        } else {
+            detail.getSyncUnits().removeIf(syncUnit ->
+                    !jobParam.getReaderTables().contains(syncUnit.getReader().getTableName()));
+            return detail;
+        }
     }
 
     private boolean useFlink(DataTransJobDetail detail) {
@@ -60,22 +68,22 @@ public class DataTransHandler {
         DataTransJobDetail jobDetail = getJobDetail(jobParam);
         try {
             if (useFlink(jobDetail)) {
-                flinkAction.doAction(jobParam);
+                flinkAction.doAction(jobDetail);
             } else {
                 if (jobDetail.getSyncUnits().isEmpty()) {
                     XxlJobHelper.handleFail("sync unit is empty");
                     return;
                 }
 
-                DmcConfig dmcConfig = null;
                 // 使用旧的逻辑处理导入导出
                 if ("import".equals(jobParam.getJobType())) {
                     // old import
                     importAction.doAction(OldDtsParam.builder()
                             .jobId(jobParam.getJobId())
                             .jobType(jobParam.getJobType())
-                            .userId(jobDetail.getUserId())
-                            .full(0)
+                            .userId(jobDetail.getSyncUnits().get(0).getUserId())
+                            .tables(jobParam.getReaderTables())
+                            .full(jobParam.getFull())
                             .endpoint(jobDetail.getSyncUnits().get(0).getToSink().getUrl()).build());
                 } else if ("export".equals(jobParam.getJobType())) {
                     // old export

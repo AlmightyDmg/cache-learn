@@ -1,18 +1,30 @@
 server:
   port: 8081
+  address: 192.168.64.1
 
 xxl:
   job:
     accessToken:
     admin:
-      addresses: http://123.126.105.108:8099/xxl-job-admin
+      addresses: http://192.168.64.4:18080/xxl-job-admin
     executor:
       address: ''
       appname: dataTransJobHandler
-      ip: ''
+      ip: '192.168.64.1'
       logpath: log/jobhandler
       logretentiondays: 30
       port: 9999
+
+spring:
+  kafka:
+    bootstrap-servers: dev121.haizhi.com:9092
+    producer:
+      retries: 1
+
+mq:
+  topics:
+    data-table-sync-status: data_table_sync
+
 
 logging:
   config: classpath:logback.xml

@@ -51,6 +51,9 @@ public final class DataSourceObjDto {
 		private Output output;
 
 		private Object labels;
+
+		@JsonProperty("real_user")
+		private String realUser;
 	}
 
 	@Data

@@ -8,6 +8,7 @@ import retrofit2.http.POST;
 import retrofit2.http.QueryBean;
 
 import com.haizhi.dataio.bean.DataTransJobDetail;
+import com.haizhi.dataio.bean.JobStateForm;
 import com.haizhi.dataio.bean.JobUnitStateForm;
 
 /**
@@ -25,11 +26,7 @@ public interface DatabridgeClient {
 
     @POST("/api/job/update_job")
     @FormUrlEncoded
-    String updateJobStatus(@Field("jobId") String jobId,
-                           @Field("jobType") String jobType,
-                           @Field("jobStatus") Integer jobStatus,
-                           @Field("startTime") Long startTime,
-                           @Field("endTime") Long endTime);
+    String updateJobStatus(@QueryBean JobStateForm jobStateForm);
 
     @POST("/api/job/update_job_task")
     @FormUrlEncoded

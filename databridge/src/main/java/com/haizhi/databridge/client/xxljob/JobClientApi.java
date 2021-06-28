@@ -9,12 +9,15 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.haizhi.databridge.bean.domain.importdata.JobRelBean;
 import com.haizhi.databridge.client.xxljob.request.DataTransJobParam;
 import com.haizhi.databridge.client.xxljob.request.PageQueryParam;
 import com.haizhi.databridge.client.xxljob.request.XxlJobInfo;
 import com.haizhi.databridge.client.xxljob.response.ReturnT;
 import com.haizhi.databridge.constants.DatabridgeConstant;
+import com.haizhi.databridge.constants.DatabridgeConstants;
 import com.haizhi.databridge.exception.DatabridgeException;
+import com.haizhi.databridge.repository.importdata.SkdJobRelRepository;
 import com.haizhi.databridge.util.IdUtils;
 import com.haizhi.databridge.util.JsonUtils;
 
@@ -27,10 +30,13 @@ import com.haizhi.databridge.util.JsonUtils;
 public class JobClientApi {
     private static final String DATA_FIELD = "data";
     private static final int SUCCESS_CODE = 200;
-    private static final int PAGE_SIZE = 200;
+    private static final int PAGE_SIZE = 20000;
 
     @Autowired
     XxlJobClient client;
+
+    @Autowired
+    SkdJobRelRepository jobRel;
 
     /**
      *
@@ -39,7 +45,7 @@ public class JobClientApi {
      * @param dataTransJobParam
      * @return
      */
-    public String add(String cronExpr, String scheduleType, DataTransJobParam dataTransJobParam) {
+    public String add(String jobId, String cronExpr, String scheduleType, DataTransJobParam dataTransJobParam) {
         String jobDesc = IdUtils.genKey("databridge");
         ReturnT<String> result = client.add(XxlJobInfo.builder()
                 .jobDesc(jobDesc)
@@ -57,18 +63,70 @@ public class JobClientApi {
                 .executorHandler("dataTransJobHandler")
                 .build());
 
-        return genJobId(Integer.parseInt(handleResult(result)), jobDesc);
+        String xxlJobId = handleResult(result);
+        String userId = MDC.get(DatabridgeConstants.USER_ID);
+        jobRel.save(JobRelBean.builder().jobId(jobId).distJobId(xxlJobId).owner(userId).build());
+
+        return xxlJobId;
     }
 
     public String update(String jobId, String cronExpr, String scheduleType, DataTransJobParam dataTransJobParam) {
-        String jobDesc = jobId.split("-")[1];
+        XxlJobInfo xxlJobInfo = getJobInfo(jobId);
+
+        xxlJobInfo.setScheduleConf(cronExpr);
+        xxlJobInfo.setScheduleType(scheduleType);
+        xxlJobInfo.setExecutorParam(JsonUtils.toJson(dataTransJobParam));
+        return handleResult(client.update(xxlJobInfo));
+    }
+
+    public Map<String, Object> pageList(PageQueryParam queryParam) {
+        return client.pageList(queryParam);
+    }
+
+    public String remove(String jobId) {
+        String res = handleResult(client.remove(getXxlJobId(jobId)));
+        jobRel.logicDeleteByJobId(jobId);
+        return res;
+    }
+
+    public String start(String jobId) {
+        return handleResult(client.start(getXxlJobId(jobId)));
+    }
+
+    public String stop(String jobId) {
+        return handleResult(client.stop(getXxlJobId(jobId)));
+    }
+
+    public String trigger(String jobId, DataTransJobParam jobParam) {
+//        XxlJobInfo xxlJobInfo = getJobInfo(jobId);
+        return handleResult(client.trigger(getXxlJobId(jobId), JsonUtils.toJson(jobParam)));
+    }
+
+    private int getXxlJobId(String jobId) {
+        JobRelBean jobRelBean = jobRel.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("xxljob not exist"));
+        if (StringUtils.isEmpty(jobRelBean.getDistJobId())) {
+            throw new DatabridgeException("invalid xxl job id");
+        }
+
+        return Integer.parseInt(jobRelBean.getDistJobId());
+    }
+
+    private String handleResult(ReturnT<String> returnT) {
+        if (returnT.getCode() == SUCCESS_CODE) {
+            return returnT.getContent();
+        } else {
+            throw new DatabridgeException(String.format("call xxl-job create job error: .", returnT.getContent()));
+        }
+    }
+
+    private XxlJobInfo getJobInfo(String jobId) {
         int xxlJobId = getXxlJobId(jobId);
 
         Map<String, Object> jobMap = client.pageList(PageQueryParam.builder()
                 .start(0)
                 .length(PAGE_SIZE)
                 .jobGroup(1)
-                .jobDesc(jobDesc)
+                .jobDesc(jobId)  //databridge上的jobId对应xxljob上的jobDesc
                 .triggerStatus(-1)
                 .build());
 
@@ -80,49 +138,10 @@ public class JobClientApi {
             throw new DatabridgeException("xxljob not exist");
         }
 
-        matchJobList.get(0).setScheduleConf(cronExpr);
-        matchJobList.get(0).setScheduleType(scheduleType);
-        matchJobList.get(0).setJobDesc(jobDesc);
-        return handleResult(client.update(matchJobList.get(0)));
+        return matchJobList.get(0);
     }
 
-    public Map<String, Object> pageList(PageQueryParam queryParam) {
-        return client.pageList(queryParam);
-    }
-
-    public String remove(String jobId) {
-        return handleResult(client.remove(getXxlJobId(jobId)));
-    }
-
-    public String start(String jobId) {
-        return handleResult(client.start(getXxlJobId(jobId)));
-    }
-
-    public String stop(String jobId) {
-        return handleResult(client.stop(getXxlJobId(jobId)));
-    }
-
-    public String trigger(String jobId) {
-        return handleResult(client.trigger(getXxlJobId(jobId)));
-    }
-
-    private int getXxlJobId(String jobId) {
-        if (StringUtils.isEmpty(jobId)) {
-            throw new DatabridgeException("invalid xxl job id");
-        }
-
-        return Integer.parseInt(jobId.split("-")[0]);
-    }
-
-    private String handleResult(ReturnT<String> returnT) {
-        if (returnT.getCode() == SUCCESS_CODE) {
-            return returnT.getContent();
-        } else {
-            throw new DatabridgeException(String.format("call xxl-job create job error: .", returnT.getContent()));
-        }
-    }
-
-    public String genJobId(Integer id, String jobDesc) {
-        return String.format("%d-%s", id, jobDesc);
-    }
+//    public String genJobId(Integer id, String jobDesc) {
+//        return String.format("%d-%s", id, jobDesc);
+//    }
 }
