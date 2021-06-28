@@ -16,7 +16,7 @@ import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataRes
  * @createTime 2021年06月05日 17:49:01
  */
 public interface NoahClient {
-    @POST("/api/noah/task/start")
+    @POST("/api/noah/task/noahstart")
     @FormUrlEncoded
     void startImportJob(@Query("user_id") String userId,
                         @Field("scheduler_id") String jobId,

@@ -19,6 +19,9 @@ public interface JobRepository extends HaizhiBaseRepository<JobBean, String> {
 	Optional<List<JobBean>> findAllByDsId(String dsId);
 	Optional<List<JobBean>> findAllByRelaIdAndEntIdAndJobSource(String relaId, String entId, Integer jobSource);
 
+	@Query(value = "select * from JOB where is_del = 0 and job_source = 1", nativeQuery = true)
+	List<JobBean> findAll();
+
 	@Modifying
 	@Transactional
 	@Query(value = "update JOB set is_del = 1 where job_id = ?1", nativeQuery = true)

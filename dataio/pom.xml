@@ -60,4 +60,54 @@
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.haizhi.dataio.DataioApplication</mainClass>
+                    <layout>ZIP</layout>
+                </configuration>
+            </plugin>
+            <plugin><!-- 需要本地有git信息 -->
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <verbose>true</verbose>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <injectAllReactorProjects>true</injectAllReactorProjects>
+                </configuration>
+            </plugin>
+            <!--            <plugin>-->
+            <!--                <groupId>com.github.core-lib</groupId>-->
+            <!--                <artifactId>xjar-maven-plugin</artifactId>-->
+            <!--                <version>v2.0.6</version>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <goals>-->
+            <!--                            <goal>build</goal>-->
+            <!--                        </goals>-->
+            <!--                        <phase>package</phase> &lt;!&ndash;在maven的哪个阶段生效 可以配置package install等&ndash;&gt;-->
+            <!--                        <configuration>-->
+            <!--                            <password>hz</password>&lt;!&ndash;密码 放在这里可能会泄露，不过这个密码只是执行时候提供，泄露了也无法反编译源码&ndash;&gt;-->
+            <!--                            <includes> &lt;!&ndash;配置哪些内容会被加密 &ndash;&gt;-->
+            <!--                                <include>com/haizhi/**</include>-->
+            <!--                                <include>*.yml</include>-->
+            <!--                                <include>*.xml</include>-->
+            <!--                            </includes>-->
+            <!--                            &lt;!&ndash;还要很多配置 包括加密算法等 可以在官方文档上找到&ndash;&gt;-->
+            <!--                        </configuration>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--            </plugin>-->
+        </plugins>
+    </build>
 </project>
