@@ -159,7 +159,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 
 		if (!ObjectUtils.isEmpty(create)) {
-			if (start.after(compareTime))  {
+			if (create.after(compareTime))  {
 				newCreate = create;
 			} else {
 				newCreate = compareTime;
@@ -296,9 +296,17 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		Map<String, DataSchedulerVo.SchedulerVo> schedulerId2SchedulerVoMap = new HashMap<>();
 		for (TSchedulerBean schedulerBean: schedulerBeans) {
 			DataSchedulerDto.OptionsDto optionsDto = JsonUtils.toObject(schedulerBean.getOptions(), DataSchedulerDto.OptionsDto.class);
+			List<String> dbTypeList = new ArrayList<>();
+			try {
+				dbTypeList = optionsDto.getTables().stream().map(tableId -> tableVoMap.getOrDefault(tableId, null).getDbType())
+						.distinct().collect(Collectors.toList());
+			} catch (Exception e) {
+				throw new DatabridgeException(String.format("存在已配置任务但表不存在的任务:schedulerId:%s, scheduler_name:%s",
+						schedulerBean.getSchedulerId(), schedulerBean.getSchedulerName()));
+			}
+
 			schedulerId2SchedulerVoMap.put(schedulerBean.getSchedulerId(), DataSchedulerVo.SchedulerVo.builder()
-					.database(optionsDto.getTables().stream().map(tableId -> tableVoMap.getOrDefault(tableId, null).getDbType())
-							.distinct().collect(Collectors.toList()))
+					.database(dbTypeList)
 					.exception(schedulerBean.getException())
 					.posted(optionsDto.getTables().stream().map(tableVoMap::get).mapToInt(DataTableVo.TableVo::getPosted).sum())
 					.fetched(optionsDto.getTables().stream().map(tableVoMap::get).mapToInt(DataTableVo.TableVo::getFetched).sum())
@@ -683,7 +691,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	public List<DataTransJobVo.Column> getFromColumns(DataTableDto.SyncConfigDto syncConfig,
 													  TDataBaseSourceBean tDataBaseSourceBean,
 													  String tableId,
-													  List<String> userConfigFields,
+													  List<Object> userConfigFields,
 													  String userId) {
 //		String base64 = Base64.getEncoder()
 //				.encodeToString((ZLibUtils.compress(tDataBaseSourceBean.getSetup().getBytes(UTF_8))));
@@ -794,7 +802,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		return null;
 	}
 
-	public void create(DataSchedulerForm.CreateForm createForm) throws UnsupportedEncodingException {
+	public String create(DataSchedulerForm.CreateForm createForm) throws UnsupportedEncodingException {
 		if (tSchedulerRepo.findBySchedulerNameAndOwner(createForm.getSchedulerName(), createForm.getUserId()).isPresent()) {
 			throw new DatabridgeException(StatusCode.SOURCE_EXISTS,
 					String.format("任务%s已存在", createForm.getSchedulerName()));
@@ -803,16 +811,19 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		String schedulerId = IdUtils.genKey("nsched");
 		tSchedulerBean.setSchedulerId(schedulerId);
 		updateScheduler(createForm, tSchedulerBean);
-		String cronExpr = genCrontab(createForm.getTiming());
 		DataTransJobParam dataTransJobParam = new DataTransJobParam();
 		dataTransJobParam.setJobId(schedulerId);
 		dataTransJobParam.setJobType(IMPORT);
 		try {
-			jobClientApi.add(cronExpr, CRON, dataTransJobParam);
-			jobClientApi.start(schedulerId);
+			if (!ObjectUtils.isEmpty(createForm.getTiming())) {
+				String cronExpr = genCrontab(createForm.getTiming());
+				jobClientApi.add(cronExpr, CRON, dataTransJobParam);
+				jobClientApi.start(schedulerId);
+			}
 		}  catch (Exception e) {
 			e.printStackTrace();
 		}
+		return schedulerId;
 	}
 
 	private void updateScheduler(DataSchedulerForm.ChangeBaseForm changeBaseForm, TSchedulerBean tSchedulerBean)
@@ -848,6 +859,10 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				if (!changeBaseForm.getTables().contains(tableId)) {
 					tableServiceImpl.updateSchedulerId(tableId, changeBaseForm.getUserId(), null);
 				}
+			}
+		} else {
+			for (String tableId : changeBaseForm.getTables()) {
+				tableServiceImpl.updateSchedulerId(tableId, changeBaseForm.getUserId(), tSchedulerBean.getSchedulerId());
 			}
 		}
 

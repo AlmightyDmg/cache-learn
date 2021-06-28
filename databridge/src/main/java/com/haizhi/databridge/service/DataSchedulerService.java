@@ -11,7 +11,7 @@ import com.haizhi.databridge.web.controller.form.JobUnitStateForm;
 public interface DataSchedulerService {
 
 	DataSchedulerVo.RetrieveVo retrieve(DataSchedulerForm.RetrieveForm retrieveForm) throws IOException;
-	void create(DataSchedulerForm.CreateForm createForm) throws UnsupportedEncodingException;
+	String create(DataSchedulerForm.CreateForm createForm) throws UnsupportedEncodingException;
 	void update(DataSchedulerForm.UpdateForm updateForm) throws UnsupportedEncodingException;
 	void delete(DataSchedulerForm.DeleteForm updateForm);
 	DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws IOException;

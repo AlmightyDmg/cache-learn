@@ -14,6 +14,7 @@ import com.haizhi.databridge.bean.vo.DataSchedulerVo;
 import com.haizhi.databridge.service.DataSchedulerService;
 import com.haizhi.databridge.web.controller.base.BaseController;
 import com.haizhi.databridge.web.controller.form.DataSchedulerForm;
+import com.haizhi.databridge.web.result.WebResult;
 
 /**
  * @Description // 数据源相关接口
@@ -59,8 +60,8 @@ public class DataSchedulerController extends BaseController {
 
     @RequestMapping("/create")
     @ApiOperation("创建")
-    void delete(DataSchedulerForm.CreateForm createForm) throws UnsupportedEncodingException {
-        dataSchedulerService.create(createForm);
+    WebResult<String> delete(DataSchedulerForm.CreateForm createForm) throws UnsupportedEncodingException {
+        return WebResult.of(dataSchedulerService.create(createForm));
     }
 
     @RequestMapping("/trigger")

@@ -69,7 +69,7 @@ public class DataTableForm {
         private Integer rows;
         private Map<Object, Object> blobfield;
         private List<String> keys;
-        private List<String> fields;
+        private List<Object> fields;
         @JsonProperty("auto_fields")
         private Integer autoFields;
         private DataTableDto.FilterDto filter;

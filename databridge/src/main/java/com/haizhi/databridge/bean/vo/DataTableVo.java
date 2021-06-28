@@ -42,7 +42,7 @@ public class DataTableVo {
         private DataTableDto.FilterDto filter;
         private Object blobfield;
         private List<String> keys;
-        private List<String> fields;
+        private List<Object> fields;
         private DataTableDto.IncreaseDto increase;
         private String ref;
         @JsonProperty("output_ref")
