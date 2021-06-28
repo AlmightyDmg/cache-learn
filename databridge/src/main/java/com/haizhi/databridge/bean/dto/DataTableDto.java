@@ -28,7 +28,7 @@ public final class DataTableDto {
 		private String outputRef;
 		private Integer rows;
 		private List<String> keys;
-		private List<String> fields;
+		private List<Object> fields;
 		@JsonProperty("auto_fields")
 		private Integer autoFields;
 		private Integer dereplication;
@@ -49,6 +49,8 @@ public final class DataTableDto {
 		@JsonProperty("is_view")
 		private String isView;
 		private Map<Object, Object> transform;
+		@JsonProperty("api_config")
+		private Object apiConfig;
 
 	}
 
