@@ -302,20 +302,14 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		Map<String, DataTableVo.TableVo> tableVoMap = tableServiceImpl.buildTableId2TableVoMap(owner, tableBeans);
 		SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		// 构建scheduler
-		Map<String, DataSchedulerVo.SchedulerVo> schedulerId2SchedulerVoMap = new HashMap<>();
+		Map<String, DataSchedulerVo.SchedulerVo> scheduler2VoMap = new HashMap<>();
 		for (TSchedulerBean schedulerBean: schedulerBeans) {
 			DataSchedulerDto.OptionsDto optionsDto = JsonUtils.toObject(schedulerBean.getOptions(), DataSchedulerDto.OptionsDto.class);
-			List<String> dbTypeList = new ArrayList<>();
-			try {
-				dbTypeList = optionsDto.getTables().stream().map(tableId -> tableVoMap.getOrDefault(tableId, null).getDbType())
-						.distinct().collect(Collectors.toList());
-			} catch (Exception e) {
-				throw new DatabridgeException(String.format("存在已配置任务但表不存在的任务:schedulerId:%s, scheduler_name:%s",
-						schedulerBean.getSchedulerId(), schedulerBean.getSchedulerName()));
-			}
 
-			schedulerId2SchedulerVoMap.put(schedulerBean.getSchedulerId(), DataSchedulerVo.SchedulerVo.builder()
-					.database(dbTypeList)
+			try {
+				scheduler2VoMap.put(schedulerBean.getSchedulerId(), DataSchedulerVo.SchedulerVo.builder()
+					.database(optionsDto.getTables().stream().map(tableId -> tableVoMap.getOrDefault(tableId, null).getDbType())
+							.distinct().collect(Collectors.toList()))
 					.exception(schedulerBean.getException())
 					.posted(optionsDto.getTables().stream().map(tableVoMap::get).mapToInt(DataTableVo.TableVo::getPosted).sum())
 					.fetched(optionsDto.getTables().stream().map(tableVoMap::get).mapToInt(DataTableVo.TableVo::getFetched).sum())
@@ -334,9 +328,15 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 							.sorted(Comparator.comparing(DataTableVo.TableVo::getStartAt)).collect(Collectors.toList()))
 					.tbCount(optionsDto.getTables().size())
 					.build()
-			);
+				);
+			} catch (Exception e) {
+				throw new DatabridgeException(String.format("存在已配置任务但表不存在的任务:schedulerId: %s, "
+								+ "scheduler_name: %s, error_message: %s",
+						schedulerBean.getSchedulerId(), schedulerBean.getSchedulerName(), e.getMessage()));
+			}
+
 		}
-		return schedulerId2SchedulerVoMap;
+		return scheduler2VoMap;
 	}
 
 

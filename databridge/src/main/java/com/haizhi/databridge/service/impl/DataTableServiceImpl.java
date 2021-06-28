@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -411,7 +412,11 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		if (ObjectUtils.isEmpty(ref)) {
 			return null;
 		}
-		return JsonUtils.toList(refDecode(ref), String.class);
+		List<String> schemaList = JsonUtils.toList(refDecode(ref), String.class);
+
+		return schemaList.subList(0, schemaList.size() - 1).parallelStream()
+				.filter(Objects::nonNull)
+				.collect(Collectors.toList());
 	}
 
 	public void updateSchedulerId(String tableId, String userId, String schedulerId) {
@@ -469,7 +474,8 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 					.posted(tTableBean.getPosted())
 					.ref(syncConfigDto.getRef())
 					.remark(tTableBean.getRemark())
-					.schema(getSchemafromRef(syncConfigDto.getRef()))
+					.schema(!ObjectUtils.isEmpty(syncConfigDto.getRef())
+							? getSchemafromRef(syncConfigDto.getRef()) : new ArrayList<>())
 					.startAt(!ObjectUtils.isEmpty(tTableBean.getStartAt()) ? ft.format(tTableBean.getStartAt()) : null)
 					.status(tTableBean.getStatus())
 					.syncType(getSyncType(syncConfigDto))

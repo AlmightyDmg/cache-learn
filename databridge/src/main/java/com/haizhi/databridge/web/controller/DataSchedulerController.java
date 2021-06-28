@@ -36,14 +36,14 @@ public class DataSchedulerController extends BaseController {
      **/
     @RequestMapping("/list")
     @ApiOperation("列表展示")
-    DataSchedulerVo.ListVo list(DataSchedulerForm.ListForm listForm) throws IOException {
-        return dataSchedulerService.list(listForm);
+    WebResult<DataSchedulerVo.ListVo> list(DataSchedulerForm.ListForm listForm) throws IOException {
+        return WebResult.of(dataSchedulerService.list(listForm));
     }
 
     @RequestMapping("/retrieve")
     @ApiOperation("列表展示")
-    DataSchedulerVo.RetrieveVo retrieve(DataSchedulerForm.RetrieveForm retrieveForm) throws IOException {
-        return dataSchedulerService.retrieve(retrieveForm);
+    WebResult<DataSchedulerVo.RetrieveVo> retrieve(DataSchedulerForm.RetrieveForm retrieveForm) throws IOException {
+        return WebResult.of(dataSchedulerService.retrieve(retrieveForm));
     }
 
     @RequestMapping("/update")
