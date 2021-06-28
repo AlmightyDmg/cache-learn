@@ -311,10 +311,15 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 					.database(optionsDto.getTables().stream().map(tableId -> tableVoMap.getOrDefault(tableId, null).getDbType())
 							.distinct().collect(Collectors.toList()))
 					.exception(schedulerBean.getException())
-					.posted(optionsDto.getTables().stream().map(tableVoMap::get).mapToInt(DataTableVo.TableVo::getPosted).sum())
-					.fetched(optionsDto.getTables().stream().map(tableVoMap::get).mapToInt(DataTableVo.TableVo::getFetched).sum())
-					.finishTbCount((int) optionsDto.getTables().stream().map(tableVoMap::get).filter(tableVo ->
-							tableVo.getStatus().equals(DataSourceConstants.DataTableStatus.FINISHED)
+					.posted(optionsDto.getTables().stream().map(tableVoMap::get).filter(
+							tableVo -> !ObjectUtils.isEmpty(tableVo.getPosted()))
+							.mapToInt(DataTableVo.TableVo::getPosted).sum())
+					.fetched(optionsDto.getTables().stream().map(tableVoMap::get).filter(
+							tableVo -> !ObjectUtils.isEmpty(tableVo.getFetched()))
+							.mapToInt(DataTableVo.TableVo::getFetched).sum())
+					.finishTbCount((int) optionsDto.getTables().stream().map(tableVoMap::get).filter(
+							tableVo -> !ObjectUtils.isEmpty(tableVo.getStatus()))
+							.filter(tableVo -> tableVo.getStatus().equals(DataSourceConstants.DataTableStatus.FINISHED)
 									|| tableVo.getStatus().equals(DataSourceConstants.DataTableStatus.STATUS_NEW)
 									|| tableVo.getStatus().equals(
 									DataSourceConstants.DataTableStatus.STATUS_IGNORED)).count())
@@ -330,7 +335,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 					.build()
 				);
 			} catch (Exception e) {
-				throw new DatabridgeException(String.format("存在已配置任务但表不存在的任务:schedulerId: %s, "
+				throw new DatabridgeException(String.format("任务异常，请检查scheduler和table关系:schedulerId: %s, "
 								+ "scheduler_name: %s, error_message: %s",
 						schedulerBean.getSchedulerId(), schedulerBean.getSchedulerName(), e.getMessage()));
 			}
@@ -827,7 +832,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		dataTransJobParam.setJobId(schedulerId);
 		dataTransJobParam.setJobType(IMPORT);
 		try {
-			String cronExpr = !ObjectUtils.isEmpty(createForm.getTiming()) ? genCrontab(createForm.getTiming()) : "";
+			String cronExpr = !ObjectUtils.isEmpty(createForm.getTiming()) ? genCrontab(createForm.getTiming()) + " ? " : "";
 			String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
 			jobClientApi.add(schedulerId, cronExpr, cronType, dataTransJobParam);
 			if (!ObjectUtils.isEmpty(cronType)) {
@@ -913,7 +918,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		dataTransJobParam.setJobId(schedulerId);
 		dataTransJobParam.setJobType(IMPORT);
 		jobClientApi.update(schedulerId,
-				genCrontab(JsonUtils.toObject(timing, DataSchedulerDto.TimingDto.class)),
+				genCrontab(JsonUtils.toObject(timing, DataSchedulerDto.TimingDto.class)) + " ? ",
 				IMPORT,
 				dataTransJobParam
 		);

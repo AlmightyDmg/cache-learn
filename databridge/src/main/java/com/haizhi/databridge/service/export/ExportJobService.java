@@ -393,7 +393,7 @@ public class ExportJobService extends RequestCommonData {
 			String cron = "";
 			if (form.getSchedulerConf().getMode() == 1 || form.getSchedulerConf().getMode() == 0) {
 				scheduleType = "CRON";
-				cron = form.getSchedulerConf().getSyncConfig();
+				cron = form.getSchedulerConf().getSyncConfig() + " ? ";
 			} else {
 				scheduleType = "NONE";
 				cron = "";
