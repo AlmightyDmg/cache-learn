@@ -14,6 +14,7 @@ import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC
 import static com.haizhi.databridge.constants.DataSourceConstants.TaskType.IMPORT;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_ERROR;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_IDLE;
+import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_NEW;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_SYNCING;
 import static com.haizhi.databridge.service.impl.DataSourceServiceImpl.encodeConnectId;
 import static com.haizhi.databridge.service.impl.DataTableServiceImpl.getSchemafromRef;
@@ -441,8 +442,12 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 					baseDt, timingDto.getStart(), timingDto.getEnd(), timingDto.getDelta());
 			Date minDate = null;
 			for (Date d: timeLineList) {
-				if (d.before(minDate)) {
+				if (ObjectUtils.isEmpty(minDate)) {
 					minDate = d;
+				} else {
+					if (d.before(minDate)) {
+						minDate = d;
+					}
 				}
 			}
 			return minDate;
@@ -825,6 +830,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		TSchedulerBean tSchedulerBean = new TSchedulerBean();
 		String schedulerId = IdUtils.genKey("nsched");
 		tSchedulerBean.setSchedulerId(schedulerId);
+		tSchedulerBean.setStatus(IMPORT_STATUS_NEW);
 		updateScheduler(createForm, tSchedulerBean);
 		DataTransJobParam dataTransJobParam = new DataTransJobParam();
 		dataTransJobParam.setJobId(schedulerId);
@@ -833,7 +839,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			String cronExpr = !ObjectUtils.isEmpty(createForm.getTiming()) ? genCrontab(createForm.getTiming()) + " ? " : "";
 			String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
 			jobClientApi.add(schedulerId, cronExpr, cronType, dataTransJobParam);
-			if (!ObjectUtils.isEmpty(cronType)) {
+			if (!ObjectUtils.isEmpty(cronExpr) && !"NONE".equals(cronType)) {
 				jobClientApi.start(schedulerId);
 			}
 		}  catch (Exception e) {
