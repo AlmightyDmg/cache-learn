@@ -119,7 +119,7 @@ public class JobClientApi {
         if (returnT.getCode() == SUCCESS_CODE) {
             return returnT.getContent();
         } else {
-            throw new DatabridgeException(String.format("call xxl-job create job error: .", returnT.getContent()));
+            throw new DatabridgeException(String.format("call xxl-job create job error: .", returnT.getMsg()));
         }
     }
 
