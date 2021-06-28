@@ -13,6 +13,7 @@ import com.haizhi.databridge.bean.vo.DataTableVo;
 import com.haizhi.databridge.service.DataTableService;
 import com.haizhi.databridge.web.controller.base.BaseController;
 import com.haizhi.databridge.web.controller.form.DataTableForm;
+import com.haizhi.databridge.web.result.WebResult;
 
 /**
  * @Description // 数据源相关接口
@@ -46,8 +47,8 @@ public class DataTableController extends BaseController {
      **/
     @RequestMapping("/retrieve")
     @ApiOperation("表展示")
-    public DataTableVo.RetrieveVo retrieve(DataTableForm.DataTableRetrieveForm retrieveForm) throws IOException {
-        return dataTableService.retrieve(retrieveForm);
+    public WebResult<DataTableVo.RetrieveVo> retrieve(DataTableForm.DataTableRetrieveForm retrieveForm) throws IOException {
+        return WebResult.of(dataTableService.retrieve(retrieveForm));
     }
 
     /**
@@ -58,8 +59,8 @@ public class DataTableController extends BaseController {
      **/
     @RequestMapping("/list/retrieve")
     @ApiOperation("表修改")
-    public List<DataTableVo.RetrieveVo> listRetrieve(DataTableForm.DataTableListRetrieveForm listRetrieveForm) throws IOException {
-        return dataTableService.listRetrieve(listRetrieveForm);
+    public WebResult<List<DataTableVo.RetrieveVo>> listRetrieve(DataTableForm.DataTableListRetrieveForm listRetrieveForm) throws IOException {
+        return WebResult.of(dataTableService.listRetrieve(listRetrieveForm));
     }
 
     /**
@@ -94,8 +95,8 @@ public class DataTableController extends BaseController {
 
     @RequestMapping("/statistics")
     @ApiOperation("获取所有表的同步状态")
-    public DataTableVo.StatisticsVo statistics(DataTableForm.DataTableStatisticsForm statisticsForm) throws IOException {
-        return dataTableService.statistics(statisticsForm);
+    public WebResult<DataTableVo.StatisticsVo> statistics(DataTableForm.DataTableStatisticsForm statisticsForm) throws IOException {
+        return WebResult.of(dataTableService.statistics(statisticsForm));
     }
 
     // 我觉的这个接口应该放在数据源，这个需要调jdbc驱动

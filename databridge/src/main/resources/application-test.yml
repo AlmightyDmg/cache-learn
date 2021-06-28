@@ -38,7 +38,7 @@ spring:
     proxy-target-class: true
 
 xxl-job:
-  url: http://localhost:8080
+  url: http://123.126.105.108:8099
   username: admin
-  password: 123456
+  password: 1qaz@WSX
 

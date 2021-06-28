@@ -13,6 +13,7 @@ import com.haizhi.databridge.bean.vo.DataBaseSourceVo;
 import com.haizhi.databridge.service.DataSourceService;
 import com.haizhi.databridge.web.controller.base.BaseController;
 import com.haizhi.databridge.web.controller.form.DataSourceForm;
+import com.haizhi.databridge.web.result.WebResult;
 
 /**
 * @Description // 数据源相关接口
@@ -58,8 +59,8 @@ public class DataSourceController extends BaseController {
     **/
     @RequestMapping("/update")
     @ApiOperation("创建用户信息")
-    public DataBaseSourceVo.UpdateVo update(DataSourceForm.DataSourceUpdateForm dataSourceUpdateForm) throws Exception {
-        return dataSourceService.update(dataSourceUpdateForm);
+    public WebResult<DataBaseSourceVo.UpdateVo> update(DataSourceForm.DataSourceUpdateForm dataSourceUpdateForm) throws Exception {
+        return WebResult.of(dataSourceService.update(dataSourceUpdateForm));
     }
 
     /**
@@ -70,13 +71,14 @@ public class DataSourceController extends BaseController {
     **/
     @RequestMapping("/retrieve")
     @ApiOperation("创建用户信息")
-    public DataBaseSourceVo.RetrieveVo retrieve(DataSourceForm.DataSourceRetrieveForm dataSourceRetrieveForm) throws UnsupportedEncodingException {
-        return dataSourceService.retrieve(dataSourceRetrieveForm);
+    public WebResult<DataBaseSourceVo.RetrieveVo> retrieve(DataSourceForm.DataSourceRetrieveForm dataSourceRetrieveForm
+    ) throws UnsupportedEncodingException {
+        return WebResult.of(dataSourceService.retrieve(dataSourceRetrieveForm));
     }
 
     @RequestMapping("/status")
     @ApiOperation("创建用户信息")
-    public DataBaseSourceVo.DataSourceStatusVo status(DataSourceForm.DataSourceStatusForm sourceStatusForm) throws IOException {
-        return dataSourceService.status(sourceStatusForm);
+    public WebResult<DataBaseSourceVo.DataSourceStatusVo> status(DataSourceForm.DataSourceStatusForm sourceStatusForm) throws IOException {
+        return WebResult.of(dataSourceService.status(sourceStatusForm));
     }
 }
