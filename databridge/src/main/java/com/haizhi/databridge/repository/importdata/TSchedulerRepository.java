@@ -31,6 +31,9 @@ public interface TSchedulerRepository extends HaizhiBaseRepository<TSchedulerBea
 			+ "AND t_scheduler.owner = ?2 AND t_scheduler.deleted=0", nativeQuery = true)
 	Optional<TSchedulerBean> findBySchedulerNameAndOwner(String schedulerName, String owner);
 
+	@Query(value = "SELECT * FROM t_scheduler WHERE deleted=0", nativeQuery = true)
+	List<TSchedulerBean> findAll();
+
 	@Modifying
 	@org.springframework.transaction.annotation.Transactional
 	@Query(value = "update t_scheduler set deleted = 1 where scheduler_id = ?1 and deleted=0", nativeQuery = true)

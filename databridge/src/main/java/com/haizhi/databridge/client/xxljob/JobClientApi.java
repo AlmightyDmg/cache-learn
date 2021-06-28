@@ -102,13 +102,17 @@ public class JobClientApi {
         return handleResult(client.trigger(getXxlJobId(jobId), JsonUtils.toJson(jobParam)));
     }
 
-    private int getXxlJobId(String jobId) {
+    public Integer getXxlJobId(String jobId) {
         JobRelBean jobRelBean = jobRel.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("xxljob not exist"));
         if (StringUtils.isEmpty(jobRelBean.getDistJobId())) {
             throw new DatabridgeException("invalid xxl job id");
         }
 
         return Integer.parseInt(jobRelBean.getDistJobId());
+    }
+
+    public boolean isXxljobExist(String jobId) {
+        return jobRel.findByJobId(jobId).isPresent();
     }
 
     private String handleResult(ReturnT<String> returnT) {

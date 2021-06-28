@@ -775,16 +775,12 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		String status = "";
 		switch (form.getTableStatus()) {
 			case 0:
-				status = "inserting";
-				break;
+				status = "inserting"; break;
 			case 1:
-				status = "error";
-				break;
+				status = "error"; break;
 			case 2:
-				status = "finished";
-				break;
-			default:
-				break;
+				status = "finished"; break;
+			default: break;
 		}
 		tTableBean.setStatus(status);
 		DataTableDto.SyncConfigDto syncConfig =
@@ -798,6 +794,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 
 		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
+		tTableBean.setPosted(form.getAllCount());
+		tTableBean.setFetched(form.getAllCount());
 
 		tTableRepo.update(tTableBean);
 
