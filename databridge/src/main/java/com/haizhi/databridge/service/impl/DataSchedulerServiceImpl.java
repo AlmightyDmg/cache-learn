@@ -198,8 +198,12 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		if (!optionalTSchedulerBean.isPresent()) {
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, String.format("任务%s不存在", deleteForm.getSchedulerId()));
 		}
-		jobClientApi.remove(optionalTSchedulerBean.get().getSchedulerId());
-		tableServiceImpl.cleanSchedulerId(deleteForm.getUserId(), deleteForm.getSchedulerId());
+		try {
+			jobClientApi.remove(optionalTSchedulerBean.get().getSchedulerId());
+		}  catch (Exception e) {
+			e.printStackTrace();
+		}
+		tableServiceImpl.cleanSchedulerId(deleteForm.getSchedulerId(), deleteForm.getUserId());
 		tSchedulerRepo.logicDeleteBySchedulerId(deleteForm.getSchedulerId());
 	}
 
@@ -823,10 +827,12 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		dataTransJobParam.setJobId(schedulerId);
 		dataTransJobParam.setJobType(IMPORT);
 		try {
-			String cronExpr = genCrontab(createForm.getTiming());
+			String cronExpr = !ObjectUtils.isEmpty(createForm.getTiming()) ? genCrontab(createForm.getTiming()) : "";
 			String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
 			jobClientApi.add(schedulerId, cronExpr, cronType, dataTransJobParam);
-			jobClientApi.start(schedulerId);
+			if (!ObjectUtils.isEmpty(cronType)) {
+				jobClientApi.start(schedulerId);
+			}
 		}  catch (Exception e) {
 			e.printStackTrace();
 		}
