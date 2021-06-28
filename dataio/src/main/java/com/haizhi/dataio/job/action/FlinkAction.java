@@ -92,7 +92,6 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     private static Set<String> useFlinkDbType = new HashSet<>();
     static {
         useFlinkDbType.add("greenplum");
-        useFlinkDbType.add("mysql");
     }
 
     @Autowired

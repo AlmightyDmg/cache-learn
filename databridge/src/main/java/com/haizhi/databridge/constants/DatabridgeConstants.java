@@ -96,4 +96,11 @@ public final class DatabridgeConstants {
     public static final int EXPORT_STATUS_ERROR = 3;
     public static final int EXPORT_STATUS_QUEUE = 4;
     public static final int EXPORT_STATUS_STOP = 5;
+
+    public static final String IMPORT_STATUS_NEW = "new";
+    public static final String IMPORT_STATUS_IDLE = "idle";
+    public static final String IMPORT_STATUS_SYNCING = "syncing";
+    public static final String IMPORT_STATUS_ERROR = "error";
+    public static final String IMPORT_STATUS_TERMINATED = "terminated";
+    public static final String IMPORT_STATUS_PENDING = "pending";
 }

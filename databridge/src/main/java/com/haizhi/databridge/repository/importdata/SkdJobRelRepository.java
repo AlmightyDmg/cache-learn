@@ -1,6 +1,5 @@
 package com.haizhi.databridge.repository.importdata;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.Modifying;
@@ -18,7 +17,7 @@ import com.haizhi.databridge.bean.domain.importdata.JobRelBean;
  */
 @Repository
 public interface SkdJobRelRepository extends HaizhiBaseRepository<JobRelBean, String> {
-    Optional<List<JobRelBean>> findByJobId(String jobId);
+    Optional<JobRelBean> findByJobId(String jobId);
 
     @Modifying
     @Transactional

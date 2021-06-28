@@ -1,12 +1,11 @@
 server:
   port: 8081
-  address: 192.168.64.1
 
 xxl:
   job:
     accessToken:
     admin:
-      addresses: http://192.168.64.4:18080/xxl-job-admin
+      addresses: http://123.126.105.108:8099/xxl-job-admin
     executor:
       address: ''
       appname: dataTransJobHandler

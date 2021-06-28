@@ -38,7 +38,6 @@ import com.haizhi.databridge.bean.domain.exportdata.DsBean;
 import com.haizhi.databridge.bean.domain.exportdata.ExportDsTbBean;
 import com.haizhi.databridge.bean.domain.exportdata.ExportLogBean;
 import com.haizhi.databridge.bean.domain.exportdata.JobBean;
-import com.haizhi.databridge.bean.domain.importdata.JobRelBean;
 import com.haizhi.databridge.bean.domain.importdata.TblTransTaskRelBean;
 import com.haizhi.databridge.bean.vo.DataTransJobVo;
 import com.haizhi.databridge.bean.vo.ExportDsVo;
@@ -51,7 +50,6 @@ import com.haizhi.databridge.repository.exportdata.DsRepository;
 import com.haizhi.databridge.repository.exportdata.ExportDsTbRepository;
 import com.haizhi.databridge.repository.exportdata.ExportLogRepository;
 import com.haizhi.databridge.repository.exportdata.JobRepository;
-import com.haizhi.databridge.repository.importdata.SkdJobRelRepository;
 import com.haizhi.databridge.repository.importdata.TblTransTaskRelRepository;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
@@ -88,9 +86,6 @@ public class ExportJobService extends RequestCommonData {
 
 	@Autowired
 	private JobClientApi jobClientApi;
-
-	@Autowired
-	private SkdJobRelRepository skdJobRelRepository;
 
 	@Autowired
 	private DmcClientProperties dmcProp;
@@ -295,22 +290,15 @@ public class ExportJobService extends RequestCommonData {
 		jobRepository.save(jobBean);
 
 		// create xxljob
-		String xxljobId = jobClientApi.add(schedulerConfForm.getSyncConfig(),
+		jobClientApi.add(jobId, schedulerConfForm.getSyncConfig(),
 				getExecuteMode(form.getSchedulerConf().getMode()),
 				DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
 
-		// save relation between scheduler and xxljob
-		skdJobRelRepository.save(JobRelBean.builder()
-				.jobId(jobId)
-				.distJobId(xxljobId)
-				.owner(getUserId())
-				.build());
-
 		// 创建完默认执行一次
-		jobClientApi.trigger(xxljobId, DataTransJobParam.builder().jobId(jobId).jobType(EXPORT).build());
+		jobClientApi.trigger(jobId, DataTransJobParam.builder().jobId(jobId).jobType(EXPORT).build());
 
 		if (!StringUtils.isEmpty(form.getSchedulerConf().getSyncConfig())) {
-			jobClientApi.start(xxljobId);
+			jobClientApi.start(jobId);
 		}
 	}
 
@@ -411,16 +399,8 @@ public class ExportJobService extends RequestCommonData {
 				cron = "";
 			}
 
-			List<JobRelBean> xxlJobIds = skdJobRelRepository.findByJobId(jobId).orElse(new ArrayList<>());
-			if (xxlJobIds.isEmpty()) {
-				String xxljobId = jobClientApi.add(cron, scheduleType,
-						DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
-				skdJobRelRepository.save(JobRelBean.builder().jobId(jobId).distJobId(xxljobId).owner(getUserId()).build());
-			} else {
-				String xxljobId = xxlJobIds.get(0).getDistJobId();
-				jobClientApi.update(xxljobId, cron, scheduleType,
-						DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
-			}
+
+			jobClientApi.update(jobId, cron, scheduleType, DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
 		}
 	}
 
@@ -465,18 +445,13 @@ public class ExportJobService extends RequestCommonData {
 	* @param jobId
 	* @return void
 	**/
+	@Transactional
 	public void jobDelete(String jobId) {
 		Optional<JobBean> jobBeanOptional = jobRepository.findByJobId(jobId);
 		if (jobBeanOptional.isPresent()) {
-			Optional<List<JobRelBean>> distJobOptional = skdJobRelRepository.findByJobId(jobId);
-			if (distJobOptional.isPresent()) {
-				for (JobRelBean jobRelBean : distJobOptional.get()) {
-					jobClientApi.remove(jobRelBean.getDistJobId());
-				}
-			}
 			jobRepository.logicDeleteByJobId(jobBeanOptional.get().getJobId());
-			skdJobRelRepository.logicDeleteByJobId(jobId);
 			tblTransTaskRelRepo.logicDeleteByJobId(jobId);
+			jobClientApi.remove(jobId);
 		} else {
 			throw new DatabridgeException("job 不存在");
 		}
@@ -488,22 +463,15 @@ public class ExportJobService extends RequestCommonData {
 	* @param jobId
 	* @return void
 	**/
+	@Transactional
 	public void jobStart(String jobId) {
-		String xxljobId = skdJobRelRepository.findByJobId(jobId).orElse(Collections.singletonList(new JobRelBean()))
-				.get(0).getDistJobId();
-		if (!StringUtils.isEmpty(xxljobId)) {
-			jobClientApi.start(xxljobId);
-		}
-
+		jobClientApi.start(jobId);
 		jobRepository.updateJob(jobId, EXPORT_STATUS_CREATE);
 	}
 
+	@Transactional
 	public void jobExec(String jobId) {
-		String xxljobId = skdJobRelRepository.findByJobId(jobId).orElse(Collections.singletonList(new JobRelBean()))
-				.get(0).getDistJobId();
-		if (!StringUtils.isEmpty(xxljobId)) {
-			jobClientApi.trigger(xxljobId, DataTransJobParam.builder().jobId(jobId).jobType(EXPORT).build());
-		}
+		jobClientApi.trigger(jobId, DataTransJobParam.builder().jobId(jobId).jobType(EXPORT).build());
 	}
 
 	/**
@@ -512,14 +480,10 @@ public class ExportJobService extends RequestCommonData {
 	* @param jobId
 	* @return void
 	**/
+	@Transactional
 	public void jobStop(String jobId) {
-		String xxljobId = skdJobRelRepository.findByJobId(jobId).orElse(Collections.singletonList(new JobRelBean()))
-				.get(0).getDistJobId();
-		if (!StringUtils.isEmpty(xxljobId)) {
-			jobClientApi.stop(xxljobId);
-		}
-
 		jobRepository.updateJob(jobId, EXPORT_STATUS_STOP);
+		jobClientApi.stop(jobId);
 	}
 
 	/**
