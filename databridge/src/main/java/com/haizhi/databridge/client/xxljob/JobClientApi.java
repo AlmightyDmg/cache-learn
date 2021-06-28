@@ -9,12 +9,15 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.haizhi.databridge.bean.domain.importdata.JobRelBean;
 import com.haizhi.databridge.client.xxljob.request.DataTransJobParam;
 import com.haizhi.databridge.client.xxljob.request.PageQueryParam;
 import com.haizhi.databridge.client.xxljob.request.XxlJobInfo;
 import com.haizhi.databridge.client.xxljob.response.ReturnT;
 import com.haizhi.databridge.constants.DatabridgeConstant;
+import com.haizhi.databridge.constants.DatabridgeConstants;
 import com.haizhi.databridge.exception.DatabridgeException;
+import com.haizhi.databridge.repository.importdata.SkdJobRelRepository;
 import com.haizhi.databridge.util.IdUtils;
 import com.haizhi.databridge.util.JsonUtils;
 
@@ -32,6 +35,9 @@ public class JobClientApi {
     @Autowired
     XxlJobClient client;
 
+    @Autowired
+    SkdJobRelRepository jobRel;
+
     /**
      *
      * @param cronExpr
@@ -39,7 +45,7 @@ public class JobClientApi {
      * @param dataTransJobParam
      * @return
      */
-    public String add(String cronExpr, String scheduleType, DataTransJobParam dataTransJobParam) {
+    public String add(String jobId, String cronExpr, String scheduleType, DataTransJobParam dataTransJobParam) {
         String jobDesc = IdUtils.genKey("databridge");
         ReturnT<String> result = client.add(XxlJobInfo.builder()
                 .jobDesc(jobDesc)
@@ -57,16 +63,19 @@ public class JobClientApi {
                 .executorHandler("dataTransJobHandler")
                 .build());
 
-        return genJobId(Integer.parseInt(handleResult(result)), jobDesc);
+        String xxlJobId = handleResult(result);
+        String userId = MDC.get(DatabridgeConstants.USER_ID);
+        jobRel.save(JobRelBean.builder().jobId(jobId).distJobId(xxlJobId).owner(userId).build());
+
+        return xxlJobId;
     }
 
     public String update(String jobId, String cronExpr, String scheduleType, DataTransJobParam dataTransJobParam) {
         XxlJobInfo xxlJobInfo = getJobInfo(jobId);
 
-        String jobDesc = jobId.split("-")[1];
         xxlJobInfo.setScheduleConf(cronExpr);
         xxlJobInfo.setScheduleType(scheduleType);
-        xxlJobInfo.setJobDesc(jobDesc);
+        xxlJobInfo.setExecutorParam(JsonUtils.toJson(dataTransJobParam));
         return handleResult(client.update(xxlJobInfo));
     }
 
@@ -75,7 +84,9 @@ public class JobClientApi {
     }
 
     public String remove(String jobId) {
-        return handleResult(client.remove(getXxlJobId(jobId)));
+        String res = handleResult(client.remove(getXxlJobId(jobId)));
+        jobRel.logicDeleteByJobId(jobId);
+        return res;
     }
 
     public String start(String jobId) {
@@ -92,11 +103,12 @@ public class JobClientApi {
     }
 
     private int getXxlJobId(String jobId) {
-        if (StringUtils.isEmpty(jobId)) {
+        JobRelBean jobRelBean = jobRel.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("xxljob not exist"));
+        if (StringUtils.isEmpty(jobRelBean.getDistJobId())) {
             throw new DatabridgeException("invalid xxl job id");
         }
 
-        return Integer.parseInt(jobId.split("-")[0]);
+        return Integer.parseInt(jobRelBean.getDistJobId());
     }
 
     private String handleResult(ReturnT<String> returnT) {
@@ -108,14 +120,13 @@ public class JobClientApi {
     }
 
     private XxlJobInfo getJobInfo(String jobId) {
-        String jobDesc = jobId.split("-")[1];
         int xxlJobId = getXxlJobId(jobId);
 
         Map<String, Object> jobMap = client.pageList(PageQueryParam.builder()
                 .start(0)
                 .length(PAGE_SIZE)
                 .jobGroup(1)
-                .jobDesc(jobDesc)
+                .jobDesc(jobId)  //databridge上的jobId对应xxljob上的jobDesc
                 .triggerStatus(-1)
                 .build());
 
@@ -130,7 +141,7 @@ public class JobClientApi {
         return matchJobList.get(0);
     }
 
-    public String genJobId(Integer id, String jobDesc) {
-        return String.format("%d-%s", id, jobDesc);
-    }
+//    public String genJobId(Integer id, String jobDesc) {
+//        return String.format("%d-%s", id, jobDesc);
+//    }
 }

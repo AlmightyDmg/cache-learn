@@ -5,12 +5,16 @@ import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTimin
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTiming.TIMING_TYPE_MINUTE;
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerTiming.TIMING_TYPE_ORIGIN;
 import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerType.CRON;
+import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerType.NORMAL;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_CRONTAB;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_DELTA;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_MINUTE;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_ORIGIN;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncCycle.SYNC_CYCLE_STOP;
 import static com.haizhi.databridge.constants.DataSourceConstants.TaskType.IMPORT;
+import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_ERROR;
+import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_IDLE;
+import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_SYNCING;
 import static com.haizhi.databridge.service.impl.DataSourceServiceImpl.encodeConnectId;
 import static com.haizhi.databridge.service.impl.DataTableServiceImpl.getSchemafromRef;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -729,9 +733,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 		String status = "";
 		switch (jobStateForm.getJobStatus()) {
-			case 0: status = "inserting"; break;
-			case 1: status = "error"; break;
-			case 2: status = "idle"; break;
+			case 0: status = IMPORT_STATUS_SYNCING; break;
+			case 1: status = IMPORT_STATUS_ERROR; break;
+			case 2: status = IMPORT_STATUS_IDLE; break;
 			default: break;
 		}
 
@@ -759,7 +763,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		String status = "";
 		switch (form.getTableStatus()) {
 			case 0:
-				status = "syncing";
+				status = "inserting";
 				break;
 			case 1:
 				status = "error";
@@ -777,8 +781,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			syncConfig.setOutputRef(outputRef);
 		}
 
-		if (syncConfig.getIncrease() != null) {
-			syncConfig.getIncrease().getMaximum().getStart().setValue(form.getStartLocation());
+		if (syncConfig.getIncrease() != null && "maximum".equalsIgnoreCase(syncConfig.getIncrease().getType())) {
+			syncConfig.getIncrease().getMaximum().getStart().setValue(form.getIncreateValue());
 		}
 
 		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
@@ -811,12 +815,10 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		DataTransJobParam dataTransJobParam = new DataTransJobParam();
 		dataTransJobParam.setJobId(schedulerId);
 		dataTransJobParam.setJobType(IMPORT);
-		try {
-			jobClientApi.add(cronExpr, CRON, dataTransJobParam);
-			jobClientApi.start(schedulerId);
-		}  catch (Exception e) {
-			e.printStackTrace();
-		}
+
+		String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
+		jobClientApi.add(schedulerId, cronExpr, cronType, dataTransJobParam);
+		jobClientApi.start(schedulerId);
 	}
 
 	private void updateScheduler(DataSchedulerForm.ChangeBaseForm changeBaseForm, TSchedulerBean tSchedulerBean)

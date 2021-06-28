@@ -37,9 +37,6 @@ public class JobUnitStateForm {
     @Field("jobType")
     private String jobType;
 
-    @Field("startLocation")
-    private String startLocation;
-
     @Field("userId")
     private String userId;
 
