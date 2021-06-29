@@ -34,6 +34,10 @@ public final class DataSourceObjDto {
 		private String endpoint;
 		private String pwd;
 		private Integer port;
+
+
+		@JsonProperty("pg_database")
+		private String pgDatabase;
 	}
 
 	@Data

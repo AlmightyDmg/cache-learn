@@ -77,16 +77,17 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		}
 
 		String connStr = GzipUtils.uncompress2Str(dataSourceCreateForm.getConnectId(), "+-");
-		DataSourceObjDto.SetUp setup = JsonUtils.toObject(connStr, DataSourceObjDto.SetUp.class);
+//		DataSourceObjDto.SetUp setup = JsonUtils.toObject(connStr, DataSourceObjDto.SetUp.class);
 		// 前传过来的密码是明文，只不过用base64压缩了而已
-		setup.setPwd(CrypterUtils.encryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
+//		setup.setPwd(CrypterUtils.encryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
+		Map<String, Object> setup = encryptConn(connStr);
 		DataSourceObjDto.Options options = new DataSourceObjDto.Options();
 //		DataSourceObjDto.Output output = new DataSourceObjDto.Output();
 		options.setFieldComments(dataSourceCreateForm.getFieldComments());
 		options.setTableComments(dataSourceCreateForm.getTableComments());
 
 		TDataBaseSourceBean dbBean = new TDataBaseSourceBean();
-		dbBean.setDbType(setup.getType());
+		dbBean.setDbType((String) setup.get("type"));
 		dbBean.setDsName(dataSourceCreateForm.getDsName());
 		dbBean.setRemark(dataSourceCreateForm.getRemark());
 		dbBean.setOptions(JsonUtils.toJson(options));
@@ -102,6 +103,17 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		// TODO 流式数据还没写呢
 
 	}
+
+	public Map<String, Object> encryptConn(String josnConn) throws IOException {
+		Map<String, Object> setup = (Map<String, Object>) JsonUtils.toObject(josnConn, Map.class);
+		if (ObjectUtils.isEmpty(setup.get("pwd"))) {
+			setup.put("pwd", CrypterUtils.encryptData((String) setup.get("pwd"), DataSourceConstants.DataBaseCrypterKey.KEY));
+		}
+		return setup;
+	}
+
+
+
 	/**
 	 * @Description //数据源删除接口
 	 * @Date 2021/6/2 4:10 下午
@@ -271,13 +283,14 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		List<DataBaseSourceVo.DataSourceVo> dataSourceVos = new ArrayList<>();
 		Map<String, Integer> dbId2TableNumMap = tableServiceImpl.getDbId2TablesNumMap(owner, dbIds);
 		for (TDataBaseSourceBean dataBaseSourceBean: dataBaseSourceBeans) {
-			DataSourceObjDto.SetUp setUp = JsonUtils.toObject(dataBaseSourceBean.getSetup(), DataSourceObjDto.SetUp.class);
-			setUp.setPwd(CrypterUtils.decryptData(setUp.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
+//			DataSourceObjDto.SetUp setUp = JsonUtils.toObject(dataBaseSourceBean.getSetup(), DataSourceObjDto.SetUp.class);
+//			setUp.setPwd(CrypterUtils.decryptData(setUp.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
+			Map<String, Object> setUp = decryptConn(dataBaseSourceBean.getSetup());
 			DataSourceObjDto.Options options = JsonUtils.toObject(dataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
 			dataSourceVos.add(DataBaseSourceVo.DataSourceVo.builder()
 					.connectId(encodeConnectId(JsonUtils.toJson(setUp)))
-					.connector(String.format("%s@%s", setUp.getUid(),
-							!ObjectUtils.isEmpty(setUp.getConnStr()) ? setUp.getConnStr() : setUp.getServer()))
+					.connector(String.format("%s@%s", setUp.get("uuid"),
+							!ObjectUtils.isEmpty(setUp.get("connStr")) ? setUp.get("connStr") : setUp.get("server")))
 					.dbId(dataBaseSourceBean.getDbId())
 					.dbType(dataBaseSourceBean.getDbType())
 					.dsName(dataBaseSourceBean.getDsName())
@@ -287,6 +300,15 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 					.build());
 		}
 		return dataSourceVos;
+	}
+
+	public Map<String, Object> decryptConn(String josnConn) throws IOException {
+		Map<String, Object> setUp = (Map<String, Object>) JsonUtils.toObject(josnConn, Map.class);
+		if (!ObjectUtils.isEmpty(setUp.get("pwd"))) {
+			setUp.put("pwd", CrypterUtils.decryptData((String) setUp.get("pwd"), DataSourceConstants.DataBaseCrypterKey.KEY));
+		}
+		return setUp;
+
 	}
 
 	public static String encodeConnectId(String s) throws UnsupportedEncodingException {
