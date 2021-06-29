@@ -74,6 +74,9 @@ public class DataSchedulerForm {
         private String userId;
         @JsonProperty("scheduler_id")
         private String schedulerId;
+        private List<String> tables;
+        private Integer full;
+
     }
 
     @Data
