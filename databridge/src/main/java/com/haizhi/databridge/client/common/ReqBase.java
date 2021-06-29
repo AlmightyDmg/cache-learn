@@ -2,6 +2,7 @@ package com.haizhi.databridge.client.common;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.experimental.SuperBuilder;
 import org.slf4j.MDC;
@@ -12,12 +13,15 @@ import retrofit2.http.Query;
 public class ReqBase {
 
 	@Query("trace_id")
+	@JsonProperty("trace_id")
 	private String traceId;
 
 	@Query("dmc_request")
+	@JsonProperty("dmc_request")
 	private Integer dmcRequest;
 
 	@Query("session_id")
+	@JsonProperty("session_id")
 	private String sessionId;
 
 	public String getTraceId() {
