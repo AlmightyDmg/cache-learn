@@ -112,6 +112,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		tTableBean.setOwner(userId);
 		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
 		tTableBean.setRemark(createBaseForm.getRemark());
+		tTableBean.setStatus(DataSourceConstants.DataTableStatus.STATUS_NEW);
 		tTableRepo.save(tTableBean);
 
 		return DataTableVo.CreateVo.builder()
