@@ -2,6 +2,7 @@ package com.haizhi.databridge.client.overlord.request;
 
 import javax.validation.constraints.NotBlank;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -17,8 +18,10 @@ import com.haizhi.databridge.client.overlord.dto.OverlordReqBase;
 public class GroupInfosReq extends OverlordReqBase {
 	@NotBlank
 	@Field("user_id")
+	@JsonProperty("user_id")
 	private String userId;
 	@Field("group_id_list")
+	@JsonProperty("group_id_list")
 	private String groupIdList;
 
 }

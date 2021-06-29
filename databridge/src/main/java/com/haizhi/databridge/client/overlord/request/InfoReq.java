@@ -2,6 +2,7 @@ package com.haizhi.databridge.client.overlord.request;
 
 import javax.validation.constraints.NotBlank;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder.Default;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -19,12 +20,15 @@ import com.haizhi.databridge.client.overlord.dto.OverlordReqBase;
 public class InfoReq extends OverlordReqBase {
 	@NotBlank
 	@Field("user_id")
+	@JsonProperty("user_id")
 	private String userId;
 	@Default
 	@Field("sub_id")
+	@JsonProperty("sub_id")
 	private String subId = "";
 	@Default
 	@Field("details")
+	@JsonProperty("details")
 	private Integer details = 0;
 
 }
