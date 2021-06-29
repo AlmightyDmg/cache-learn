@@ -4,7 +4,6 @@ import java.util.List;
 
 import javax.validation.Valid;
 
-import com.github.lianjiatech.retrofit.spring.boot.annotation.RetrofitClient;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.POST;
 import retrofit2.http.QueryBean;
@@ -15,7 +14,7 @@ import com.haizhi.databridge.client.behemoth.response.BehemothResult;
 import com.haizhi.databridge.client.behemoth.response.ChatListResp;
 import com.haizhi.databridge.client.behemoth.response.RoleListResp;
 
-@RetrofitClient(baseUrl = "${localdmc.behemoth.url}")
+//@RetrofitClient(baseUrl = "${localdmc.behemoth.url}")
 public interface BehemothClient {
 
 	@POST("api/role/list")

@@ -2,7 +2,6 @@
 package com.haizhi.databridge.client.overlord;
 
 
-import com.github.lianjiatech.retrofit.spring.boot.annotation.RetrofitClient;
 import com.haizhi.databridge.client.overlord.dto.OverlordResult;
 import com.haizhi.databridge.client.overlord.request.GroupInfosReq;
 import com.haizhi.databridge.client.overlord.request.InfoReq;
@@ -18,7 +17,7 @@ import java.util.List;
 
 import javax.validation.Valid;
 
-@RetrofitClient(baseUrl = "${localdmc.overlord.url}")
+//@RetrofitClient(baseUrl = "${localdmc.overlord.url}")
 public interface OverlordClient {
 	@POST("api/account/info")
 	@FormUrlEncoded

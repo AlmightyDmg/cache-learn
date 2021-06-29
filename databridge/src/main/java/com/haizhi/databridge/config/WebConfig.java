@@ -21,10 +21,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import com.haizhi.databridge.client.behemoth.BehemothClient;
+import com.haizhi.databridge.client.overlord.OverlordClient;
 import com.haizhi.databridge.client.xxljob.interceptor.XxlLoginInterceptor;
 import com.haizhi.databridge.web.formatter.UserGenericConverter;
 import com.haizhi.databridge.web.interceptor.CommonDataInterceptor;
 import com.haizhi.databridge.web.interceptor.RequestLogInterceptor;
+import com.haizhi.dataclient.connection.dmc.client.DmcClientUtils;
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
 import com.haizhi.dataclient.datapi.dmc.DmcApiFactory;
 import com.haizhi.dataclient.datapi.dmc.DmcTableApi;
@@ -113,5 +116,15 @@ public class WebConfig implements WebMvcConfigurer {
 				.pentagonProp(localDsProp.getPentagon())
 				.tassadarProp(localDsProp.getTassadar())
 				.build());
+	}
+
+	@Bean
+	public BehemothClient behemothClient(DmcClientProperties dmcClientProperties) {
+		return DmcClientUtils.createClient("behemoth", dmcClientProperties.getBehemoth(), BehemothClient.class);
+	}
+
+	@Bean
+	public OverlordClient overlordClient(DmcClientProperties dmcClientProperties) {
+		return DmcClientUtils.createClient("overlord", dmcClientProperties.getOverlord(), OverlordClient.class);
 	}
 }
