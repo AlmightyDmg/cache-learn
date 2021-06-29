@@ -1,12 +1,9 @@
 server:
-  port: 8088
+  port: 22783
 
 spring:
   application:
     name: databridge
-  profiles:
-    active:
-      - '@profile.active@'
   datasource:
     primary:
       driver-class-name: com.mysql.cj.jdbc.Driver
@@ -29,7 +26,7 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
-#    property-naming-strategy: SNAKE_CASE
+    #    property-naming-strategy: SNAKE_CASE
     deserialization:
       fail-on-unknown-properties: false
   aop:
@@ -71,30 +68,30 @@ localdmc:
     "fs.hdfs.impl.disable.cache": "true"
     "fs.hdfs.impl": "org.apache.hadoop.hdfs.DistributedFileSystem"
   mobius:
-    url: http://123.126.105.37:4567
+    url: http://10.0.0.108:6066
     connect_timeout_ms: 20000
     call_timeout_ms: 600000
     read_timeout_ms: 600000
     logging: false
   overlord:
-    url: http://123.126.105.108:33006
+    url: http://10.0.0.108:22881
     connect-timeout-ms: 10000
     logging: false
   behemoth:
-    url: http://123.126.105.108:33008
+    url: http://10.0.0.108:22184
     connect-timeout-ms: 10000
     logging: false
   pentagon:
-    url: http://123.126.105.108:34004
+    url: http://10.0.0.108:22281
     connect-timeout-ms: 10000
     logging: false
   noah:
-    url: http://123.126.105.108:33013
+    url: http://10.0.0.108:22183
     connect-timeout-ms: 10000
     logging: false
   tassadar:
-    url: http://123.126.105.108:33001
-    connect-timeout-ms: 10000
+    url: http://10.0.0.108:22481
+    connect-timeout-ms: 20000
     logging: false
 
 logging:
@@ -120,3 +117,4 @@ logging:
     org.hibernate.engine.query.HQLQueryPlan: INFO
     org.apache.catalina: ERROR
     com.zaxxer.hikari: ERROR
+    com.xxl.job: INFO

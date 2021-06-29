@@ -278,8 +278,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				.query(buildQueryVo(listForm.getKeyword(), listForm.getLimit(), listForm.getPage()))
 				.schedulers(queryScheduler.stream().map(TSchedulerBean::getSchedulerId)
 						.map(schedulerVoMap::get).collect(Collectors.toList()))
-				.status(DataSchedulerVo.StatusVo.builder().total(total).build())
-				.totalitems(total).build();
+				.status(DataSchedulerVo.StatusVo.builder().total(total).build()).totalitems(total).build();
 	}
 
 	public List<TSchedulerBean> sortSchedulerBean(List<TSchedulerBean> schedulerBeans) {
@@ -561,8 +560,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 					.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
 							.operator(">=").enable(from == null ? 0 : 1).value(localtime2Str(from)).build())
 					.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
-							.operator("<").enable(to == null ? 0 : 1).value(localtime2Str(to)).build())
-					.build();
+							.operator("<").enable(to == null ? 0 : 1).value(localtime2Str(to)).build()).build();
 		}
 
 		if (StringUtils.isEmpty(syncCondition.getEnd().getValue())) {
@@ -666,20 +664,15 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 						.sync(DataTransJobVo.Sync.builder().type(syncConfig.getModel()).fetchSize(syncConfig.getRows())
 								.syncCondition(syncCondition).build())
 						.filter(filter)
-						.tableId(tableBean.getTableId())
-						.tableName(tableBean.getTbName())
+						.tableId(tableBean.getTableId()).tableName(tableBean.getTbName())
 						.build())
 				.writer(DataTransJobVo.Writer.builder()
-						.columns(columns).tableId(toTableId).tablePath(toTablePath)
-						.tableName(tableBean.getTbName())
+						.columns(columns).tableId(toTableId).tablePath(toTablePath).tableName(tableBean.getTbName())
 						.build())
 				.toSink(toSink)
 				.fromSink(DataTransJobVo.Sink.builder()
-						.url(setup.getServer() + ":" + setup.getPort())
-						.username(setup.getUid()).password(pwd)
-						.type(dbBean.getDbType())
-						.catalog(Objects.requireNonNull(schemaList).get(0))
-						.build())
+						.url(setup.getServer() + ":" + setup.getPort()).username(setup.getUid()).password(pwd)
+						.type(dbBean.getDbType()).catalog(Objects.requireNonNull(schemaList).get(0)).build())
 				.build();
 	}
 
