@@ -1,6 +1,10 @@
 server:
   port: 8081
 
+spring:
+  application:
+    name: dataio
+
 xxl:
   job:
     accessToken:
@@ -13,9 +17,6 @@ xxl:
       logpath: log/jobhandler
       logretentiondays: 30
       port: 9999
-
-logging:
-  config: classpath:logback.xml
 
 databridge:
   url: http://127.0.0.1:8088
@@ -48,3 +49,4 @@ logging:
     org.hibernate.engine.query.HQLQueryPlan: INFO
     org.apache.catalina: ERROR
     com.zaxxer.hikari: ERROR
+
