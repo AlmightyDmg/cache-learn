@@ -10,8 +10,7 @@ import javax.validation.Valid;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import retrofit2.http.Field;
-import retrofit2.http.Query;
+import lombok.extern.slf4j.Slf4j;
 import retrofit2.http.QueryBean;
 
 import com.haizhi.dataclient.connection.dmc.DmcConnection;
@@ -46,6 +45,7 @@ import com.haizhi.dataclient.utils.JsonUtils;
  */
 @Data
 @NoArgsConstructor
+@Slf4j
 public class DmcTableApi extends DataApi<DmcConnection> {
 
     public static Map<Integer, String> fieldTypeMap = new HashMap<>();
@@ -129,6 +129,7 @@ public class DmcTableApi extends DataApi<DmcConnection> {
     }
 
     public TassadarResult<MergeTbResp> mergeTb(String tableId, String userId) {
+        log.info(String.format("/tb/commit, tableId: %s, userId: %s", tableId, userId));
         MergeTbFileReq request = MergeTbFileReq.builder().tbId(tableId).userId(userId).forceMerge(1).build();
         return getDataConnection().getTassadarClient().mergeTb(request);
     }
@@ -138,11 +139,14 @@ public class DmcTableApi extends DataApi<DmcConnection> {
     }
 
     public DmcReader getDmcReader(GetReaderReq getReaderReq) {
+        log.info(String.format("/getDmcReader, jobId: %s, storageId: %s, tmpSql: %s, maxSql: %s", getReaderReq.getJobId(),
+                getReaderReq.getStorageId(), getReaderReq.getTmpSql(), getReaderReq.getMaxSql()));
         return JsonUtils.toObject(getDataConnection().getMobiusClient().getDmcReader(getReaderReq).getResult(), DmcReader.class);
     }
 
     public DmcWriter getDmcWriter(GetWriterReq getWriterReq) {
-
+        log.info(String.format("/getDmcWriter, jobId: %s, storageId: %s, columns: %s", getWriterReq.getJobId(),
+                getWriterReq.getStorageId(), JsonUtils.toJson(getWriterReq.getColumn())));
         return JsonUtils.toObject(getDataConnection().getMobiusClient().getDmcWriter(getWriterReq).getResult(), DmcWriter.class);
     }
 

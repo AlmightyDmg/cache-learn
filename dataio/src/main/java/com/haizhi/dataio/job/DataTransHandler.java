@@ -73,6 +73,7 @@ public class DataTransHandler {
         try {
             DataTransJobDetail jobDetail = getJobDetail(jobParam);
             if (useFlink(jobDetail)) {
+                logger.info(String.format("jobid: %s, dbtype: %s, use flink to sync", jobParam.getJobId(), jobParam.getJobType()));
                 flinkAction.doAction(jobDetail);
             } else {
                 if (jobDetail.getSyncUnits().isEmpty()) {
@@ -83,6 +84,7 @@ public class DataTransHandler {
                 // 使用旧的逻辑处理导入导出
                 if ("import".equals(jobParam.getJobType())) {
                     // old import
+                    logger.info(String.format("jobid: %s, dbtype: %s, use noah to import", jobParam.getJobId(), jobParam.getJobType()));
                     importAction.doAction(OldDtsParam.builder()
                             .jobId(jobParam.getJobId())
                             .jobType(jobParam.getJobType())
@@ -92,6 +94,7 @@ public class DataTransHandler {
                             .endpoint(jobDetail.getSyncUnits().get(0).getToSink().getUrl()).build());
                 } else if ("export".equals(jobParam.getJobType())) {
                     // old export
+                    logger.info(String.format("jobid: %s, dbtype: %s, use pentagon to export", jobParam.getJobId(), jobParam.getJobType()));
                     exportAction.doAction(OldDtsParam.builder()
                             .jobId(jobParam.getJobId())
                             .endpoint(jobDetail.getSyncUnits().get(0).getFromSink().getUrl()).build());
