@@ -1021,6 +1021,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		jobClientApi.trigger(triggerForm.getSchedulerId(),
 				DataTransJobParam.builder()
 						.jobId(triggerForm.getSchedulerId())
+						.readerTables(triggerForm.getTables())
+						.full(triggerForm.getFull())
 						.jobType(IMPORT)
 						.build());
 	}
