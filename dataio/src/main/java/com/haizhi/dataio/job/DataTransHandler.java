@@ -47,7 +47,7 @@ public class DataTransHandler {
             return detail;
         } else {
             detail.getSyncUnits().removeIf(syncUnit ->
-                    !jobParam.getReaderTables().contains(syncUnit.getReader().getTableName()));
+                    !jobParam.getReaderTables().contains(syncUnit.getReader().getTableId()));
             return detail;
         }
     }
