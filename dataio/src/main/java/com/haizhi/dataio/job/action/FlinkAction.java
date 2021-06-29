@@ -125,6 +125,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         // 更新同步任务的状态
         startTime.set(new Date().getTime());
         JobExecCountDto jobExecCountDto = new JobExecCountDto();
+        log.info(String.format("jobid: %s, begin to sync", info.getJobId()));
         databridgeClient.updateJobStatus(JobStateForm.builder().jobId(info.getJobId()).jobType(info.getJobType())
                 .jobStatus(0).startTime(startTime.get()).endTime(null)
                 .allCount(jobExecCountDto.getAllCount())
@@ -139,6 +140,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     @Override
     protected void end(DataTransJobDetail info, boolean success) {
         JobExecCountDto jobExecCountDto = new JobExecCountDto();
+        log.info(String.format("jobid: %s, end to sync", info.getJobId()));
         if (countRes.get() != null) {
             countRes.get().forEach((key, value) -> {
                 jobExecCountDto.setAllCount(jobExecCountDto.getAllCount() + value.getAllCount());
@@ -178,6 +180,9 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             log.error(String.format("flink not support from %s to %s", fromDbType, toDbType));
             return;
         }
+
+        log.info(String.format("jobid: %s, begin from %s to %s",
+                unit.getJobId(), unit.getReader().getTableName(), unit.getWriter().getTableName()));
 
         unitStartTime.set(Optional.ofNullable(unitStartTime.get()).orElse(new HashMap<>()));
         unitStartTime.get().put(unit.getReader().getTableName(), new Date().getTime());
@@ -290,6 +295,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
 
     @Override
     protected String execute(FlinkActionParam unit) {
+        log.info(String.format("jobid: %s, exec from %s to %s",
+                unit.getJobId(), unit.getReader().getTableName(), unit.getWriter().getTableName()));
         String taskId = unit.getTaskId();
         try {
             // 同步操作
@@ -446,6 +453,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     @Override
     protected void afterExec(FlinkActionParam unit, boolean success) {
         // 同步表状态
+        log.info(String.format("jobid: %s, after from %s to %s",
+                unit.getJobId(), unit.getReader().getTableName(), unit.getWriter().getTableName()));
         if ("dmc".equalsIgnoreCase(unit.getToSink().getType())) {
             DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
 
