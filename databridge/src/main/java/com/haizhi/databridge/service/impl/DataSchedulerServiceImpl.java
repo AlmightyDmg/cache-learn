@@ -17,7 +17,6 @@ import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_NEW;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_SYNCING;
 import static com.haizhi.databridge.service.impl.DataSourceServiceImpl.encodeConnectId;
-import static com.haizhi.databridge.service.impl.DataTableServiceImpl.getSchemafromRef;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
@@ -72,6 +71,7 @@ import com.haizhi.databridge.repository.importdata.TSchedulerRepository;
 import com.haizhi.databridge.repository.importdata.TTableRepository;
 import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSchedulerService;
+import com.haizhi.databridge.util.Base64Utils;
 import com.haizhi.databridge.util.CrypterUtils;
 import com.haizhi.databridge.util.IdUtils;
 import com.haizhi.databridge.util.JsonUtils;
@@ -567,7 +567,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 		if (StringUtils.isEmpty(syncCondition.getEnd().getValue())) {
 			DmcTableApi dmcTableApi = SpringUtils.getBean(DmcTableApi.class);
-			List<String> schema = getSchemafromRef(syncConfig.getRef());
+			List<String> schema = JsonUtils.toList(new String(Base64Utils.decodeBase64(syncConfig.getRef()), "UTF-8"),
+					String.class);
 			String sql = String.format("select max(%s) from %s.%s", syncCondition.getField(), schema.get(0), schema.get(2));
 			String value = dmcTableApi.getTableDataQuery(connectId, sql, userId).getResult().getData().get(0).get(0);
 			syncCondition.getEnd().setValue(value);
@@ -652,7 +653,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 		List<String> schemaList = new ArrayList<>();
 		try {
-			schemaList = getSchemafromRef(syncConfig.getRef());
+			schemaList = JsonUtils.toList(new String(Base64Utils.decodeBase64(syncConfig.getRef()), "UTF-8"),
+					String.class);
 		} catch (UnsupportedEncodingException e) {
 			log.error(e);
 		}

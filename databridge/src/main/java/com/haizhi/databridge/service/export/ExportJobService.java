@@ -294,12 +294,12 @@ public class ExportJobService extends RequestCommonData {
 				getExecuteMode(form.getSchedulerConf().getMode()),
 				DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
 
-		// 创建完默认执行一次
-		jobClientApi.trigger(jobId, DataTransJobParam.builder().jobId(jobId).jobType(EXPORT).build());
-
 		if (!StringUtils.isEmpty(form.getSchedulerConf().getSyncConfig())) {
 			jobClientApi.start(jobId);
 		}
+
+		// 创建完默认执行一次
+		jobClientApi.trigger(jobId, DataTransJobParam.builder().jobId(jobId).jobType(EXPORT).build());
 	}
 
 	private String getXtbId(ExportJobForm.ExportJobCreateForm form) {

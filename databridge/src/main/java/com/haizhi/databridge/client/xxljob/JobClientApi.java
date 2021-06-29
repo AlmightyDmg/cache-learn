@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,6 @@ import com.haizhi.databridge.constants.DatabridgeConstant;
 import com.haizhi.databridge.constants.DatabridgeConstants;
 import com.haizhi.databridge.exception.DatabridgeException;
 import com.haizhi.databridge.repository.importdata.SkdJobRelRepository;
-import com.haizhi.databridge.util.IdUtils;
 import com.haizhi.databridge.util.JsonUtils;
 
 /**
@@ -27,6 +27,7 @@ import com.haizhi.databridge.util.JsonUtils;
  * @createTime 2021年05月21日 18:11:49
  */
 @Component
+@Slf4j
 public class JobClientApi {
     private static final String DATA_FIELD = "data";
     private static final int SUCCESS_CODE = 200;
@@ -46,9 +47,8 @@ public class JobClientApi {
      * @return
      */
     public String add(String jobId, String cronExpr, String scheduleType, DataTransJobParam dataTransJobParam) {
-        String jobDesc = IdUtils.genKey("databridge");
         ReturnT<String> result = client.add(XxlJobInfo.builder()
-                .jobDesc(jobDesc)
+                .jobDesc(jobId)
                 .author(MDC.get(DatabridgeConstant.USER_ID))
                 .scheduleType(scheduleType)
                 .scheduleConf(cronExpr)
@@ -119,6 +119,7 @@ public class JobClientApi {
         if (returnT.getCode() == SUCCESS_CODE) {
             return returnT.getContent();
         } else {
+            log.error(returnT.getMsg());
             throw new DatabridgeException(String.format("call xxl-job create job error: .", returnT.getMsg()));
         }
     }

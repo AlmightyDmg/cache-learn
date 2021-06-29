@@ -19,7 +19,7 @@ spring:
       username: haizhioffdb
       password: b@30QpqPkh
   jpa:
-    show-sql: true
+    show-sql: false
     hibernate:
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
@@ -96,3 +96,27 @@ localdmc:
     url: http://123.126.105.108:33001
     connect-timeout-ms: 10000
     logging: false
+
+logging:
+  pattern:
+    console: ${CONSOLE_LOG_PATTERN:%clr(%d{${LOG_DATEFORMAT_PATTERN:yyyy-MM-dd HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:%5p}) %clr(${PID:- }){magenta} [${spring.application.name}] %clr([%10.10t]){faint}[%36.36X{trace_id}] %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}}
+    file: '${FILE_LOG_PATTERN:%d{${LOG_DATEFORMAT_PATTERN:yyyy-MM-dd HH:mm:ss.SSS}} ${LOG_LEVEL_PATTERN:%5p} ${PID:- } [${spring.application.name}] [%10.10t][%36.36X{trace_id}] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}}'
+  file:
+    name: logs/${spring.application.name}.log
+  level:
+    com.haizhi: INFO
+    com.haizhi.common.jdbc.repository.mapping.EntityTypeContext: INFO
+    org.springframework.web: ERROR
+    org.springframework.orm: ERROR
+    org.springframework.scheduling: ERROR
+    org.springframework.data: DEBUG
+    org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport: ERROR
+    org.springframework.context: ERROR
+    org.hibernate: ERROR
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.type.descriptor.sql.BasicExtractor: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.engine.QueryParameters: INFO
+    org.hibernate.engine.query.HQLQueryPlan: INFO
+    org.apache.catalina: ERROR
+    com.zaxxer.hikari: ERROR
