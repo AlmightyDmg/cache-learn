@@ -139,7 +139,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     @Override
     protected void end(DataTransJobDetail info, boolean success) {
         JobExecCountDto jobExecCountDto = new JobExecCountDto();
-        if (countRes.get()!=null) {
+        if (countRes.get() != null) {
             countRes.get().forEach((key, value) -> {
                 jobExecCountDto.setAllCount(jobExecCountDto.getAllCount() + value.getAllCount());
                 jobExecCountDto.setDeleteCount(jobExecCountDto.getDeleteCount() + value.getDeleteCount());
@@ -341,7 +341,10 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 reader = dmcReader.getReader();
             }
 
-            taskId = flinkxClient.startJob(JsonUtils.toJson(reader), JsonUtils.toJson(writer)).getResult().getJobId();
+            String readerStr = JsonUtils.toJson(reader);
+            String writerStr = JsonUtils.toJson(writer);
+            log.info(String.format("jobid : %s; reader: %s, writer: %s", unit.getJobId(), readerStr, writerStr));
+            taskId = flinkxClient.startJob(readerStr, writerStr).getResult().getJobId();
 
             unit.setTaskId(taskId);
             // 更新task
