@@ -17,7 +17,6 @@ import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_NEW;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_SYNCING;
 import static com.haizhi.databridge.service.impl.DataSourceServiceImpl.encodeConnectId;
-import static com.haizhi.databridge.service.impl.DataTableServiceImpl.getSchemafromRef;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
@@ -71,6 +70,7 @@ import com.haizhi.databridge.repository.importdata.TSchedulerRepository;
 import com.haizhi.databridge.repository.importdata.TTableRepository;
 import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSchedulerService;
+import com.haizhi.databridge.util.Base64Utils;
 import com.haizhi.databridge.util.CrypterUtils;
 import com.haizhi.databridge.util.IdUtils;
 import com.haizhi.databridge.util.JsonUtils;
@@ -277,8 +277,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				.query(buildQueryVo(listForm.getKeyword(), listForm.getLimit(), listForm.getPage()))
 				.schedulers(queryScheduler.stream().map(TSchedulerBean::getSchedulerId)
 						.map(schedulerVoMap::get).collect(Collectors.toList()))
-				.status(DataSchedulerVo.StatusVo.builder().total(total).build())
-				.totalitems(total).build();
+				.status(DataSchedulerVo.StatusVo.builder().total(total).build()).totalitems(total).build();
 	}
 
 	public List<TSchedulerBean> sortSchedulerBean(List<TSchedulerBean> schedulerBeans) {
@@ -564,13 +563,13 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 					.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
 							.operator(">=").enable(from == null ? 0 : 1).value(localtime2Str(from)).build())
 					.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
-							.operator("<").enable(to == null ? 0 : 1).value(localtime2Str(to)).build())
-					.build();
+							.operator("<").enable(to == null ? 0 : 1).value(localtime2Str(to)).build()).build();
 		}
 
 		if (StringUtils.isEmpty(syncCondition.getEnd().getValue())) {
 			DmcTableApi dmcTableApi = SpringUtils.getBean(DmcTableApi.class);
-			List<String> schema = getSchemafromRef(syncConfig.getRef());
+			List<String> schema = JsonUtils.toList(new String(Base64Utils.decodeBase64(syncConfig.getRef()), "UTF-8"),
+					String.class);
 			String sql = String.format("select max(%s) from %s.%s", syncCondition.getField(), schema.get(0), schema.get(2));
 			String value = dmcTableApi.getTableDataQuery(connectId, sql, userId).getResult().getData().get(0).get(0);
 			syncCondition.getEnd().setValue(value);
@@ -655,7 +654,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 		List<String> schemaList = new ArrayList<>();
 		try {
-			schemaList = getSchemafromRef(syncConfig.getRef());
+			schemaList = JsonUtils.toList(new String(Base64Utils.decodeBase64(syncConfig.getRef()), "UTF-8"),
+					String.class);
 		} catch (UnsupportedEncodingException e) {
 			log.error(e);
 		}
@@ -667,20 +667,15 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 						.sync(DataTransJobVo.Sync.builder().type(syncConfig.getModel()).fetchSize(syncConfig.getRows())
 								.syncCondition(syncCondition).build())
 						.filter(filter)
-						.tableId(tableBean.getTableId())
-						.tableName(tableBean.getTbName())
+						.tableId(tableBean.getTableId()).tableName(tableBean.getTbName())
 						.build())
 				.writer(DataTransJobVo.Writer.builder()
-						.columns(columns).tableId(toTableId).tablePath(toTablePath)
-						.tableName(tableBean.getTbName())
+						.columns(columns).tableId(toTableId).tablePath(toTablePath).tableName(tableBean.getTbName())
 						.build())
 				.toSink(toSink)
 				.fromSink(DataTransJobVo.Sink.builder()
-						.url(setup.getServer() + ":" + setup.getPort())
-						.username(setup.getUid()).password(pwd)
-						.type(dbBean.getDbType())
-						.catalog(Objects.requireNonNull(schemaList).get(0))
-						.build())
+						.url(setup.getServer() + ":" + setup.getPort()).username(setup.getUid()).password(pwd)
+						.type(dbBean.getDbType()).catalog(Objects.requireNonNull(schemaList).get(0)).build())
 				.build();
 	}
 
@@ -788,16 +783,12 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		String status = "";
 		switch (form.getTableStatus()) {
 			case 0:
-				status = "inserting";
-				break;
+				status = "inserting"; break;
 			case 1:
-				status = "error";
-				break;
+				status = "error"; break;
 			case 2:
-				status = "finished";
-				break;
-			default:
-				break;
+				status = "finished"; break;
+			default: break;
 		}
 		tTableBean.setStatus(status);
 		DataTableDto.SyncConfigDto syncConfig =
@@ -811,6 +802,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 
 		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
+		tTableBean.setPosted(form.getAllCount());
+		tTableBean.setFetched(form.getAllCount());
 
 		tTableRepo.update(tTableBean);
 

@@ -139,14 +139,16 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     @Override
     protected void end(DataTransJobDetail info, boolean success) {
         JobExecCountDto jobExecCountDto = new JobExecCountDto();
-        countRes.get().forEach((key, value) -> {
-            jobExecCountDto.setAllCount(jobExecCountDto.getAllCount() + value.getAllCount());
-            jobExecCountDto.setDeleteCount(jobExecCountDto.getDeleteCount() + value.getDeleteCount());
-            jobExecCountDto.setAppendCount(jobExecCountDto.getAppendCount() + value.getAppendCount());
-            jobExecCountDto.setUpdateCount(jobExecCountDto.getUpdateCount() + value.getUpdateCount());
-            jobExecCountDto.setFailedCount(jobExecCountDto.getFailedCount() + value.getFailedCount());
-            jobExecCountDto.setFilterCount(jobExecCountDto.getFilterCount() + value.getFilterCount());
-        });
+        if (countRes.get()!=null) {
+            countRes.get().forEach((key, value) -> {
+                jobExecCountDto.setAllCount(jobExecCountDto.getAllCount() + value.getAllCount());
+                jobExecCountDto.setDeleteCount(jobExecCountDto.getDeleteCount() + value.getDeleteCount());
+                jobExecCountDto.setAppendCount(jobExecCountDto.getAppendCount() + value.getAppendCount());
+                jobExecCountDto.setUpdateCount(jobExecCountDto.getUpdateCount() + value.getUpdateCount());
+                jobExecCountDto.setFailedCount(jobExecCountDto.getFailedCount() + value.getFailedCount());
+                jobExecCountDto.setFilterCount(jobExecCountDto.getFilterCount() + value.getFilterCount());
+            });
+        }
         databridgeClient.updateJobStatus(JobStateForm.builder().jobId(info.getJobId()).jobType(info.getJobType())
                 .jobStatus(success ? 2 : 1).startTime(startTime.get()).endTime(new Date().getTime())
                 .allCount(jobExecCountDto.getAllCount())
