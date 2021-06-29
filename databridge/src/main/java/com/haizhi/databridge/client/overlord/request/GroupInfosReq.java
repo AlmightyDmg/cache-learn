@@ -4,18 +4,14 @@ import javax.validation.constraints.NotBlank;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import retrofit2.http.Field;
 
-import com.haizhi.databridge.client.overlord.dto.OverlordReqBase;
-
 @Data
 @SuperBuilder
-@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class GroupInfosReq extends OverlordReqBase {
+public class GroupInfosReq {
 	@NotBlank
 	@Field("user_id")
 	@JsonProperty("user_id")
