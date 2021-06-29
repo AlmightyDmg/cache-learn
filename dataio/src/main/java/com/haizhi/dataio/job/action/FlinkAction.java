@@ -1,3 +1,4 @@
+// CHECKSTYLE:OFF
 package com.haizhi.dataio.job.action;
 
 import java.util.ArrayList;

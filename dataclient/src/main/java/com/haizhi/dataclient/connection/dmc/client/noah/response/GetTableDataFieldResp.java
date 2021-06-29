@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 public class GetTableDataFieldResp {
     private String status;
     private TableDataField result;
+    private String message;
     private String trace_id;
 
     @Data

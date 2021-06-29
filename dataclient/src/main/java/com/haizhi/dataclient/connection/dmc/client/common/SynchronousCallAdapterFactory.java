@@ -98,6 +98,11 @@ public final class SynchronousCallAdapterFactory extends CallAdapter.Factory {
 					if (reason != null && !"".equals(reason)) {
 						break;
 					}
+				} else if ("message".equals(errField.getName())) {
+					reason = (String) errField.get(body);
+					if (reason != null && !"".equals(reason)) {
+						break;
+					}
 				}
 			}
 			throw new SDKException(status, reason);
