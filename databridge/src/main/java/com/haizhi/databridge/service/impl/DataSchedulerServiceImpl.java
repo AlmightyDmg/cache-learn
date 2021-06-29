@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -329,8 +328,12 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 					.startAt(!ObjectUtils.isEmpty(schedulerBean.getStartAt()) ? ft.format(schedulerBean.getStartAt()) : null)
 					.status(schedulerBean.getStatus())
 					.syncCycle(getSyncCycle(schedulerBean.getTiming()))
-					.tables(optionsDto.getTables().stream().map(tableVoMap::get)
-							.sorted(Comparator.comparing(DataTableVo.TableVo::getStartAt)).collect(Collectors.toList()))
+					.tables(optionsDto.getTables().stream()
+							.filter(
+									tableid -> !ObjectUtils.isEmpty(tableVoMap.get(tableid)))
+							.map(tableVoMap::get)
+//							.sorted(Comparator.comparing(DataTableVo.TableVo::getStartAt))
+							.collect(Collectors.toList()))
 					.tbCount(optionsDto.getTables().size())
 					.build()
 				);
