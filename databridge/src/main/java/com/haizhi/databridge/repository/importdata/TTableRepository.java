@@ -65,6 +65,6 @@ public interface TTableRepository extends HaizhiBaseRepository<TTableBean, Strin
 	Optional<List<TTableBean>> findTableBeanByOwnerAndDbIds(String owner, List<String> dbId);
 
 	@Query(value = "select t_table.db_id, count(1) as count  from t_table  WHERE t_table.owner = ?1 and t_table.db_id in (?2) "
-			+ "and t_table.deleted=0", nativeQuery = true)
+			+ "and t_table.deleted=0 group by t_table.db_id", nativeQuery = true)
 	List<Map<String, Object>> countTableNumByDbIdAndOwner(String owner, List<String> dbIds);
 }

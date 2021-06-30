@@ -289,7 +289,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 			DataSourceObjDto.Options options = JsonUtils.toObject(dataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
 			dataSourceVos.add(DataBaseSourceVo.DataSourceVo.builder()
 					.connectId(encodeConnectId(JsonUtils.toJson(setUp)))
-					.connector(String.format("%s@%s", setUp.get("uuid"),
+					.connector(String.format("%s@%s", setUp.get("uid"),
 							!ObjectUtils.isEmpty(setUp.get("connStr")) ? setUp.get("connStr") : setUp.get("server")))
 					.dbId(dataBaseSourceBean.getDbId())
 					.dbType(dataBaseSourceBean.getDbType())
