@@ -85,6 +85,10 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 //		DataSourceObjDto.Output output = new DataSourceObjDto.Output();
 		options.setFieldComments(dataSourceCreateForm.getFieldComments());
 		options.setTableComments(dataSourceCreateForm.getTableComments());
+		options.setRealUser(dataSourceCreateForm.getRealUser());
+		options.setIsDmc(dataSourceCreateForm.getIsDmc());
+		options.setLabels(dataSourceCreateForm.getLabels());
+		options.setDsId(dataSourceCreateForm.getDsId());
 
 		TDataBaseSourceBean dbBean = new TDataBaseSourceBean();
 		dbBean.setDbType((String) setup.get("type"));

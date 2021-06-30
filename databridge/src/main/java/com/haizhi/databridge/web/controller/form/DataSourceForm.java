@@ -16,7 +16,10 @@ public class DataSourceForm {
     public static class DataSourceCreateForm {
         private String connectId;
         private String createTables;
+        @JsonProperty("ds_name")
         private String dsName;
+        @JsonProperty("ds_id")
+        private String dsId;
         private String remark;
         private Integer sourceType;
         // upload table comments to bdp
@@ -27,6 +30,11 @@ public class DataSourceForm {
         private Integer tableComments;
         private String dbId;
         private String owner;
+        @JsonProperty("real_user")
+        private String realUser;
+        @JsonProperty("is_dmc")
+        private Integer isDmc;
+        private Object labels;
 
     }
 
