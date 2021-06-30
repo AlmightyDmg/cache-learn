@@ -7,8 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import com.haizhi.dataio.job.column.Connection;
 import com.haizhi.dataio.job.column.MetaColumn;
+import com.haizhi.dataio.job.column.WriterConnection;
 
 @Data
 @AllArgsConstructor
@@ -19,7 +19,7 @@ public class JdbcWriter {
     String password;
 
     List<MetaColumn> column;
-    List<Connection> connection;
+    List<WriterConnection> connection;
 
     String writeMode;
     String insertSqlMode;

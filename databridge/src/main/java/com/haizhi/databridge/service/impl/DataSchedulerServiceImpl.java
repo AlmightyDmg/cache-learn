@@ -64,7 +64,6 @@ import com.haizhi.databridge.client.xxljob.JobClientApi;
 import com.haizhi.databridge.client.xxljob.request.DataTransJobParam;
 import com.haizhi.databridge.config.DmcClientProperties;
 import com.haizhi.databridge.constants.DataSourceConstants;
-import com.haizhi.databridge.constants.DatabridgeConstant;
 import com.haizhi.databridge.constants.DatabridgeConstants;
 import com.haizhi.databridge.exception.DatabridgeException;
 import com.haizhi.databridge.repository.importdata.TSchedulerHistoryRepository;
@@ -85,7 +84,6 @@ import com.haizhi.databridge.web.result.StatusCode;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataFieldResp;
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
 import com.haizhi.dataclient.datapi.dmc.DmcTableApi;
-import com.haizhi.dataclient.exception.SDKException;
 
 @Service
 @Log4j2
@@ -1024,7 +1022,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 //		String schedulerStatus = optionalTSchedulerBean.get().getStatus();
 		TSchedulerBean schedulerBean = optionalTSchedulerBean.get();
 		if (DatabridgeConstants.IMPORT_STATUS_SYNCING.equals(schedulerBean.getStatus())
-				|| DatabridgeConstants.IMPORT_STATUS_PENDING.equals(schedulerBean.getStatus()) ) {
+				|| DatabridgeConstants.IMPORT_STATUS_PENDING.equals(schedulerBean.getStatus())) {
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS,
 					String.format("任务已在运行中，请勿重复触发：%s", triggerForm.getSchedulerId()));
 		}

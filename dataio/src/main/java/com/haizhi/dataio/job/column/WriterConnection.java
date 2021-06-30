@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Connection {
+public class WriterConnection {
     public static final String GP_JDBC_PATTERN = "jdbc:pivotal:greenplum://%s;DatabaseName=%s";
     public static final String MYSQL_JDBC_PATTERN = "jdbc:mysql://%s/%s?useUnicode=true&characterEncoding=utf8";
 
@@ -23,6 +23,6 @@ public class Connection {
         TYPE_PATTERN.put("greenplum", GP_JDBC_PATTERN);
     }
 
-    List<String> jdbcUrl;
+    String jdbcUrl;
     List<String> table;
 }

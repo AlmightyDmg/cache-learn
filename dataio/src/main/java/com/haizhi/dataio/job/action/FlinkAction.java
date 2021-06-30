@@ -41,8 +41,9 @@ import com.haizhi.dataio.bean.JobUnitStateForm;
 import com.haizhi.dataio.client.databridge.DatabridgeClient;
 import com.haizhi.dataio.client.flinkx.FlinkxClient;
 import com.haizhi.dataio.exception.DataioException;
-import com.haizhi.dataio.job.column.Connection;
+import com.haizhi.dataio.job.column.ReaderConnection;
 import com.haizhi.dataio.job.column.MetaColumn;
+import com.haizhi.dataio.job.column.WriterConnection;
 import com.haizhi.dataio.job.reader.JdbcReader;
 import com.haizhi.dataio.job.reader.Reader;
 import com.haizhi.dataio.job.sql.BaseSqlOperator;
@@ -251,8 +252,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 .username(unit.getFromSink().getUsername())
                 .password(unit.getFromSink().getPassword())
                 .fetchSize(Optional.ofNullable(unit.getReader().getSync().getFetchSize()).orElse(DEFAULT_FETCH_SIZE))
-                .connection(Arrays.asList(Connection.builder()
-                        .jdbcUrl(Arrays.asList(String.format(Connection.TYPE_PATTERN.get(unit.getFromSink().getType().toLowerCase()),
+                .connection(Arrays.asList(ReaderConnection.builder()
+                        .jdbcUrl(Arrays.asList(String.format(ReaderConnection.TYPE_PATTERN.get(unit.getFromSink().getType().toLowerCase()),
                                 unit.getFromSink().getUrl(),
                                 unit.getFromSink().getCatalog())))
                         .table(Arrays.asList(unit.getReader().getTableName()))
@@ -277,14 +278,14 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         jdbcWriter.setParameter(JdbcWriter.builder()
                 .username(unit.getToSink().getUsername())
                 .password(unit.getToSink().getPassword())
-                .connection(Arrays.asList(Connection.builder()
-                        .jdbcUrl(Arrays.asList(String.format(Connection.TYPE_PATTERN.get(unit.getToSink().getType().toLowerCase()),
+                .connection(Arrays.asList(WriterConnection.builder()
+                        .jdbcUrl(String.format(ReaderConnection.TYPE_PATTERN.get(unit.getToSink().getType().toLowerCase()),
                                 unit.getToSink().getUrl(),
-                                unit.getToSink().getCatalog())))
+                                unit.getToSink().getCatalog()))
                         .table(Arrays.asList(unit.getWriter().getTableName()))
                         .build()))
                 .column(unit.getWriter().getColumns().stream().map(col ->
-                        MetaColumn.builder().name(col.getName()).type(col.getType()).value(col.getValue()).build())
+                        MetaColumn.builder().name(col.getName()).type("text").value(col.getValue()).build())
                         .collect(Collectors.toList()))
                 .insertSqlMode("copy")
                 .writeMode("insert")
