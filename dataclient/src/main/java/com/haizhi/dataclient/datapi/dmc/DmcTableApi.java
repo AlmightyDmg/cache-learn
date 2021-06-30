@@ -73,6 +73,8 @@ public class DmcTableApi extends DataApi<DmcConnection> {
     public List<String> jobGetTables(String name, String url, String user, String password,
                                      String dbName, String dbType,
                                      Boolean isSecurity, Boolean isNetSSL, Integer version) {
+        log.info(String.format("%s %s %s %s %s %s %s %s %s", name, url,
+                user, password, dbName, dbType, isSecurity, isNetSSL, version));
         PentagonResult<List<String>> result = getDataConnection().getPentagonClient()
                 .jobGetTables(name, url, user, password, dbName, dbType, isSecurity, isNetSSL, version);
         if (result.getStatus() == 0) {
@@ -85,6 +87,8 @@ public class DmcTableApi extends DataApi<DmcConnection> {
     public GetTableSchemaResp jobGetTableSchema(String name, String url, String user, String password,
                                                        String dbName, String tbName, String dbType,
                                                        Boolean isSecurity, Boolean isNetSSL, Integer version) {
+        log.info(String.format("%s %s %s %s %s %s %s %s %s %s", name, url,
+                user, password, dbName, tbName, dbType, isSecurity, isNetSSL, version));
         PentagonResult<GetTableSchemaResp> result = getDataConnection().getPentagonClient()
                 .jobGetTableSchema(name, url, user, password, dbName, tbName, dbType, isSecurity, isNetSSL, version);
         if (result.getStatus() == 0) {
