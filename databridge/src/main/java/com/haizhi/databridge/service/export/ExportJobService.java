@@ -266,8 +266,7 @@ public class ExportJobService extends RequestCommonData {
 				.orElseThrow(() -> new DatabridgeException("ds_id不存在"));
 
 		if (!ObjectUtils.isEmpty(form.getSchedulerConf().getSyncConfig())) {
-			form.getSchedulerConf().setSyncConfig(form.getSchedulerConf().getSyncConfig() + " ?");
-			checkCrontabValid(form.getSchedulerConf().getSyncConfig());
+			checkCrontabValid(form.getSchedulerConf().getSyncConfig() + " ?");
 		}
 		ExportJobForm.SchedulerConfForm schedulerConfForm = form.getSchedulerConf();
 		String jobId = genKey("job");
@@ -290,7 +289,7 @@ public class ExportJobService extends RequestCommonData {
 		jobRepository.save(jobBean);
 
 		// create xxljob
-		jobClientApi.add(jobId, schedulerConfForm.getSyncConfig(),
+		jobClientApi.add(jobId, schedulerConfForm.getSyncConfig() + " ?",
 				getExecuteMode(form.getSchedulerConf().getMode()),
 				DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
 
@@ -365,8 +364,7 @@ public class ExportJobService extends RequestCommonData {
 		if (!ObjectUtils.isEmpty(schedulerConfForm)) {
 			jobBean.setExecuteMode(form.getSchedulerConf().getMode());
 			if (!ObjectUtils.isEmpty(form.getSchedulerConf().getSyncConfig())) {
-				form.getSchedulerConf().setSyncConfig(form.getSchedulerConf().getSyncConfig() + " ?");
-				checkCrontabValid(form.getSchedulerConf().getSyncConfig());
+				checkCrontabValid(form.getSchedulerConf().getSyncConfig() + " ?");
 			}
 
 			changeDistJob(jobBean, form);
