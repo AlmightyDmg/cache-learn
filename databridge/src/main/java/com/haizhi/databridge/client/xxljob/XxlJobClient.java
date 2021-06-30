@@ -18,7 +18,7 @@ import com.haizhi.databridge.client.xxljob.response.ReturnT;
 /**
  * xxl-job service api interface
  */
-@RetrofitClient(baseUrl = "${xxl-job.url}")
+@RetrofitClient(baseUrl = "${xxl-job.url}", enableLog = true)
 @Intercept(exclude = "/xxl-job-admin/login", handler = XxlLoginInterceptor.class)
 public interface XxlJobClient {
 
