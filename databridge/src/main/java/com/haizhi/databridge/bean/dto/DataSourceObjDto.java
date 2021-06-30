@@ -58,6 +58,12 @@ public final class DataSourceObjDto {
 
 		@JsonProperty("real_user")
 		private String realUser;
+
+		@JsonProperty("is_dmc")
+		private Integer isDmc;
+
+		@JsonProperty("ds_id")
+		private String dsId;
 	}
 
 	@Data

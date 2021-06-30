@@ -85,6 +85,10 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 //		DataSourceObjDto.Output output = new DataSourceObjDto.Output();
 		options.setFieldComments(dataSourceCreateForm.getFieldComments());
 		options.setTableComments(dataSourceCreateForm.getTableComments());
+		options.setRealUser(dataSourceCreateForm.getRealUser());
+		options.setIsDmc(dataSourceCreateForm.getIsDmc());
+		options.setLabels(dataSourceCreateForm.getLabels());
+		options.setDsId(dataSourceCreateForm.getDsId());
 
 		TDataBaseSourceBean dbBean = new TDataBaseSourceBean();
 		dbBean.setDbType((String) setup.get("type"));
@@ -289,7 +293,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 			DataSourceObjDto.Options options = JsonUtils.toObject(dataBaseSourceBean.getOptions(), DataSourceObjDto.Options.class);
 			dataSourceVos.add(DataBaseSourceVo.DataSourceVo.builder()
 					.connectId(encodeConnectId(JsonUtils.toJson(setUp)))
-					.connector(String.format("%s@%s", setUp.get("uuid"),
+					.connector(String.format("%s@%s", setUp.get("uid"),
 							!ObjectUtils.isEmpty(setUp.get("connStr")) ? setUp.get("connStr") : setUp.get("server")))
 					.dbId(dataBaseSourceBean.getDbId())
 					.dbType(dataBaseSourceBean.getDbType())

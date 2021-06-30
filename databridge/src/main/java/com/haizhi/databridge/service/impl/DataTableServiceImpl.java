@@ -105,7 +105,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 
 		// 保存到t_table表
 		TTableBean tTableBean = new TTableBean();
-		String tableId = genKey("table");
+		String tableId = genKey("ntb");
 		tTableBean.setTableId(tableId);
 		tTableBean.setTbName(createBaseForm.getTbName());
 		tTableBean.setDbId(dbId);
