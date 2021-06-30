@@ -24,10 +24,10 @@ public class MergeTbFileReq extends TassadarReqBase {
 	@Field("tb_id")
 	private String tbId;
 
-	@Field(value = "separator")
+	@Field(value = "separator", encoded = true)
 	private String separator;
 
-	@Field("null_holder")
+	@Field(value = "null_holder", encoded = true)
 	private String nullHolder;
 
 	@JsonBeanParam

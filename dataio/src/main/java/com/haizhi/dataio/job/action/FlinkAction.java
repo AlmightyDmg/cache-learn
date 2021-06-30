@@ -468,7 +468,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
 //            getExecCount(tableName).setAllCount(getExecCount(tableName).getUpdateCount() + merge.getResult().getUpdateCount());
 //            getExecCount(tableName).setAllCount(getExecCount(tableName).getDeleteCount() + merge.getResult().getDeleteCount());
 
-            dmcTableApi.mergeTbFile(unit.getWriter().getRealName(), unit.getUserId(),
+            dmcTableApi.mergeTbFile(unit.getWriter().getTableId(), unit.getUserId(),
                     unit.getWriter().getColumns().stream()
                             .map(DataTransJobDetail.Column::getRealName).collect(Collectors.toList()));
             dmcTableApi.viewCascade(unit.getUserId(), Arrays.asList(unit.getWriter().getRealName()));
