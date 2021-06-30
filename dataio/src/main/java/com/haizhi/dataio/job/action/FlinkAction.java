@@ -461,14 +461,17 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
 
             /* 合表 */
-            TassadarResult<MergeTbResp> merge = dmcTableApi.mergeTb(unit.getWriter().getTableId(), unit.getUserId());
+//            TassadarResult<MergeTbResp> merge = dmcTableApi.mergeTb(unit.getWriter().getTableId(), unit.getUserId());
+//            String tableName = unit.getReader().getTableName();
+//            getExecCount(tableName).setAllCount(getExecCount(tableName).getAllCount() + merge.getResult().getDataCount());
+//            getExecCount(tableName).setAllCount(getExecCount(tableName).getAppendCount() + merge.getResult().getInsertCount());
+//            getExecCount(tableName).setAllCount(getExecCount(tableName).getUpdateCount() + merge.getResult().getUpdateCount());
+//            getExecCount(tableName).setAllCount(getExecCount(tableName).getDeleteCount() + merge.getResult().getDeleteCount());
 
-            String tableName = unit.getReader().getTableName();
-            getExecCount(tableName).setAllCount(getExecCount(tableName).getAllCount() + merge.getResult().getDataCount());
-            getExecCount(tableName).setAllCount(getExecCount(tableName).getAppendCount() + merge.getResult().getInsertCount());
-            getExecCount(tableName).setAllCount(getExecCount(tableName).getUpdateCount() + merge.getResult().getUpdateCount());
-            getExecCount(tableName).setAllCount(getExecCount(tableName).getDeleteCount() + merge.getResult().getDeleteCount());
-
+            dmcTableApi.mergeTbFile(unit.getWriter().getRealName(), unit.getUserId(),
+                    unit.getWriter().getColumns().stream()
+                            .map(DataTransJobDetail.Column::getRealName).collect(Collectors.toList()));
+            dmcTableApi.viewCascade(unit.getUserId(), Arrays.asList(unit.getWriter().getRealName()));
             /* 更新表状态 */
             dmcTableApi.updateTableStatus(unit.getWriter().getTableId(), 1, unit.getUserId());
         } else {

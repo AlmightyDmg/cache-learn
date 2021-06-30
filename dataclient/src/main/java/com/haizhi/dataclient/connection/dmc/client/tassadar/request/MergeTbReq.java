@@ -1,7 +1,5 @@
 package com.haizhi.dataclient.connection.dmc.client.tassadar.request;
 
-import java.util.List;
-
 import javax.validation.constraints.NotBlank;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -10,13 +8,12 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import retrofit2.http.Field;
-import retrofit2.http.JsonBeanParam;
 
 @Data
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class MergeTbFileReq extends TassadarReqBase {
+public class MergeTbReq extends TassadarReqBase {
 	@NotBlank
 	@Field("user_id")
 	private String userId;
@@ -25,13 +22,7 @@ public class MergeTbFileReq extends TassadarReqBase {
 	@Field("tb_id")
 	private String tbId;
 
-	@Field(value = "separator")
-	private String separator;
-
-	@Field("null_holder")
-	private String nullHolder;
-
-	@JsonBeanParam
-	@Field("fields")
-	private List<String> fields;
+	@Field("force_merge")
+	@JsonProperty("force_merge")
+	private Integer forceMerge;
 }

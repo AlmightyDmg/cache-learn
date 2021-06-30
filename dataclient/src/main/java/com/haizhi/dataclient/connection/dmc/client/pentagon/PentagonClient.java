@@ -1,16 +1,15 @@
 // CHECKSTYLE:OFF
 package com.haizhi.dataclient.connection.dmc.client.pentagon;
 
-import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 import java.util.List;
 
-import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
+import retrofit2.http.JsonBeanParam;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
-import retrofit2.http.QueryBean;
 
 import com.haizhi.dataclient.connection.dmc.client.pentagon.dto.PentagonResult;
 import com.haizhi.dataclient.connection.dmc.client.pentagon.response.GetTableSchemaResp;
@@ -46,4 +45,12 @@ public interface PentagonClient {
 	@POST("/job/start")
 	PentagonResult<String> startExportJob(@Query("jobId") String jobId);
 
+	/**
+	 * 级联执行合表
+	 *
+	 */
+	@POST("/view/cascade")
+ 	@FormUrlEncoded
+	PentagonResult<String> viewCascade(@NotBlank @Query("user_id") String userId,
+									   @NotNull @Query("tb_ids") @JsonBeanParam List<String> tbIds);
 }

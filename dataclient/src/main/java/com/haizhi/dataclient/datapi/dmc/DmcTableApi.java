@@ -30,8 +30,10 @@ import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ChangeFolder
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.InfoTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbFileReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ModifyTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.InfoTbResp;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.response.MergeTbFileResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.MergeTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.TassadarResult;
 import com.haizhi.dataclient.datapi.DataApi;
@@ -134,9 +136,21 @@ public class DmcTableApi extends DataApi<DmcConnection> {
 
     public TassadarResult<MergeTbResp> mergeTb(String tableId, String userId) {
         log.info(String.format("/tb/commit, tableId: %s, userId: %s", tableId, userId));
-        MergeTbFileReq request = MergeTbFileReq.builder().tbId(tableId).userId(userId).forceMerge(1).build();
+        MergeTbReq request = MergeTbReq.builder().tbId(tableId).userId(userId).forceMerge(1).build();
         return getDataConnection().getTassadarClient().mergeTb(request);
     }
+
+    public TassadarResult<MergeTbFileResp> mergeTbFile(String tableId, String userId, List<String> fields) {
+        log.info(String.format("/tb/commit, tableId: %s, userId: %s", tableId, userId));
+        MergeTbFileReq request = MergeTbFileReq.builder().tbId(tableId)
+                .userId(userId).separator("%5CN").nullHolder("%01").fields(fields).build();
+        return getDataConnection().getTassadarClient().mergeTbFile(request);
+    }
+
+    public PentagonResult<String> viewCascade(String userId, List<String> tbIds) {
+        return getDataConnection().getPentagonClient().viewCascade(userId, tbIds);
+    }
+
 
     public GetTableDataFieldResp getTableDataField(String connectId, String ref, String tableId, String userId) {
         return getDataConnection().getNoahClient().getTableDataField(connectId, ref, tableId, userId);
