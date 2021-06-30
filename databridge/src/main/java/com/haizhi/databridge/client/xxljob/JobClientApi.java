@@ -76,6 +76,7 @@ public class JobClientApi {
         xxlJobInfo.setScheduleConf(cronExpr);
         xxlJobInfo.setScheduleType(scheduleType);
         xxlJobInfo.setExecutorParam(JsonUtils.toJson(dataTransJobParam));
+        log.info(JsonUtils.toJson(xxlJobInfo));
         return handleResult(client.update(xxlJobInfo));
     }
 
