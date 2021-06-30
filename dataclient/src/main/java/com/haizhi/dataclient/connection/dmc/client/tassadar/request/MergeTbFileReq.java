@@ -4,7 +4,6 @@ import java.util.List;
 
 import javax.validation.constraints.NotBlank;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
