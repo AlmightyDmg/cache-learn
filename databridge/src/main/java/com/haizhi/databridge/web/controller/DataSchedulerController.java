@@ -72,8 +72,8 @@ public class DataSchedulerController extends BaseController {
 
     @RequestMapping("/start")
     @ApiOperation("开始任务")
-    void start(DataSchedulerForm.StartForm startForm) throws UnsupportedEncodingException {
-        dataSchedulerService.start(startForm);
+    void start(DataSchedulerForm.TriggerForm triggerForm) throws UnsupportedEncodingException {
+        dataSchedulerService.trigger(triggerForm);
     }
 
     @RequestMapping("/stop")

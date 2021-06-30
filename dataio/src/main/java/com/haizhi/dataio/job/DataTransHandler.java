@@ -101,6 +101,7 @@ public class DataTransHandler {
                 }
             }
         } catch (Exception e) {
+            logger.error("", e);
             JobExecCountDto jobExecCountDto = new JobExecCountDto();
             databridgeClient.updateJobStatus(JobStateForm.builder().jobId(jobParam.getJobId()).jobType(jobParam.getJobType())
                     .jobStatus(1).startTime(startTime).endTime(new Date().getTime())

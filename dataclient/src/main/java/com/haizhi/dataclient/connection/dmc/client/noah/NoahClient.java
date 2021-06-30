@@ -4,6 +4,7 @@ import java.util.List;
 
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
+import retrofit2.http.JsonBeanParam;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
 
@@ -20,7 +21,7 @@ public interface NoahClient {
     @FormUrlEncoded
     void startImportJob(@Query("user_id") String userId,
                         @Field("scheduler_id") String jobId,
-                        @Field("tables") List<String> tables,
+                        @Field("tables") @JsonBeanParam List<String> tables,
                         @Field("full") Integer full);
 
     @POST("/api/noah/connector/table")
