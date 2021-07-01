@@ -337,7 +337,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
 
                 String maxSql = "";
                 if (unit.getReader().getSync() != null && unit.getReader().getSync().getSyncCondition() != null) {
-                    maxSql = String.format("select max(cast(%s as string)) from %s_%s",
+                    maxSql = String.format("select max(%s) from %s_%s",
                             unit.getReader().getSync().getSyncCondition().getField(), unit.getReader().getRealName(), unit.getJobId());
                 }
                 req.setMaxSql(maxSql);

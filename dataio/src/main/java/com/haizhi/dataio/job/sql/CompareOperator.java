@@ -22,7 +22,7 @@ public class CompareOperator extends SqlOperator {
         }
 
         String quota = getQuot(fieldType);
-        return String.format(COMPARE_PATTERN, compareOp, fieldName, quota, value, quota);
+        return String.format(COMPARE_PATTERN, fieldName, compareOp, quota, value, quota);
     }
 
     public String getQuot(String type) {
