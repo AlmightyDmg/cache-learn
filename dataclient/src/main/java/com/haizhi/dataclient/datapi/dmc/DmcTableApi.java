@@ -172,6 +172,10 @@ public class DmcTableApi extends DataApi<DmcConnection> {
         getDataConnection().getMobiusClient().deleteOldData(DelOldDataReq.builder().tbName(storageId).tag(jobId).build());
     }
 
+    public void truncateData(String storageId) {
+        getDataConnection().getMobiusClient().tbTruncate(storageId);
+    }
+
     public GetTableDataResp getTableDataQuery(String connectId, String sql, String userId) {
         return getDataConnection().getNoahClient().getTableDataQuery(connectId, sql, userId);
     }

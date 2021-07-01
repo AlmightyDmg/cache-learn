@@ -79,4 +79,11 @@ public interface MobiusClient {
 	@POST("/db/query")
 	@FormUrlEncoded
 	QueryResp query(@Valid @QueryBean DbQueryReq dbQuery);
+
+	/**
+	 * 工作表清空数据
+	 */
+	@POST("/tb/truncate")
+	@FormUrlEncoded
+	MobiusResult<String> tbTruncate(@Valid @Field("tbName") String storageId);
 }

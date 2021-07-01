@@ -213,6 +213,9 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
 
             // 0:CREATE|1:SYNCING|2:SYNC_FINISH|3:SYNC_ERROR|4:MIGRATE|5:MIGRATE_ERROR|6:MERGE_ERROR
             dmcTableApi.updateTableStatus(tableId, 1, unit.getUserId());
+            if (Integer.valueOf(1).equals(unit.getReader().getSync().getIsTruncate())) {
+                dmcTableApi.truncateData(unit.getWriter().getRealName());
+            }
 
         } else {
             DmcTableApi dmcTblApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
@@ -270,8 +273,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         Writer<JdbcWriter> jdbcWriter = new Writer<>();
 
         List<String> preSql = new ArrayList<>();
-        if (unit.getReader().getSync().getIsTruncate() == 1
-                || "overwrite".equalsIgnoreCase(unit.getReader().getSync().getType())) {
+        if (unit.getReader().getSync().getIsTruncate() == 1) {
             preSql.add(String.format("truncate table %s", unit.getWriter().getTableName()));
         }
 

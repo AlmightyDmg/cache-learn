@@ -605,7 +605,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			DmcTableApi dmcTableApi = SpringUtils.getBean(DmcTableApi.class);
 			List<String> schema = JsonUtils.toList(new String(Base64Utils.decodeBase64(syncConfig.getRef()), "UTF-8"),
 					String.class);
-			String sql = String.format("select max(%s) from %s.%s", syncCondition.getField(), schema.get(0), schema.get(2));
+			String sql = String.format("select max(%s) from %s", syncCondition.getField(), buildTable(schema));
 			String value = dmcTableApi.getTableDataQuery(connectId, sql, userId).getResult().getData().get(0).get(0);
 			syncCondition.getEnd().setValue(value);
 			syncCondition.getEnd().setOperator("<=");
@@ -613,6 +613,24 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 
 		return syncCondition;
+	}
+
+	private String buildTable(List<String> schema) {
+
+		StringBuilder builder = new StringBuilder();
+		if (!StringUtils.isEmpty(schema.get(0))) {
+			builder.append(schema.get(0));
+		}
+
+		if (!StringUtils.isEmpty(schema.get(1))) {
+			builder.append(".").append(schema.get(1));
+		}
+
+		if (!StringUtils.isEmpty(schema.get(2))) {
+			builder.append(".").append(schema.get(2));
+		}
+
+		return builder.toString();
 	}
 
 	private LocalDateTime getTime(LocalDateTime now, String mode, String type, String value) {
@@ -694,13 +712,15 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		} catch (UnsupportedEncodingException e) {
 			log.error(e);
 		}
+		String syncType = syncConfig.getIncrease() != null ? "increment" : "overwrite";
+		Integer isTruncate = syncConfig.getIncrease() == null && Integer.valueOf(1).equals(syncConfig.getClean()) ? 1 : 0;
 		assert schemaList != null;
 		return DataTransJobVo.SyncUnit.builder()
 				.userId(options.getRealUser())
 				.reader(DataTransJobVo.Reader.builder()
 						.columns(columns)
-						.sync(DataTransJobVo.Sync.builder().type(syncConfig.getModel()).fetchSize(syncConfig.getRows())
-								.syncCondition(syncCondition).build())
+						.sync(DataTransJobVo.Sync.builder().type(syncType).isTruncate(isTruncate)
+								.fetchSize(syncConfig.getRows()).syncCondition(syncCondition).build())
 						.filter(filter)
 						.tableId(tableBean.getTableId()).tableName(tableBean.getTbName())
 						.build())

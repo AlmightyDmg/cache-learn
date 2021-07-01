@@ -562,10 +562,14 @@ public class ExportJobService extends RequestCommonData {
 
 		DataTransJobVo.Sync.SyncCondition syncCon = getSyncCond(exportMode, dmcTbInfo.getFields());
 
+		int isTruncate = 0;
+		if ("overwrite".equalsIgnoreCase(exportMode.getMode())) {
+			isTruncate = 1;
+		} else if (exportMode.getIsTruncate() != null) {
+			isTruncate = Integer.parseInt(exportMode.getIsTruncate());
+		}
 		DataTransJobVo.Sync sync = DataTransJobVo.Sync.builder()
-				.isTruncate(exportMode.getIsTruncate() == null ? 0 : Integer.parseInt(exportMode.getIsTruncate()))
-				.type(exportMode.getMode()).checkRule(checkRule).syncCondition(syncCon).build();
-
+				.isTruncate(isTruncate).type(exportMode.getMode()).checkRule(checkRule).syncCondition(syncCon).build();
 
 		List<DataTransJobVo.Column> fromCols = jobConf.getFieldsMapping().stream()
 				.map(x -> DataTransJobVo.Column.builder()
@@ -674,6 +678,15 @@ public class ExportJobService extends RequestCommonData {
 		tblTransTaskRelRepo.save(tblTransTaskRelBean);
 
 		// 若是导入，更新table的状态， 同步开始和结束的位置，以及tablehistory
+		JobBean jobBean = jobRepository.findByJobId(form.getJobId()).orElseThrow(() -> new DatabridgeException("job not exist"));
+		ExportJobVo.ExportModeVo exportModeVo = ObjectUtils.isArray(jobBean.getExportMode()) ? null : toObject(
+				jobBean.getExportMode(), ExportJobVo.ExportModeVo.class);
+		if (exportModeVo != null && "increment".equalsIgnoreCase(exportModeVo.getMode())) {
+			exportModeVo.setIncreateValue(form.getIncreateValue());
+			jobBean.setExportMode(JsonUtils.toJson(exportModeVo));
+			log.info(String.format("jobId: %s, increase to: %s", form.getJobId(), form.getIncreateValue()));
+			jobRepository.update(jobBean);
+		}
 
 		return "";
 	}
