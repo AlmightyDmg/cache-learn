@@ -143,7 +143,7 @@ public class DmcTableApi extends DataApi<DmcConnection> {
     public TassadarResult<MergeTbFileResp> mergeTbFile(String tableId, String userId, List<String> fields) {
         log.info(String.format("/tb/commit, tableId: %s, userId: %s", tableId, userId));
         MergeTbFileReq request = MergeTbFileReq.builder().tbId(tableId)
-                .userId(userId).separator("%5CN").nullHolder("%01").fields(fields).build();
+                .userId(userId).separator("\n").nullHolder("\u0001").fields(fields).build();
         return getDataConnection().getTassadarClient().mergeTbFile(request);
     }
 

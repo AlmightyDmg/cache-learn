@@ -1,19 +1,19 @@
 package com.haizhi.dataclient.connection.dmc.client.tassadar.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import retrofit2.http.Field;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class MergeTbFileResp {
-    @Field("data_changed")
+    @JsonProperty("data_changed")
     private Boolean dataChanged;
 
-    @Field("data_count")
+    @JsonProperty("data_count")
     private Integer dataCount;
 }
