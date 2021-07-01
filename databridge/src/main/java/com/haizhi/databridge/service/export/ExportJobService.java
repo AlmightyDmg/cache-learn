@@ -612,7 +612,7 @@ public class ExportJobService extends RequestCommonData {
 				.type(toType).username(dsBean.getUsername()).password(dsBean.getPassword()).catalog(dsBean.getDatabase())
 				.build();
 		List<DataTransJobVo.Column> toCols = jobConf.getFieldsMapping().stream()
-				.map(x -> DataTransJobVo.Column.builder().name(x.getOriginalName()).build()).collect(Collectors.toList());
+				.map(x -> DataTransJobVo.Column.builder().name(x.getMappingName()).build()).collect(Collectors.toList());
 
 
 		DataTransJobVo.Writer writer = DataTransJobVo.Writer.builder().tableId(jobBean.getXtbId())
