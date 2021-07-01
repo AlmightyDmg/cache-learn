@@ -6,6 +6,7 @@ import javax.validation.constraints.NotNull;
 
 import java.util.List;
 
+import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.JsonBeanParam;
 import retrofit2.http.POST;
@@ -52,5 +53,5 @@ public interface PentagonClient {
 	@POST("/view/cascade")
  	@FormUrlEncoded
 	PentagonResult<String> viewCascade(@NotBlank @Query("user_id") String userId,
-									   @NotNull @Query("tb_ids") @JsonBeanParam List<String> tbIds);
+									   @NotNull @Query("tb_ids") String tbIds);
 }

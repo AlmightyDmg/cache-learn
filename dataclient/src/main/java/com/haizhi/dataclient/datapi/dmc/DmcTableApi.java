@@ -148,7 +148,7 @@ public class DmcTableApi extends DataApi<DmcConnection> {
     }
 
     public PentagonResult<String> viewCascade(String userId, List<String> tbIds) {
-        return getDataConnection().getPentagonClient().viewCascade(userId, tbIds);
+        return getDataConnection().getPentagonClient().viewCascade(userId, JsonUtils.toJson(tbIds));
     }
 
 
