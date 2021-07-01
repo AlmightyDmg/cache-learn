@@ -112,13 +112,9 @@ public class ExceptionControllerAdvice {
 	 */
 	@ExceptionHandler({DatabridgeException.class})
 	@ResponseBody
-	public ResponseEntity<?> horaExceptionHandler(DatabridgeException databridgeException) {
+	public WebResult<?> databridgeExceptionHandler(DatabridgeException databridgeException) {
 		Throwable r = ErrorsUtils.getRootCause(databridgeException);
-		WebResult result = WebResult.fail(r);
-		result.setStatus(databridgeException.getStatus());
-		return ResponseEntity
-			.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-			.body(result);
+		return WebResult.fail(r);
 	}
 
     /**

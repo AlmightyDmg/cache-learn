@@ -270,7 +270,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         Writer<JdbcWriter> jdbcWriter = new Writer<>();
 
         List<String> preSql = new ArrayList<>();
-        if (unit.getReader().getSync().getIsTruncate() == 1) {
+        if (unit.getReader().getSync().getIsTruncate() == 1
+                || "overwrite".equalsIgnoreCase(unit.getReader().getSync().getType())) {
             preSql.add(String.format("truncate table %s", unit.getWriter().getTableName()));
         }
 
