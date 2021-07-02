@@ -815,7 +815,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 
 		schedulerBean.setStatus(status);
-		schedulerBean.setException(jobStateForm.getErrmsg());
+		if (jobStateForm.getErrmsg() != null) {
+			schedulerBean.setException(jobStateForm.getErrmsg());
+		}
 		tSchedulerRepo.update(schedulerBean);
 
 		return null;
