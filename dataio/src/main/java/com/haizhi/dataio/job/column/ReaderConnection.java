@@ -25,4 +25,5 @@ public class ReaderConnection {
 
     List<String> jdbcUrl;
     List<String> table;
+    String schema;
 }
