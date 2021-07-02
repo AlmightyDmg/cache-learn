@@ -682,7 +682,7 @@ public class ExportJobService extends RequestCommonData {
 		JobBean jobBean = jobRepository.findByJobId(form.getJobId()).orElseThrow(() -> new DatabridgeException("job not exist"));
 		ExportJobVo.ExportModeVo exportModeVo = ObjectUtils.isArray(jobBean.getExportMode()) ? null : toObject(
 				jobBean.getExportMode(), ExportJobVo.ExportModeVo.class);
-		if (exportModeVo != null && "increment".equalsIgnoreCase(exportModeVo.getMode())) {
+		if (exportModeVo != null && "increment".equalsIgnoreCase(exportModeVo.getMode()) && !ObjectUtils.isEmpty(form.getIncreateValue())) {
 			exportModeVo.setIncreateValue(form.getIncreateValue());
 			jobBean.setExportMode(JsonUtils.toJson(exportModeVo));
 			log.info(String.format("jobId: %s, increase to: %s", form.getJobId(), form.getIncreateValue()));

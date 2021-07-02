@@ -714,7 +714,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 		String syncType = syncConfig.getIncrease() != null ? "increment" : "overwrite";
 		Integer isTruncate = syncConfig.getIncrease() == null && Integer.valueOf(1).equals(syncConfig.getClean()) ? 1 : 0;
-		assert schemaList != null;
+		String schema = schemaList.size() > 2 ? schemaList.get(1) : null;
+		String catalog = schemaList.size() > 2 ? schemaList.get(0) : null;
 		return DataTransJobVo.SyncUnit.builder()
 				.userId(options.getRealUser())
 				.reader(DataTransJobVo.Reader.builder()
@@ -730,7 +731,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				.toSink(toSink)
 				.fromSink(DataTransJobVo.Sink.builder()
 						.url(setup.getServer() + ":" + setup.getPort()).username(setup.getUid()).password(pwd)
-						.type(dbBean.getDbType()).catalog(Objects.requireNonNull(schemaList).get(0)).build())
+						.type(dbBean.getDbType()).schema(schema).catalog(catalog).build())
 				.build();
 	}
 
@@ -855,7 +856,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			syncConfig.setOutputRef(outputRef);
 		}
 
-		if (syncConfig.getIncrease() != null && "maximum".equalsIgnoreCase(syncConfig.getIncrease().getType())) {
+		if (syncConfig.getIncrease() != null
+				&& "maximum".equalsIgnoreCase(syncConfig.getIncrease().getType())
+				&& !ObjectUtils.isEmpty(form.getIncreateValue())) {
 			syncConfig.getIncrease().getMaximum().getStart().setValue(form.getIncreateValue());
 		}
 

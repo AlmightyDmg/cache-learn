@@ -260,9 +260,10 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                                 unit.getFromSink().getUrl(),
                                 unit.getFromSink().getCatalog())))
                         .table(Arrays.asList(unit.getReader().getTableName()))
+                        .schema(unit.getFromSink().getSchema())
                         .build()))
                 .column(unit.getReader().getColumns().stream().map(col ->
-                        MetaColumn.builder().name(col.getName()).type(col.getType()).value(col.getValue()).build())
+                        MetaColumn.builder().name(col.getName()).value(col.getValue()).build())
                         .collect(Collectors.toList()))
                 .where(genWhere(unit).generate())
                 .build());
@@ -337,8 +338,9 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
 
                 String maxSql = "";
                 if (unit.getReader().getSync() != null && unit.getReader().getSync().getSyncCondition() != null) {
-                    maxSql = String.format("select max(%s) from %s_%s",
+                    maxSql = String.format("select max(%s) from %s_%s",
                             unit.getReader().getSync().getSyncCondition().getField(), unit.getReader().getRealName(), unit.getJobId());
+                    log.info("max_sql: (%s)", maxSql);
                 }
                 req.setMaxSql(maxSql);
 
@@ -370,7 +372,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     }
 
     private void setNextMaxValue(FlinkActionParam unit, String maxValue) {
-        if ("increment".equalsIgnoreCase(unit.getReader().getSync().getType())) {
+        if ("increment".equalsIgnoreCase(unit.getReader().getSync().getType())
+                && unit.getReader().getSync().getSyncCondition() != null) {
             if (!ObjectUtils.isEmpty(unit.getReader().getSync().getSyncCondition())
                     || !ObjectUtils.isEmpty(unit.getReader().getSync().getSyncCondition().getField())) {
                 DataTransJobDetail.Sync.SyncCondition.Conditon endCondition =
@@ -477,6 +480,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             dmcTableApi.viewCascade(unit.getUserId(), Arrays.asList(unit.getWriter().getRealName()));
             /* 更新表状态 */
             dmcTableApi.updateTableStatus(unit.getWriter().getTableId(), 1, unit.getUserId());
+
+            TassadarResult<MergeTbResp> merge = dmcTableApi.mergeTb(unit.getWriter().getTableId(), unit.getUserId());
         } else {
 
             // 删除导出时生成的临时文件
