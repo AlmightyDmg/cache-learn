@@ -15,6 +15,7 @@ public class JobStateForm {
     String jobType;
     Long startTime;
     Long endTime;
+    String errmsg;
 
     private Integer appendCount = 0;
     private Integer updateCount = 0;

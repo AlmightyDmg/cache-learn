@@ -648,6 +648,7 @@ public class ExportJobService extends RequestCommonData {
 				.filterCount(jobStateForm.getFilterCount()).build();
 		jobBean.setStatus(status);
 		jobBean.setCount(JsonUtils.toJson(countVo));
+		jobBean.setErrorMsg(jobStateForm.getErrmsg());
 		jobRepository.update(jobBean);
 
 		if (jobStateForm.getEndTime() != null) {
@@ -657,7 +658,7 @@ public class ExportJobService extends RequestCommonData {
 					.status(jobStateForm.getJobStatus() == 1 ? 0 : 1)
 					.endTime(new Timestamp(jobStateForm.getEndTime()))
 					.costTime((int) (jobStateForm.getStartTime() - jobStateForm.getEndTime()))
-					.errorMsg("success")
+					.errorMsg(jobStateForm.getErrmsg())
 					.count(JsonUtils.toJson(countVo))
 					.isDel(0)
 					.build());
