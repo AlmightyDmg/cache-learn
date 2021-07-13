@@ -2,8 +2,11 @@ package com.haizhi.databridge.service.export;
 
 import static com.haizhi.databridge.constants.DataSourceConstants.TaskType.EXPORT;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_CREATE;
+import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_QUEUE;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_STOP;
+import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_SYNC;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.DATAHUB;
+import static com.haizhi.databridge.constants.MetaConstants.DsType.GREENPLUM;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.MYSQL;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.POSTGRESQL;
 import static com.haizhi.databridge.constants.MetaConstants.Job.JOB_SOURCE_FROM_DMC;
@@ -32,7 +35,6 @@ import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
 
 import com.haizhi.databridge.bean.domain.exportdata.DsBean;
 import com.haizhi.databridge.bean.domain.exportdata.ExportDsTbBean;
@@ -289,11 +291,12 @@ public class ExportJobService extends RequestCommonData {
 		jobRepository.save(jobBean);
 
 		// create xxljob
+		String cronType = getExecuteMode(form.getSchedulerConf().getMode());
 		jobClientApi.add(jobId, schedulerConfForm.getSyncConfig() + " ?",
-				getExecuteMode(form.getSchedulerConf().getMode()),
+				cronType,
 				DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
 
-		if (!StringUtils.isEmpty(form.getSchedulerConf().getSyncConfig())) {
+		if ("CRON".equalsIgnoreCase(cronType) && jobBean.getStatus() != EXPORT_STATUS_STOP) {
 			jobClientApi.start(jobId);
 		}
 
@@ -469,6 +472,25 @@ public class ExportJobService extends RequestCommonData {
 
 	@Transactional
 	public void jobExec(String jobId) {
+		JobBean jobBean = jobRepository.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("任务不存在"));
+		if (jobBean.getStatus() == EXPORT_STATUS_QUEUE || jobBean.getStatus() == EXPORT_STATUS_SYNC) {
+			throw new DatabridgeException("任务已在运行中，请勿重复触发");
+		}
+
+		jobBean.setStatus(EXPORT_STATUS_QUEUE);
+		jobRepository.update(jobBean);
+
+		// if xxl-job not exist, then create it.
+		if (!jobClientApi.isXxljobExist(jobId)) {
+			ExportJobVo.SchedulerConfVo schedulerConf = toObject(jobBean.getSyncConfigBack(), ExportJobVo.SchedulerConfVo.class);
+			String cronType = getExecuteMode(schedulerConf.getMode());
+			jobClientApi.add(jobId, schedulerConf.getSyncConfig() + " ?", cronType,
+					DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
+			if ("CRON".equalsIgnoreCase(cronType) && jobBean.getStatus() != EXPORT_STATUS_STOP) {
+				jobClientApi.start(jobId);
+			}
+		}
+
 		jobClientApi.trigger(jobId, DataTransJobParam.builder().jobId(jobId).jobType(EXPORT).build());
 	}
 
@@ -522,6 +544,7 @@ public class ExportJobService extends RequestCommonData {
 		typeToDbNameMap.put(MYSQL, "mysql");
 		typeToDbNameMap.put(POSTGRESQL, "postgresql");
 		typeToDbNameMap.put(DATAHUB, "datahub");
+		typeToDbNameMap.put(GREENPLUM, "greenplum");
 		return typeToDbNameMap;
 	}
 
@@ -557,6 +580,7 @@ public class ExportJobService extends RequestCommonData {
 		DataTransJobVo.CheckRule checkRule = DataTransJobVo.CheckRule.builder()
 				.failureStrategy(Optional.ofNullable(jobBean.getExportFailureStrategy()).orElse(0))
 				.rules(Optional.ofNullable(ruleList).orElse(new ArrayList<>()).stream()
+						.filter(x -> fieldMap.containsKey(x.getMappingName()))
 						.map(x -> x.getCond().replace("${field}", fieldMap.get(x.getMappingName()).getFieldId()))
 						.collect(Collectors.toList())).build();
 
@@ -609,7 +633,7 @@ public class ExportJobService extends RequestCommonData {
 		String dmcUrl = JsonUtils.toJson(DmcConfig.builder().pentagonProp(dmcProp.getPentagon()).noahProp(dmcProp.getNoah())
 				.mobiusProp(dmcProp.getMobius()).tassadarProp(dmcProp.getTassadar()).build());
 
-		String toType = Optional.ofNullable(genTypeToDbNameMap().get(dsBean.getType())).orElse("greenplum").toLowerCase();
+		String toType = Optional.ofNullable(genTypeToDbNameMap().get(dsBean.getType())).orElse("").toLowerCase();
 
 		DataTransJobVo.Sink fromSink = DataTransJobVo.Sink.builder().url(dmcUrl).type("dmc").build();
 		DataTransJobVo.Sink toSink = DataTransJobVo.Sink.builder().url(dsBean.getHost() + ":" + dsBean.getPort())

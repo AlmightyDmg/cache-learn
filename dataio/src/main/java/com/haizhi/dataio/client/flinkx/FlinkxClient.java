@@ -19,7 +19,7 @@ public interface FlinkxClient {
 
     @POST("/flinkx/start")
     @FormUrlEncoded
-    FlinkxResult<FlinkJobStartStopResp> startJob(@Field("reader") String reader, @Field("writer") String writer);
+    FlinkxResult<FlinkJobStartStopResp> startJob(@Field("jobName") String jobName, @Field("reader") String reader, @Field("writer") String writer);
 
     @POST("/flinkx/status")
     @FormUrlEncoded

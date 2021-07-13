@@ -76,8 +76,8 @@ public class DataTableForm {
         private Integer clean;
         private String sql;
         private Integer dereplication;
-//        @ApiModelProperty(value = "格式化字段，key是字段名称")
-        private Map<String, DataTableDto.FieldDtoatterDto> formatter;
+//        @ApiModelProperty(value = "格式化字段，key是字段名称") DataTableDto.FieldDtoatterDto
+        private Map<String, Map<String, String>> formatter;
         private String type;
 //        @JsonProperty("table_id")
 //        private String tableId;
@@ -85,8 +85,6 @@ public class DataTableForm {
         private Map<Object, Object> transform;
         private String cleanType;
         private Integer isView;
-
-
     }
 
     @Data

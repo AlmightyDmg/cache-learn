@@ -1,15 +1,15 @@
 package com.haizhi.dataclient.connection.dmc.client.noah;
 
-import java.util.List;
-
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
-import retrofit2.http.JsonBeanParam;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
+import retrofit2.http.QueryBean;
 
+import com.haizhi.dataclient.connection.dmc.client.noah.request.StartReq;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataFieldResp;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataResp;
+import com.haizhi.dataclient.connection.dmc.client.noah.response.StartResp;
 
 /**
  * @author duanxiaoyi
@@ -19,10 +19,7 @@ import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataRes
 public interface NoahClient {
     @POST("/api/noah/task/noahstart")
     @FormUrlEncoded
-    void startImportJob(@Query("user_id") String userId,
-                        @Field("scheduler_id") String jobId,
-                        @Field("tables") @JsonBeanParam List<String> tables,
-                        @Field("full") Integer full);
+    StartResp startImportJob(@QueryBean StartReq startReq);
 
     @POST("/api/noah/connector/table")
     @FormUrlEncoded

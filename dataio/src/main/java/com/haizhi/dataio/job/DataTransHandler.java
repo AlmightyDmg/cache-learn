@@ -88,9 +88,9 @@ public class DataTransHandler {
                     importAction.doAction(OldDtsParam.builder()
                             .jobId(jobParam.getJobId())
                             .jobType(jobParam.getJobType())
-                            .userId(jobDetail.getSyncUnits().get(0).getUserId())
+                            .userId(jobDetail.getUserId())
                             .tables(jobParam.getReaderTables())
-                            .full(jobParam.getFull())
+                            .full(jobParam.getFull() == null ? 0 : jobParam.getFull())
                             .endpoint(jobDetail.getSyncUnits().get(0).getToSink().getUrl()).build());
                 } else if ("export".equals(jobParam.getJobType())) {
                     // old export
