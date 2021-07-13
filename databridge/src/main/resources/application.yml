@@ -68,29 +68,29 @@ localdmc:
     "fs.hdfs.impl.disable.cache": "true"
     "fs.hdfs.impl": "org.apache.hadoop.hdfs.DistributedFileSystem"
   mobius:
-    url: http://123.126.105.37:4567
+    url: http://10.0.0.110:4567
     connect_timeout_ms: 20000
     call_timeout_ms: 600000
     read_timeout_ms: 600000
     logging: false
   overlord:
-    url: http://123.126.105.108:22881
+    url: http://10.0.0.108:22881
     connect-timeout-ms: 10000
     logging: true
   behemoth:
-    url: http://123.126.105.108:22184
+    url: http://10.0.0.108:22184
     connect-timeout-ms: 10000
     logging: false
   pentagon:
-    url: http://123.126.105.108:22281
+    url: http://10.0.0.108:22281
     connect-timeout-ms: 10000
     logging: false
   noah:
-    url: http://123.126.105.108:22183
+    url: http://10.0.0.108:22183
     connect-timeout-ms: 10000
     logging: false
   tassadar:
-    url: http://123.126.105.108:22481
+    url: http://10.0.0.108:22481
     connect-timeout-ms: 20000
     logging: false
 
