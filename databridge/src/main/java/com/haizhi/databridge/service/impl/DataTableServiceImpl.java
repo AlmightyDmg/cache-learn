@@ -189,11 +189,14 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		tTableRepo.save(tTableBean);
 	}
 
-	private Map<String, DataTableDto.FieldDtoatterDto> handlerFormatter(Map<String, DataTableDto.FieldDtoatterDto> formatter) {
+	private Map<String, DataTableDto.FieldDtoatterDto> handlerFormatter(Map<String, Map<String, String>> formatter) {
 		Map<String, DataTableDto.FieldDtoatterDto> result = new HashMap<>();
 		for (String key: formatter.keySet()) {
-			if (!ObjectUtils.isEmpty(formatter.get(key)) || !ObjectUtils.isEmpty(formatter.get(key).getFmt())) {
-				result.put(key, formatter.get(key));
+			if (!ObjectUtils.isEmpty(formatter.get(key)) && !ObjectUtils.isEmpty(formatter.get(key).get("fmt"))) {
+				DataTableDto.FieldDtoatterDto fieldDtoatterDto = new DataTableDto.FieldDtoatterDto();
+				fieldDtoatterDto.setFmt(formatter.get(key).get("fmt"));
+				fieldDtoatterDto.setType(formatter.get(key).get("type"));
+				result.put(key, fieldDtoatterDto);
 			}
 		}
 		return result;

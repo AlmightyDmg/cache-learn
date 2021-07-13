@@ -36,7 +36,6 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -191,6 +190,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS, String.format("任务%s不存在", updateForm.getSchedulerId()));
 		}
 		updateScheduler(updateForm, optionalTSchedulerBean.get());
+
+		// update xxljob info
+		updateJob(updateForm.getSchedulerId(), updateForm.getTiming());
 	}
 
 	public void delete(DataSchedulerForm.DeleteForm deleteForm) {
@@ -784,10 +786,6 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		List<DataTransJobVo.Column> result = new ArrayList<>();
 
 		for (GetTableDataFieldResp.Field field : fieldList) {
-			if ("BDP_AUDIT".equalsIgnoreCase(field.getName())) {
-				continue;
-			}
-
 			if (ObjectUtils.isEmpty(userConfigFields) || userConfigFields.contains(field.getName())) {
 				result.add(DataTransJobVo.Column.builder()
 						.name(field.getName()).remark(field.getRemark()).uniqIndex(field.isUniq_index())
@@ -863,8 +861,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 
 		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
-		tTableBean.setPosted(form.getAllCount());
-		tTableBean.setFetched(form.getAllCount());
+		tTableBean.setPosted(form.getAppendCount());
+		tTableBean.setFetched(form.getFilterCount());
 
 		tTableRepo.update(tTableBean);
 
@@ -881,6 +879,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		return null;
 	}
 
+	@Transactional
 	public String create(DataSchedulerForm.CreateForm createForm) throws UnsupportedEncodingException {
 		if (tSchedulerRepo.findBySchedulerNameAndOwner(createForm.getSchedulerName(), createForm.getUserId()).isPresent()) {
 			throw new DatabridgeException(StatusCode.SOURCE_EXISTS,
@@ -891,18 +890,19 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		tSchedulerBean.setSchedulerId(schedulerId);
 		tSchedulerBean.setStatus(IMPORT_STATUS_NEW);
 		updateScheduler(createForm, tSchedulerBean);
-		DataTransJobParam dataTransJobParam = new DataTransJobParam();
-		dataTransJobParam.setJobId(schedulerId);
-		dataTransJobParam.setJobType(IMPORT);
-		try {
-			String cronExpr = !ObjectUtils.isEmpty(createForm.getTiming()) ? genCrontab(createForm.getTiming()) + " ? " : "";
-			String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
-			jobClientApi.add(schedulerId, cronExpr, cronType, dataTransJobParam);
-			if (!ObjectUtils.isEmpty(cronExpr) && !"NONE".equals(cronType)) {
+
+		boolean cronEnable = !ObjectUtils.isEmpty(createForm.getTiming()) && createForm.getTiming().getEnable();
+		String cronExpr = cronEnable ? genCrontab(createForm.getTiming()) + " ? " : "";
+		String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
+		jobClientApi.add(schedulerId, cronExpr, cronType,
+				DataTransJobParam.builder().jobId(schedulerId).jobType(IMPORT).build());
+		if (!ObjectUtils.isEmpty(cronExpr) && !"NONE".equals(cronType)) {
+			try {
 				jobClientApi.start(schedulerId);
+			} catch (Exception e) {
+				jobClientApi.remove(schedulerId);
+				throw e;
 			}
-		}  catch (Exception e) {
-			e.printStackTrace();
 		}
 		return schedulerId;
 	}
@@ -955,13 +955,6 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		tSchedulerBean.setOwner(changeBaseForm.getUserId());
 		tSchedulerBean.setOptions(JsonUtils.toJson(optionsDto));
 		tSchedulerRepo.save(tSchedulerBean);
-		if (!ObjectUtils.isEmpty(tSchedulerBean.getTiming())) {
-			try {
-				updateJob(tSchedulerBean.getSchedulerId(), tSchedulerBean.getTiming());
-			}  catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
 	}
 
 	private void updateSchedulerId(String tableId, String userId, String schedulerId) throws UnsupportedEncodingException {
@@ -976,15 +969,12 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 	}
 
-	private void updateJob(String schedulerId, String timing) {
-		DataTransJobParam dataTransJobParam = new DataTransJobParam();
-		dataTransJobParam.setJobId(schedulerId);
-		dataTransJobParam.setJobType(IMPORT);
-		jobClientApi.update(schedulerId,
-				genCrontab(JsonUtils.toObject(timing, DataSchedulerDto.TimingDto.class)) + " ? ",
-				IMPORT,
-				dataTransJobParam
-		);
+	private void updateJob(String schedulerId, DataSchedulerDto.TimingDto timingDto) {
+		String cronExpr = (!ObjectUtils.isEmpty(timingDto) && timingDto.getEnable()) ? genCrontab(timingDto) + " ? " : "";
+		String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
+
+		jobClientApi.update(schedulerId, cronExpr, cronType,
+				DataTransJobParam.builder().jobId(schedulerId).jobType(IMPORT).build());
 	}
 
 	public String genCrontab(DataSchedulerDto.TimingDto timingDto) {
@@ -1038,6 +1028,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		return String.format("%s %s %s %s %s", cron.getMinute(), cron.getHour(), cron.getDay(), cron.getWeek(), cron.getMonth());
 	}
 
+	@Transactional
 	public void trigger(DataSchedulerForm.TriggerForm triggerForm) {
 		Optional<TSchedulerBean> optionalTSchedulerBean = tSchedulerRepo.findBySchedulerIdAndOwner(
 				triggerForm.getSchedulerId(), triggerForm.getUserId());
@@ -1056,6 +1047,21 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		tSchedulerRepo.save(schedulerBean);
 
 		try {
+			// if xxl-job not exist, then create it.
+			if (!jobClientApi.isXxljobExist(triggerForm.getSchedulerId())) {
+				String schedulerId = triggerForm.getSchedulerId();
+				DataSchedulerDto.TimingDto timeDto =
+						JsonUtils.toObject(schedulerBean.getTiming(), DataSchedulerDto.TimingDto.class);
+				String cronExpr = (!ObjectUtils.isEmpty(timeDto) && timeDto.getEnable()) ? genCrontab(timeDto) + " ? " : "";
+				String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
+
+				jobClientApi.add(triggerForm.getSchedulerId(), cronExpr, cronType,
+						DataTransJobParam.builder().jobId(schedulerId).jobType(IMPORT).build());
+				if (!ObjectUtils.isEmpty(cronExpr) && !"NONE".equals(cronType)) {
+					jobClientApi.start(schedulerId);
+				}
+			}
+
 			jobClientApi.trigger(triggerForm.getSchedulerId(),
 					DataTransJobParam.builder()
 							.jobId(triggerForm.getSchedulerId())

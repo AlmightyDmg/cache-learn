@@ -46,13 +46,6 @@ public interface MobiusClient {
 
 	/**
 	 * 提交写入数据操作
-	 *
-	 * @param 表名
-	 * @param commit之前的表数据
-	 * @param 去重字段，多个去重字段以","分隔
-	 * @param 合并数据超时时间，默认使用配置文件配置的超时时间
-	 * @param commit参数，包括字段相关信息
-	 * @param 全量更新标识，默认非全量，0表示非全量，1表示全量
 	 */
 	@POST("/table/commit")
 	@FormUrlEncoded

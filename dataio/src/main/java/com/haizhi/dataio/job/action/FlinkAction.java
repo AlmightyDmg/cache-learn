@@ -40,6 +40,7 @@ import com.haizhi.dataio.bean.JobStateForm;
 import com.haizhi.dataio.bean.JobUnitStateForm;
 import com.haizhi.dataio.client.databridge.DatabridgeClient;
 import com.haizhi.dataio.client.flinkx.FlinkxClient;
+import com.haizhi.dataio.client.flinkx.response.FlinkxJobStatus;
 import com.haizhi.dataio.exception.DataioException;
 import com.haizhi.dataio.job.column.ReaderConnection;
 import com.haizhi.dataio.job.column.MetaColumn;
@@ -116,6 +117,9 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         DataTransJobDetail.Reader reader;
         DataTransJobDetail.Writer writer;
         String userId;
+
+        int readRecords = 0;
+        int writeRecords = 0;
     }
 
     public static boolean isSupportedDb(String fromDbType, String toDbTYpe) {
@@ -174,6 +178,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
 
         return folderTb;
     }
+
     @Override
     protected void beforeExec(FlinkActionParam unit) throws DataioException {
         String fromDbType = unit.getFromSink().getType();
@@ -221,8 +226,9 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             DmcTableApi dmcTblApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
             if (unit.getReader().getSync().getCheckRule().getFailureStrategy() == 0) {
                 String whereSql = genCheckSql(genWhere(unit), unit.getReader().getSync().getCheckRule()).generate();
-                if (!dmcTblApi.checkTableRule(whereSql, unit.getReader().getRealName())) {
-                    throw new DataioException("check failed.");
+                Integer filterCount = dmcTblApi.getDataCount(whereSql, unit.getReader().getRealName());
+                if (filterCount > 0) {
+                    throw new DataioException("规则校验失败.");
                 }
             }
 
@@ -263,7 +269,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                         .schema(unit.getFromSink().getSchema())
                         .build()))
                 .column(unit.getReader().getColumns().stream().map(col ->
-                        MetaColumn.builder().name(col.getName()).value(col.getValue()).build())
+                        MetaColumn.builder().name("BDP_AUDIT".equals(col.getName())? "now() as BDP_AUDIT" : col.getName())
+                                .value(col.getValue()).build())
                         .collect(Collectors.toList()))
                 .where(genWhere(unit).generate())
                 .build());
@@ -358,7 +365,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             String readerStr = JsonUtils.toJson(reader);
             String writerStr = JsonUtils.toJson(writer);
             log.info(String.format("jobid : %s; reader: %s, writer: %s", unit.getJobId(), readerStr, writerStr));
-            taskId = flinkxClient.startJob(readerStr, writerStr).getResult().getJobId();
+            taskId = flinkxClient.startJob(unit.getJobId(), readerStr, writerStr).getResult().getJobId();
 
             unit.setTaskId(taskId);
             // 更新task
@@ -442,7 +449,15 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             return "failed";
         }
 
-        String state = flinkxClient.getStatus(taskId).getResult().getStatus().getState();
+        FlinkxJobStatus flinkxJobStatus = flinkxClient.getStatus(taskId).getResult();
+
+        String state = flinkxJobStatus.getStatus().getState();
+        if ("finished".equalsIgnoreCase(state) || "failed".equalsIgnoreCase(state)) {
+            Optional.ofNullable(flinkxJobStatus.getStatus().getVertices()).orElse(new ArrayList<>()).forEach(ver -> {
+                unitParam.readRecords += ver.getReadRecords();
+                unitParam.writeRecords += ver.getWriteRecords();
+            });
+        }
 
         return state.toLowerCase();
     }
@@ -495,7 +510,17 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 && unit.getReader().getSync().getSyncCondition().getEnd() != null) {
             nextIncrValue = unit.getReader().getSync().getSyncCondition().getEnd().getValue();
         }
-        JobExecCountDto jobExecCountDto = getExecCount(unit.getReader().getTableName());
+
+        String tableName = unit.getReader().getTableName();
+        getExecCount(tableName).setUpdateCount(0);
+        getExecCount(tableName).setAllCount(0);
+        getExecCount(tableName).setDeleteCount(0);
+        getExecCount(tableName).setAppendCount(getExecCount(tableName).getAppendCount() + unit.getReadRecords());
+        getExecCount(tableName).setFilterCount(getExecCount(tableName).getFilterCount() + unit.getWriteRecords());
+        getExecCount(tableName).setFailedCount(getExecCount(tableName).getFailedCount()
+                + (unit.getReadRecords() - unit.getWriteRecords()));
+
+
         databridgeClient.updateJobExecUnit(JobUnitStateForm.builder()
                 .jobId(unit.getJobId())
                 .fromTableId(unit.getReader().getTableId())
@@ -506,12 +531,12 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 .tableStatus(success ? 2 : 1)
                 .increateValue(nextIncrValue)
                 .userId(unit.getUserId())
-                .allCount(jobExecCountDto.getAllCount())
-                .appendCount(jobExecCountDto.getAppendCount())
-                .deleteCount(jobExecCountDto.getDeleteCount())
-                .failedCount(jobExecCountDto.getFailedCount())
-                .updateCount(jobExecCountDto.getUpdateCount())
-                .filterCount(jobExecCountDto.getFilterCount())
+                .appendCount(unit.getWriteRecords())
+                .filterCount(unit.getReadRecords())
+                .failedCount(unit.getReadRecords() - unit.getWriteRecords())
+                .allCount(0)
+                .updateCount(0)
+                .deleteCount(0)
                 .build());
     }
 

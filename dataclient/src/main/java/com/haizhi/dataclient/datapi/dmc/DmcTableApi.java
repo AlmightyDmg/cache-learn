@@ -11,6 +11,7 @@ import javax.validation.Valid;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import retrofit2.http.QueryBean;
 
 import com.haizhi.dataclient.connection.dmc.DmcConnection;
@@ -64,12 +65,14 @@ public class DmcTableApi extends DataApi<DmcConnection> {
         super(dmcConnection);
     }
 
-    public boolean checkTableRule(String whereSql, String storageId) {
-        String execSql = String.format("select count(*) from %s where %s", storageId, whereSql);
-        Integer count = Integer.valueOf(getDataConnection().getMobiusClient()
-                .query(DbQueryReq.builder().sql(execSql).build()).getData().get(0).get(0));
-
-        return Integer.valueOf(0).equals(count);
+    public Integer getDataCount(String whereSql, String storageId) {
+        StringBuilder execSql = new StringBuilder();
+        execSql.append(String.format("select count(*) from %s", storageId));
+        if (!StringUtils.isEmpty(whereSql)) {
+            execSql.append(String.format(" where %s", whereSql));
+        }
+        return Integer.valueOf(getDataConnection().getMobiusClient()
+                .query(DbQueryReq.builder().sql(execSql.toString()).build()).getData().get(0).get(0));
     }
 
     public List<String> jobGetTables(String name, String url, String user, String password,
