@@ -308,9 +308,11 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 
 	public Map<String, Object> decryptConn(String josnConn) throws IOException {
 		Map<String, Object> setUp = (Map<String, Object>) JsonUtils.toObject(josnConn, Map.class);
-		if (!ObjectUtils.isEmpty(setUp.get("pwd"))) {
+		if (!ObjectUtils.isEmpty(setUp.get("pwd"))
+				&& "true".equalsIgnoreCase(setUp.getOrDefault("crypter", "false").toString())) {
 			setUp.put("pwd", CrypterUtils.decryptData((String) setUp.get("pwd"), DataSourceConstants.DataBaseCrypterKey.KEY));
 		}
+		setUp.remove("crypter");
 		return setUp;
 
 	}
