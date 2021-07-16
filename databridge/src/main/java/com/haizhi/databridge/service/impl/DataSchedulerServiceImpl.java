@@ -192,7 +192,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		updateScheduler(updateForm, optionalTSchedulerBean.get());
 
 		// update xxljob info
-		updateJob(updateForm.getSchedulerId(), updateForm.getTiming());
+		if (!ObjectUtils.isEmpty(updateForm.getTiming())) {
+			updateJob(updateForm.getSchedulerId(), updateForm.getTiming());
+		}
 	}
 
 	public void delete(DataSchedulerForm.DeleteForm deleteForm) {
@@ -933,34 +935,37 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 
 		// 处理表勾选操作
-		DataSchedulerDto.OptionsDto optionsDto = JsonUtils.toObject(tSchedulerBean.getOptions(),
-				DataSchedulerDto.OptionsDto.class);
-		if (!ObjectUtils.isEmpty(optionsDto) && !ObjectUtils.isEmpty(optionsDto.getTables())) {
-			for (String tableId : optionsDto.getTables()) {
-				if (!changeBaseForm.getTables().contains(tableId)) {
-					tableServiceImpl.updateSchedulerId(tableId, changeBaseForm.getUserId(), null);
+		if (!ObjectUtils.isEmpty(changeBaseForm.getTables())) {
+			DataSchedulerDto.OptionsDto optionsDto = JsonUtils.toObject(tSchedulerBean.getOptions(),
+					DataSchedulerDto.OptionsDto.class);
+			if (!ObjectUtils.isEmpty(optionsDto) && !ObjectUtils.isEmpty(optionsDto.getTables())) {
+				for (String tableId : optionsDto.getTables()) {
+					if (!changeBaseForm.getTables().contains(tableId)) {
+						tableServiceImpl.updateSchedulerId(tableId, changeBaseForm.getUserId(), null);
+					}
+				}
+			} else {
+				for (String tableId : changeBaseForm.getTables()) {
+					tableServiceImpl.updateSchedulerId(tableId, changeBaseForm.getUserId(), tSchedulerBean.getSchedulerId());
 				}
 			}
-		} else {
+
 			for (String tableId : changeBaseForm.getTables()) {
-				tableServiceImpl.updateSchedulerId(tableId, changeBaseForm.getUserId(), tSchedulerBean.getSchedulerId());
+				updateSchedulerId(tableId, changeBaseForm.getUserId(), tSchedulerBean.getSchedulerId());
 			}
+
+			optionsDto.setTables(changeBaseForm.getTables());
+			tSchedulerBean.setOwner(changeBaseForm.getUserId());
+			tSchedulerBean.setOptions(JsonUtils.toJson(optionsDto));
 		}
 
-		for (String tableId : changeBaseForm.getTables()) {
-			updateSchedulerId(tableId, changeBaseForm.getUserId(), tSchedulerBean.getSchedulerId());
-		}
-
-		optionsDto.setTables(changeBaseForm.getTables());
-		tSchedulerBean.setOwner(changeBaseForm.getUserId());
-		tSchedulerBean.setOptions(JsonUtils.toJson(optionsDto));
 		tSchedulerRepo.save(tSchedulerBean);
 	}
 
 	private void updateSchedulerId(String tableId, String userId, String schedulerId) throws UnsupportedEncodingException {
 		DataTableVo.RetrieveVo retrieveVo = tableServiceImpl.retrieveTable(tableId, userId);
-		if (!ObjectUtils.isEmpty(retrieveVo) && !ObjectUtils.isEmpty(retrieveVo.getSchedulerId())
-				&& !schedulerId.equals(retrieveVo.getSchedulerId())) {
+		if (!ObjectUtils.isEmpty(retrieveVo)
+				&& !ObjectUtils.nullSafeEquals(retrieveVo.getSchedulerId(), schedulerId)) {
 			if (tSchedulerRepo.findBySchedulerIdAndOwner(retrieveVo.getSchedulerId(), userId).isPresent()) {
 				throw new DatabridgeException(StatusCode.SOURCE_EXISTS,
 						String.format("表%s已存在任务%s中", tableId, retrieveVo.getSchedulerId()));
@@ -975,6 +980,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 		jobClientApi.update(schedulerId, cronExpr, cronType,
 				DataTransJobParam.builder().jobId(schedulerId).jobType(IMPORT).build());
+		if (CRON.equalsIgnoreCase(cronType)) {
+			jobClientApi.start(schedulerId);
+		}
 	}
 
 	public String genCrontab(DataSchedulerDto.TimingDto timingDto) {
