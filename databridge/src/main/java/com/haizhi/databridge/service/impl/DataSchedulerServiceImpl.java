@@ -406,7 +406,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		} else if (timingDto.getType().equals(TIMING_TYPE_CRONTAB)) {
 			return !ObjectUtils.isEmpty(timingDto.getCrontab()) ? timingDto.getCrontab() : SYNC_CYCLE_CRONTAB;
 		} else if (timingDto.getType().equals(TIMING_TYPE_MINUTE)) {
-			return String.format("每%s分钟", ObjectUtils.isEmpty(timingDto.getMinute()) ? timingDto.getMinute() : SYNC_CYCLE_MINUTE);
+			return String.format("每%s分钟", !ObjectUtils.isEmpty(timingDto.getMinute()) ? timingDto.getMinute() : SYNC_CYCLE_MINUTE);
 		} else {
 			return SYNC_CYCLE_ORIGIN;
 		}
