@@ -715,4 +715,9 @@ public class ExportJobService extends RequestCommonData {
 
 		return "";
 	}
+
+	public Boolean jobFinished(String jobId) {
+		JobBean jobBean = jobRepository.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("job not exist"));
+		return jobBean.getStatus() != EXPORT_STATUS_SYNC && jobBean.getStatus() != EXPORT_STATUS_SYNC;
+	}
 }

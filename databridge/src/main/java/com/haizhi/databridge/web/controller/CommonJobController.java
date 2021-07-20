@@ -40,4 +40,9 @@ public class CommonJobController {
     public void updateJobTaskRel(String jobId, String taskId, String fromTableId, String toTableId, String owner) {
         dtsJobService.updateJobTaskRel(jobId, fromTableId, toTableId, taskId, owner);
     }
+
+    @RequestMapping("/job_finished")
+    public Boolean updateJobStatus(String jobId, String jobType) {
+        return dtsJobService.jobFinished(jobId, jobType);
+    }
 }

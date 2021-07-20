@@ -21,6 +21,7 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
     protected abstract String execute(U unit);
     protected abstract String checkResult(U unit);
     protected abstract void afterExec(U unit, boolean success);
+    protected abstract String cancel(U unit);
 
     protected abstract List<U> getExecUnitList(D info);
     protected abstract D getJobDetail(T jobParam);
@@ -39,20 +40,22 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
             int unitCount = execUnits.size();
 
             // 遍历执行
-            execUnits.forEach(unit -> {
+            for (U unit : execUnits) {
                 try {
                     // 每个单元执行前的准备
                     beforeExec(unit);
 
                     // 执行
                     execute(unit);
+                } catch (InterruptedException e) {
+                    throw e;
                 } catch (Exception e) {
                     log.error("execute flink task error.", e);
                 } finally {
                     // 加入正在执行的列表中
                     runningUnit.offer(unit);
                 }
-            });
+            }
 
 
             // 定时检查更新执行的结果
@@ -80,6 +83,9 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
                         if (!isSuccess) {
                             totalSuccess = false;
                         }
+                        Thread.sleep(0);
+                    } catch (InterruptedException e) {
+                        throw e;
                     } catch (Exception e) {
                         log.error("", e);
                         unitCount--;
@@ -97,6 +103,12 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
 
             // 整个Job结束后的处理
             end(detail, totalSuccess, "success");
+        } catch (InterruptedException e) {
+            for (U u : runningUnit) {
+                cancel(u);
+            }
+            end(detail, false, "cancel the job");
+            throw e;
         } catch (Exception e) {
             log.error("sync failed", e);
             end(detail, false, e.getMessage());

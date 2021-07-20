@@ -22,4 +22,5 @@ public interface DataSchedulerService {
 	void trigger(DataSchedulerForm.TriggerForm triggerForm);
 	void start(DataSchedulerForm.StartForm startForm);
 	void stop(DataSchedulerForm.StopForm stopForm);
+	Boolean jobFinished(String jobId);
 }

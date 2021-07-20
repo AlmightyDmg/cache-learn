@@ -39,4 +39,8 @@ public interface DatabridgeClient {
                             @Field("fromTableId") String fromTableId,
                             @Field("toTableId") String toTableId,
                             @Field("owner") String owner);
+
+    @POST("/api/job/job_finished")
+    @FormUrlEncoded
+    Boolean jobFinished(@Field("jobId") String jobId, @Field("jobType") String jobType);
 }

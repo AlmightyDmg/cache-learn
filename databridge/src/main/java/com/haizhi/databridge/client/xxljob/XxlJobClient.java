@@ -12,6 +12,7 @@ import retrofit2.http.POST;
 import retrofit2.http.QueryBean;
 
 import com.haizhi.databridge.client.xxljob.interceptor.XxlLoginInterceptor;
+import com.haizhi.databridge.client.xxljob.request.LogQueryParam;
 import com.haizhi.databridge.client.xxljob.request.PageQueryParam;
 import com.haizhi.databridge.client.xxljob.request.XxlJobInfo;
 import com.haizhi.databridge.client.xxljob.response.ReturnT;
@@ -55,4 +56,12 @@ public interface XxlJobClient {
     Call<ResponseBody> login(@Field("userName") String userName,
                              @Field("password") String password,
                              @Field("ifRemember") String ifRemember);
+
+    @FormUrlEncoded
+    @POST("/xxl-job-admin/joblog/pageList")
+    Map<String, Object> logList(@QueryBean LogQueryParam logQueryParam);
+
+    @FormUrlEncoded
+    @POST("/xxl-job-admin/joblog/logKill")
+    ReturnT<String> logKill(@Field("id") int id);
 }

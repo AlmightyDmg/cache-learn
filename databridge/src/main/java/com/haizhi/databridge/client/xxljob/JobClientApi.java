@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import com.haizhi.databridge.bean.domain.importdata.JobRelBean;
 import com.haizhi.databridge.client.xxljob.request.DataTransJobParam;
+import com.haizhi.databridge.client.xxljob.request.LogQueryParam;
 import com.haizhi.databridge.client.xxljob.request.PageQueryParam;
 import com.haizhi.databridge.client.xxljob.request.XxlJobInfo;
 import com.haizhi.databridge.client.xxljob.response.ReturnT;
@@ -32,6 +33,9 @@ public class JobClientApi {
     private static final String DATA_FIELD = "data";
     private static final int SUCCESS_CODE = 200;
     private static final int PAGE_SIZE = 20000;
+    private static final int LOG_STATUS_RUNNING = 3;
+    private static final int DEFAULT_JOB_GROUP = 1;
+    private static final String DEF_EXEC_HANDLER = "dataTransJobHandler";
 
     @Autowired
     XxlJobClient client;
@@ -57,10 +61,10 @@ public class JobClientApi {
                 .misfireStrategy("DO_NOTHING")
                 .executorRouteStrategy("FIRST")
                 .glueType("BEAN")
-                .jobGroup(1)
+                .jobGroup(DEFAULT_JOB_GROUP)
                 .executorFailRetryCount(1)
                 .executorTimeout(0)
-                .executorHandler("dataTransJobHandler")
+                .executorHandler(DEF_EXEC_HANDLER)
                 .build());
 
         String xxlJobId = handleResult(result);
@@ -103,6 +107,15 @@ public class JobClientApi {
         return handleResult(client.trigger(getXxlJobId(jobId), JsonUtils.toJson(jobParam)));
     }
 
+    public int cancel(String jobId) {
+        XxlJobInfo xxlJobInfo = getJobInfo(jobId);
+        Map<String, Object> logs = client.logList(LogQueryParam.builder()
+                .start(0).length(PAGE_SIZE).jobGroup(DEFAULT_JOB_GROUP).jobId(xxlJobInfo.getId()).logStatus(LOG_STATUS_RUNNING).build());
+        ((List<Map<String, Object>>) logs.get(DATA_FIELD))
+                .forEach(log -> client.logKill(Integer.parseInt(String.valueOf(log.get("id")))));
+        return ((List<Map<String, Object>>) logs.get(DATA_FIELD)).size();
+    }
+
     public Integer getXxlJobId(String jobId) {
         JobRelBean jobRelBean = jobRel.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("xxljob not exist"));
         if (StringUtils.isEmpty(jobRelBean.getDistJobId())) {
@@ -131,7 +144,7 @@ public class JobClientApi {
         Map<String, Object> jobMap = client.pageList(PageQueryParam.builder()
                 .start(0)
                 .length(PAGE_SIZE)
-                .jobGroup(1)
+                .jobGroup(DEFAULT_JOB_GROUP)
                 .jobDesc(jobId)  //databridge上的jobId对应xxljob上的jobDesc
                 .triggerStatus(-1)
                 .build());

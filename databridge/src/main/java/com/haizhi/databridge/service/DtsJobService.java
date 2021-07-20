@@ -9,4 +9,5 @@ public interface DtsJobService {
     String updateJobStatus(JobStateForm jobStateForm);
     String updateJobTask(JobUnitStateForm form);
     void updateJobTaskRel(String jobId, String fromTableId, String toTableId, String taskId, String owner);
+    Boolean jobFinished(String jobId, String jobType);
 }

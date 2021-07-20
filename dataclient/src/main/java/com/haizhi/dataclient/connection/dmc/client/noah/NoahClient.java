@@ -7,6 +7,7 @@ import retrofit2.http.Query;
 import retrofit2.http.QueryBean;
 
 import com.haizhi.dataclient.connection.dmc.client.noah.request.StartReq;
+import com.haizhi.dataclient.connection.dmc.client.noah.request.StopReq;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataFieldResp;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataResp;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.StartResp;
@@ -20,6 +21,10 @@ public interface NoahClient {
     @POST("/api/noah/task/noahstart")
     @FormUrlEncoded
     StartResp startImportJob(@QueryBean StartReq startReq);
+
+    @POST("/api/noah/task/noahstop")
+    @FormUrlEncoded
+    StartResp stopImportJob(@QueryBean StopReq stopReq);
 
     @POST("/api/noah/connector/table")
     @FormUrlEncoded

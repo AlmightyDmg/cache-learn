@@ -44,6 +44,9 @@ public interface PentagonClient {
 	@POST("/job/start")
 	PentagonResult<String> startExportJob(@Query("jobId") String jobId);
 
+	@POST("/job/stop")
+	PentagonResult<String> stopExportJob(@Query("jobId") String jobId);
+
 	/**
 	 * 级联执行合表
 	 *

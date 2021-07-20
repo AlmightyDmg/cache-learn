@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import com.haizhi.dataclient.connection.dmc.DmcConnection;
 import com.haizhi.dataclient.connection.dmc.client.noah.request.StartReq;
+import com.haizhi.dataclient.connection.dmc.client.noah.request.StopReq;
 import com.haizhi.dataclient.datapi.DataApi;
 
 /**
@@ -21,12 +22,23 @@ public class DmcJobApi extends DataApi<DmcConnection> {
         getDataConnection().getPentagonClient().startExportJob(jobId);
     }
 
+    public void stopExportJob(String jobId) {
+        getDataConnection().getPentagonClient().stopExportJob(jobId);
+    }
+
     public void startImportJob(String userId, String jobId, List<String> tables, Integer full) {
         getDataConnection().getNoahClient().startImportJob(StartReq.builder()
                 .userId(userId)
                 .jobId(jobId)
                 .tables(tables)
                 .full(full)
+                .build());
+    }
+
+    public void stopImportJob(String userId, String jobId) {
+        getDataConnection().getNoahClient().stopImportJob(StopReq.builder()
+                .userId(userId)
+                .jobId(jobId)
                 .build());
     }
 }

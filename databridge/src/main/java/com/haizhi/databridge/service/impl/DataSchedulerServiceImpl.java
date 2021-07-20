@@ -15,7 +15,9 @@ import static com.haizhi.databridge.constants.DataSourceConstants.TaskType.IMPOR
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_ERROR;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_IDLE;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_NEW;
+import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_PENDING;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_SYNCING;
+import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_TERMINATED;
 import static com.haizhi.databridge.service.impl.DataSourceServiceImpl.encodeConnectId;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -978,6 +980,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		String cronExpr = (!ObjectUtils.isEmpty(timingDto) && timingDto.getEnable()) ? genCrontab(timingDto) + " ? " : "";
 		String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
 
+		if (NORMAL.equalsIgnoreCase(cronType)) {
+			jobClientApi.stop(schedulerId);
+		}
 		jobClientApi.update(schedulerId, cronExpr, cronType,
 				DataTransJobParam.builder().jobId(schedulerId).jobType(IMPORT).build());
 		if (CRON.equalsIgnoreCase(cronType)) {
@@ -1102,6 +1107,27 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS,
 					String.format("任务不存在：%s", stopForm.getSchedulerId()));
 		}
-		jobClientApi.stop(stopForm.getSchedulerId());
+		TSchedulerBean schedulerBean = optionalTSchedulerBean.get();
+		int stopCount = jobClientApi.cancel(stopForm.getSchedulerId());
+		String status = schedulerBean.getStatus();
+		if ((ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_SYNCING)
+				|| ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_PENDING))
+				&& stopCount == 0) {
+			schedulerBean.setStatus(IMPORT_STATUS_TERMINATED);
+			tSchedulerRepo.update(schedulerBean);
+		}
+	}
+
+	@Override
+	public Boolean jobFinished(String jobId) {
+		Optional<TSchedulerBean> optionalTSchedulerBean = tSchedulerRepo.findBySchedulerId(jobId);
+		if (!optionalTSchedulerBean.isPresent()) {
+			throw new DatabridgeException(StatusCode.SOURCE_NOT_EXISTS,
+					String.format("任务不存在：%s", jobId));
+		}
+
+		String status = optionalTSchedulerBean.get().getStatus();
+		return !ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_SYNCING)
+				&& !ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_PENDING);
 	}
 }

@@ -541,6 +541,21 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     }
 
     @Override
+    protected String cancel(FlinkActionParam unit) {
+        if (!ObjectUtils.isEmpty(unit.getTaskId())) {
+            try {
+                flinkxClient.stopJob(unit.getTaskId());
+            } catch (Exception e) {
+                log.error("flink task stop failed: ", e);
+            } finally {
+                afterExec(unit, false);
+            }
+        }
+
+        return null;
+    }
+
+    @Override
     protected List<FlinkActionParam> getExecUnitList(DataTransJobDetail jobDetail) {
         return jobDetail.getSyncUnits().stream().map(syncUnit -> FlinkActionParam.builder()
                     .fromSink(syncUnit.getFromSink())

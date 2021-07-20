@@ -65,18 +65,22 @@ public class DataTransHandler {
      * data trans job
      */
     @XxlJob("dataTransJobHandler")
-    public void dataTransJobHandler() {
+    public void dataTransJobHandler() throws InterruptedException {
         XxlJobHelper.log("begin dataTransJobHandler. ");
         DataTransJobParam jobParam = JsonUtils.toObject(XxlJobHelper.getJobParam(), DataTransJobParam.class);
 
         long startTime = new Date().getTime();
+        DataTransJobDetail jobDetail = null;
+        boolean useFlink = false;
         try {
-            DataTransJobDetail jobDetail = getJobDetail(jobParam);
-            if (useFlink(jobDetail)) {
+            jobDetail = getJobDetail(jobParam);
+            useFlink = useFlink(jobDetail);
+            if (useFlink) {
                 logger.info(String.format("jobid: %s, dbtype: %s, use flink to sync", jobParam.getJobId(), jobParam.getJobType()));
                 flinkAction.doAction(jobDetail);
             } else {
                 if (jobDetail.getSyncUnits().isEmpty()) {
+                    shutdownJob(startTime, jobParam, 1, "同步内容为空");
                     XxlJobHelper.handleFail("sync unit is empty");
                     return;
                 }
@@ -100,17 +104,12 @@ public class DataTransHandler {
                             .endpoint(jobDetail.getSyncUnits().get(0).getFromSink().getUrl()).build());
                 }
             }
+        } catch (InterruptedException e) {
+            shutdownJob(startTime, jobParam, 2, "");
+            throw e;
         } catch (Exception e) {
             logger.error("", e);
-            JobExecCountDto jobExecCountDto = new JobExecCountDto();
-            databridgeClient.updateJobStatus(JobStateForm.builder().jobId(jobParam.getJobId()).jobType(jobParam.getJobType())
-                    .jobStatus(1).startTime(startTime).endTime(new Date().getTime())
-                    .allCount(jobExecCountDto.getAllCount())
-                    .appendCount(jobExecCountDto.getAppendCount())
-                    .deleteCount(jobExecCountDto.getDeleteCount())
-                    .failedCount(jobExecCountDto.getFailedCount())
-                    .updateCount(jobExecCountDto.getUpdateCount())
-                    .filterCount(jobExecCountDto.getFilterCount()).build());
+            shutdownJob(startTime, jobParam, 1, e.getMessage());
 
             XxlJobHelper.handleFail(e.getMessage());
         }
@@ -118,5 +117,18 @@ public class DataTransHandler {
         XxlJobHelper.log("end dataTransJobHandler. ");
         // default success
         XxlJobHelper.handleSuccess("success");
+    }
+
+    private void shutdownJob(long startTime, DataTransJobParam jobParam, int success, String message) {
+        JobExecCountDto jobExecCountDto = new JobExecCountDto();
+        databridgeClient.updateJobStatus(JobStateForm.builder().jobId(jobParam.getJobId()).jobType(jobParam.getJobType())
+                .jobStatus(success).startTime(startTime).endTime(new Date().getTime())
+                .errmsg(message)
+                .allCount(jobExecCountDto.getAllCount())
+                .appendCount(jobExecCountDto.getAppendCount())
+                .deleteCount(jobExecCountDto.getDeleteCount())
+                .failedCount(jobExecCountDto.getFailedCount())
+                .updateCount(jobExecCountDto.getUpdateCount())
+                .filterCount(jobExecCountDto.getFilterCount()).build());
     }
 }

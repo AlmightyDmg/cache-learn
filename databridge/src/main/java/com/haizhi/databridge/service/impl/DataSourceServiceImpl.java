@@ -325,4 +325,7 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		return GzipUtils.uncompress2Str(s, "+-");
 	}
 
+	public static void main(String[] args) {
+		String test = "";
+	}
 }
