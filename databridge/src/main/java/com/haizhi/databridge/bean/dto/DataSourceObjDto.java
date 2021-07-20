@@ -1,5 +1,6 @@
 package com.haizhi.databridge.bean.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,6 +19,7 @@ public final class DataSourceObjDto {
 	@Builder
 	@NoArgsConstructor
 	@AllArgsConstructor
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	public static final class SetUp {
 //		private String output;
 		private String type;
@@ -38,6 +40,10 @@ public final class DataSourceObjDto {
 
 		@JsonProperty("pg_database")
 		private String pgDatabase;
+
+		private Boolean crypter;
+		private String sid;
+		private String subtype;
 	}
 
 	@Data

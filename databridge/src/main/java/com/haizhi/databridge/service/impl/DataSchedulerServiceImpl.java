@@ -694,8 +694,11 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		DataTransJobVo.Sink toSink = DataTransJobVo.Sink.builder().url(dmcUrl).type("dmc")
 				.schema(dbBean.getDbId()).catalog(dbBean.getDsName()).build();
 
-		String pwd = CrypterUtils.decryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY);
-		setup.setPwd(pwd);
+		String pwd = setup.getPwd();
+		if (setup.getCrypter() != null && setup.getCrypter()) {
+			pwd = CrypterUtils.decryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY);
+			setup.setPwd(pwd);
+		}
 		String connectId = encodeConnectId(JsonUtils.toJson(setup));
 		DataTransJobVo.Sync.SyncCondition syncCondition = getSyncCondition(syncConfig, connectId, userId);
 
@@ -779,7 +782,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 //				.encodeToString((ZLibUtils.compress(tDataBaseSourceBean.getSetup().getBytes(UTF_8))));
 //		base64 = base64.replace('/', '-');
 		DataSourceObjDto.SetUp setup = JsonUtils.toObject(tDataBaseSourceBean.getSetup(), DataSourceObjDto.SetUp.class);
-		setup.setPwd(CrypterUtils.decryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
+		if (setup.getCrypter() != null && setup.getCrypter()) {
+			setup.setPwd(CrypterUtils.decryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
+		}
 		String connectId = encodeConnectId(JsonUtils.toJson(setup));
 		String ref = syncConfig.getRef();
 
