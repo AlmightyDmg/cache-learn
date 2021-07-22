@@ -16,6 +16,7 @@ public class JobStateForm {
     @Field("jobType")
     String jobType;
 
+    /* 0:运行中, 1:失败, 2:成功, 3:手动停止 */
     @Field("jobStatus")
     Integer jobStatus;
 

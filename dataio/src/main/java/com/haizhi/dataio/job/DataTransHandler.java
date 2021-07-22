@@ -105,7 +105,7 @@ public class DataTransHandler {
                 }
             }
         } catch (InterruptedException e) {
-            shutdownJob(startTime, jobParam, 2, "");
+            shutdownJob(startTime, jobParam, 3, "");
             throw e;
         } catch (Exception e) {
             logger.error("", e);

@@ -819,6 +819,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			case 0: status = IMPORT_STATUS_SYNCING; break;
 			case 1: status = IMPORT_STATUS_ERROR; break;
 			case 2: status = IMPORT_STATUS_IDLE; break;
+			case 3: status = IMPORT_STATUS_TERMINATED; break;
 			default: break;
 		}
 
