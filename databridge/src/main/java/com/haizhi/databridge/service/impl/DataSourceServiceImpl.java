@@ -7,6 +7,7 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -313,8 +314,10 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 			setUp.put("pwd", CrypterUtils.decryptData((String) setUp.get("pwd"), DataSourceConstants.DataBaseCrypterKey.KEY));
 		}
 		setUp.remove("crypter");
-		return setUp;
 
+		Map<String, Object> orderedSetup = new HashMap<>();
+		return setUp.entrySet().stream().sorted(Map.Entry.comparingByKey())
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (oldValue, newValue) -> oldValue, LinkedHashMap::new));
 	}
 
 	public static String encodeConnectId(String s) throws UnsupportedEncodingException {
