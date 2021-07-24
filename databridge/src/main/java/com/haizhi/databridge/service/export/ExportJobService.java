@@ -10,6 +10,7 @@ import static com.haizhi.databridge.constants.MetaConstants.DsType.GREENPLUM;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.MYSQL;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.POSTGRESQL;
 import static com.haizhi.databridge.constants.MetaConstants.Job.JOB_SOURCE_FROM_DMC;
+import static com.haizhi.databridge.util.CronUtils.toQuartsCron;
 import static com.haizhi.databridge.util.IdUtils.genKey;
 import static com.haizhi.databridge.util.JsonUtils.toJson;
 import static com.haizhi.databridge.util.JsonUtils.toObject;
@@ -268,7 +269,7 @@ public class ExportJobService extends RequestCommonData {
 				.orElseThrow(() -> new DatabridgeException("ds_id不存在"));
 
 		if (!ObjectUtils.isEmpty(form.getSchedulerConf().getSyncConfig())) {
-			checkCrontabValid(form.getSchedulerConf().getSyncConfig() + " ?");
+			checkCrontabValid(toQuartsCron(form.getSchedulerConf().getSyncConfig()));
 		}
 		ExportJobForm.SchedulerConfForm schedulerConfForm = form.getSchedulerConf();
 		String jobId = genKey("job");
@@ -292,7 +293,7 @@ public class ExportJobService extends RequestCommonData {
 
 		// create xxljob
 		String cronType = getExecuteMode(form.getSchedulerConf().getMode());
-		jobClientApi.add(jobId, schedulerConfForm.getSyncConfig() + " ?",
+		jobClientApi.add(jobId, toQuartsCron(schedulerConfForm.getSyncConfig()),
 				cronType,
 				DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
 
@@ -367,7 +368,7 @@ public class ExportJobService extends RequestCommonData {
 		if (!ObjectUtils.isEmpty(schedulerConfForm)) {
 			jobBean.setExecuteMode(form.getSchedulerConf().getMode());
 			if (!ObjectUtils.isEmpty(form.getSchedulerConf().getSyncConfig())) {
-				checkCrontabValid(form.getSchedulerConf().getSyncConfig() + " ?");
+				checkCrontabValid(toQuartsCron(form.getSchedulerConf().getSyncConfig()));
 			}
 
 			changeDistJob(jobBean, form);
@@ -394,7 +395,7 @@ public class ExportJobService extends RequestCommonData {
 			String cron = "";
 			if (form.getSchedulerConf().getMode() == 1 || form.getSchedulerConf().getMode() == 0) {
 				scheduleType = "CRON";
-				cron = form.getSchedulerConf().getSyncConfig() + " ?";
+				cron = toQuartsCron(form.getSchedulerConf().getSyncConfig());
 			} else {
 				scheduleType = "NONE";
 				cron = "";
@@ -484,7 +485,7 @@ public class ExportJobService extends RequestCommonData {
 		if (!jobClientApi.isXxljobExist(jobId)) {
 			ExportJobVo.SchedulerConfVo schedulerConf = toObject(jobBean.getSyncConfigBack(), ExportJobVo.SchedulerConfVo.class);
 			String cronType = getExecuteMode(schedulerConf.getMode());
-			jobClientApi.add(jobId, schedulerConf.getSyncConfig() + " ?", cronType,
+			jobClientApi.add(jobId, toQuartsCron(schedulerConf.getSyncConfig()), cronType,
 					DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
 			if ("CRON".equalsIgnoreCase(cronType) && jobBean.getStatus() != EXPORT_STATUS_STOP) {
 				jobClientApi.start(jobId);

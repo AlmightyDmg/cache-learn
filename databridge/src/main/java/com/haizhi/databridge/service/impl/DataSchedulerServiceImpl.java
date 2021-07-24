@@ -19,6 +19,7 @@ import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_SYNCING;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_TERMINATED;
 import static com.haizhi.databridge.service.impl.DataSourceServiceImpl.encodeConnectId;
+import static com.haizhi.databridge.util.CronUtils.toQuartsCron;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
@@ -902,7 +903,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		updateScheduler(createForm, tSchedulerBean);
 
 		boolean cronEnable = !ObjectUtils.isEmpty(createForm.getTiming()) && createForm.getTiming().getEnable();
-		String cronExpr = cronEnable ? genCrontab(createForm.getTiming()) + " ? " : "";
+		String cronExpr = cronEnable ? toQuartsCron(genCrontab(createForm.getTiming())) : "";
 		String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
 		jobClientApi.add(schedulerId, cronExpr, cronType,
 				DataTransJobParam.builder().jobId(schedulerId).jobType(IMPORT).build());
@@ -983,7 +984,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	}
 
 	private void updateJob(String schedulerId, DataSchedulerDto.TimingDto timingDto) {
-		String cronExpr = (!ObjectUtils.isEmpty(timingDto) && timingDto.getEnable()) ? genCrontab(timingDto) + " ? " : "";
+		String cronExpr = (!ObjectUtils.isEmpty(timingDto) && timingDto.getEnable()) ? toQuartsCron(genCrontab(timingDto)) : "";
 		String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
 
 		if (NORMAL.equalsIgnoreCase(cronType)) {
@@ -1039,12 +1040,12 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		} else if (TIMING_TYPE_CRONTAB.equals(timingDto.getType())) {
 			return timingDto.getCrontab();
 		} else if (TIMING_TYPE_MINUTE.equals(timingDto.getType())) {
-			cron.setMinute(Integer.valueOf(timingDto.getMinute()).toString());
+			cron.setMinute("*/" + timingDto.getMinute().toString());
 		} else {
 			throw new DatabridgeException(StatusCode.SOURCE_EXISTS,
 					String.format("暂不支持的类型：%s", timingDto.getType()));
 		}
-		return String.format("%s %s %s %s %s", cron.getMinute(), cron.getHour(), cron.getDay(), cron.getWeek(), cron.getMonth());
+		return String.format("%s %s %s %s %s", cron.getMinute(), cron.getHour(), cron.getDay(), cron.getMonth(), cron.getWeek());
 	}
 
 	@Transactional
@@ -1071,7 +1072,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				String schedulerId = triggerForm.getSchedulerId();
 				DataSchedulerDto.TimingDto timeDto =
 						JsonUtils.toObject(schedulerBean.getTiming(), DataSchedulerDto.TimingDto.class);
-				String cronExpr = (!ObjectUtils.isEmpty(timeDto) && timeDto.getEnable()) ? genCrontab(timeDto) + " ? " : "";
+				String cronExpr = (!ObjectUtils.isEmpty(timeDto) && timeDto.getEnable()) ? toQuartsCron(genCrontab(timeDto)) : "";
 				String cronType = "".equalsIgnoreCase(cronExpr) ? NORMAL : CRON;
 
 				jobClientApi.add(triggerForm.getSchedulerId(), cronExpr, cronType,
