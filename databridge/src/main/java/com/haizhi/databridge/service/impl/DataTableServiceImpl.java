@@ -517,7 +517,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		}
 		if (!ObjectUtils.isEmpty(tbName)) {
 			tTableBeans = tTableBeans.stream().filter(
-					tTableBean -> tbName.equals(tTableBean.getTbName())).collect(Collectors.toList());
+					tTableBean -> tTableBean.getTbName().toLowerCase().contains(tbName.toLowerCase())).collect(Collectors.toList());
 		}
 		Map<String, DataTableVo.TableVo> tableId2TableVoMap = buildTableId2TableVoMap(owner, tTableBeans);
 		return new ArrayList<>(tableId2TableVoMap.values());
