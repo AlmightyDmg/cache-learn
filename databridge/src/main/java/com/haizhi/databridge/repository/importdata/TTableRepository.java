@@ -13,7 +13,6 @@ import org.springframework.stereotype.Repository;
 import com.haizhi.data.jpa.HaizhiBaseRepository;
 import com.haizhi.databridge.bean.domain.importdata.TTableBean;
 
-@Transactional
 @Repository
 public interface TTableRepository extends HaizhiBaseRepository<TTableBean, String> {
 
@@ -21,26 +20,26 @@ public interface TTableRepository extends HaizhiBaseRepository<TTableBean, Strin
 			+ "and t_table.deleted=0", nativeQuery = true)
 	Optional<List<TTableBean>> findAllByDbIdAndOwner(String dbId, String owner);
 
-	@Query(value = "select *  from t_table  WHERE t_table.tb_name = ?1 and t_table.db_id in (?2) and t_table.owner in (?3)"
+	@Query(value = "select *  from t_table  WHERE t_table.tb_name = ?1 and t_table.db_id = ?2 and t_table.owner = ?3 "
 			+ "and t_table.deleted=0", nativeQuery = true)
 	Optional<TTableBean> findByTbNameAndDbIdAndOwner(String tbName, String dbId, String owner);
 
 
-	@Query(value = "select *  from t_table  WHERE t_table.table_id = ?1 and t_table.owner in (?2) "
+	@Query(value = "select *  from t_table  WHERE t_table.table_id = ?1 and t_table.owner = ?2 "
 			+ "and t_table.deleted=0", nativeQuery = true)
 	Optional<TTableBean> findByTableIdAndOwner(String tableId, String owner);
 
-	@Query(value = "select *  from t_table  WHERE t_table.scheduler_id = ?1 and  t_table.owner in (?2)"
+	@Query(value = "select *  from t_table  WHERE t_table.scheduler_id = ?1 and  t_table.owner = ?2 "
 			+ "and t_table.deleted=0", nativeQuery = true)
 	Optional<List<TTableBean>> findBySchedulerIdAndOwner(String schedulerId, String owner);
 
 	@Modifying
-	@org.springframework.transaction.annotation.Transactional
+	@Transactional
 	@Query(value = "update t_table set t_table.deleted = 1 where t_table.table_id = ?1", nativeQuery = true)
 	void logicDeleteByTableId(String tableId);
 
 	@Modifying
-	@org.springframework.transaction.annotation.Transactional
+	@Transactional
 	@Query(value = "update t_table set t_table.deleted = 1 where t_table.scheduler_id = ?1", nativeQuery = true)
 	void logicDeleteBySchedulerId(String schedulerId);
 

@@ -97,15 +97,20 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 			createBaseForm.setRef(refEncode(JsonUtils.list2Json(refInfo)));
 		}
 
+		String tableId = genKey("ntb");
+
 		// 构建syncConfig字段的内容
 		DataTableDto.SyncConfigDto syncConfig = new DataTableDto.SyncConfigDto();
 		syncConfig.setType(createBaseForm.getType());
 		syncConfig.setModel(createBaseForm.getModel());
 		syncConfig.setRef(createBaseForm.getRef());
+		syncConfig.setTbName(createBaseForm.getTbName());
+		syncConfig.setTableId(tableId);
+		syncConfig.setSql("");
 
 		// 保存到t_table表
 		TTableBean tTableBean = new TTableBean();
-		String tableId = genKey("ntb");
+
 		tTableBean.setTableId(tableId);
 		tTableBean.setTbName(createBaseForm.getTbName());
 		tTableBean.setDbId(dbId);

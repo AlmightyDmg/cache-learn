@@ -84,7 +84,7 @@ public class DataTableForm {
         private List<Map<Object, Object>> transformList;
         private Map<Object, Object> transform;
         private String cleanType;
-        private Integer isView;
+        private Integer isView = 0;
     }
 
     @Data

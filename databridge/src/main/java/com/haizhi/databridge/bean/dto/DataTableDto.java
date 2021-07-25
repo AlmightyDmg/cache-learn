@@ -3,6 +3,7 @@ package com.haizhi.databridge.bean.dto;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +18,7 @@ import lombok.NoArgsConstructor;
 
 public final class DataTableDto {
 
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	@Data
 	@Builder
 	@NoArgsConstructor
@@ -41,17 +43,16 @@ public final class DataTableDto {
 		private DataTableDto.FilterDto filter;
 		// 日期可以选择格式化,默认yyyy/MM/dd HH/mm/ss
 		private Map<String, DataTableDto.FieldDtoatterDto> formatter;
-		@JsonProperty("tb_ame")
+		@JsonProperty("tb_name")
 		private String tbName;
-		private Boolean synced;
+		private Boolean synced = false;
 		@JsonProperty("table_id")
 		private String tableId;
 		@JsonProperty("is_view")
-		private String isView;
+		private Integer isView = 0;
 		private Map<Object, Object> transform;
 		@JsonProperty("api_config")
 		private Object apiConfig;
-
 	}
 
 	@Data
