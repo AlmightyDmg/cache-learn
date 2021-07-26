@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
@@ -315,9 +316,9 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 		}
 		setUp.remove("crypter");
 
-		Map<String, Object> orderedSetup = new HashMap<>();
-		return setUp.entrySet().stream().sorted(Map.Entry.comparingByKey())
-				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+		Map<String, Object> orderedSetup = new TreeMap<>();
+		setUp.forEach(orderedSetup::put);
+		return orderedSetup;
 	}
 
 	public static String encodeConnectId(String s) throws UnsupportedEncodingException {
