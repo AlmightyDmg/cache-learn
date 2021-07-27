@@ -1010,7 +1010,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			Integer endHour = Integer.valueOf(end.getHour());
 			Integer endMinute = Integer.valueOf(end.getMinute());
 
-			Integer maxHour = null;
+			Integer maxHour = startHour;
 
 			if (statMinute <= endMinute) {
 				maxHour = endHour;
