@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.transaction.Transactional;
-
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -15,8 +13,6 @@ import com.haizhi.data.jpa.HaizhiBaseRepository;
 import com.haizhi.databridge.bean.domain.importdata.TSchedulerBean;
 
 
-
-@Transactional
 @Repository
 public interface TSchedulerRepository extends HaizhiBaseRepository<TSchedulerBean, String> {
 	@Query(value = "SELECT * FROM t_scheduler WHERE t_scheduler.scheduler_id = ?1 "

@@ -14,7 +14,6 @@ import org.springframework.stereotype.Repository;
 import com.haizhi.data.jpa.HaizhiBaseRepository;
 import com.haizhi.databridge.bean.domain.importdata.TDataBaseSourceBean;
 
-@Transactional
 @Repository
 public interface TdataBaseSourceRepository extends HaizhiBaseRepository<TDataBaseSourceBean, String> {
 	@Query(value = "select *  from t_database  WHERE t_database.ds_name = ?1 "
