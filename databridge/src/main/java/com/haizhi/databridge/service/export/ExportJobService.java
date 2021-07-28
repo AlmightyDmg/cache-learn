@@ -5,6 +5,7 @@ import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_QUEUE;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_STOP;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_SYNC;
+import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_TABLE_CREATE;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_TABLE_QUEUE;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.DATAHUB;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.GREENPLUM;
@@ -290,6 +291,7 @@ public class ExportJobService extends RequestCommonData {
 		jobBean.setEtime(Timestamp.valueOf(LocalDateTime.now()));
 		jobBean.setXtbId(getXtbId(form));
 		jobBean.setJobSource(JOB_SOURCE_FROM_DMC);
+		jobBean.setStatus(EXPORT_TABLE_CREATE);
 		jobRepository.save(jobBean);
 
 		// create xxljob
@@ -298,7 +300,7 @@ public class ExportJobService extends RequestCommonData {
 				cronType,
 				DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
 
-		if ("CRON".equalsIgnoreCase(cronType) && jobBean.getStatus() != EXPORT_STATUS_STOP) {
+		if ("CRON".equalsIgnoreCase(cronType) && !ObjectUtils.nullSafeEquals(jobBean.getStatus(), EXPORT_STATUS_STOP)) {
 			jobClientApi.start(jobId);
 		}
 
@@ -490,7 +492,7 @@ public class ExportJobService extends RequestCommonData {
 			String cronType = getExecuteMode(schedulerConf.getMode());
 			jobClientApi.add(jobId, toQuartsCron(schedulerConf.getSyncConfig()), cronType,
 					DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
-			if ("CRON".equalsIgnoreCase(cronType) && jobBean.getStatus() != EXPORT_STATUS_STOP) {
+			if ("CRON".equalsIgnoreCase(cronType) && !ObjectUtils.nullSafeEquals(jobBean.getStatus(), EXPORT_STATUS_STOP)) {
 				jobClientApi.start(jobId);
 			}
 		}
