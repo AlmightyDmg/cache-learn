@@ -32,6 +32,7 @@ import com.haizhi.databridge.repository.importdata.TTableRepository;
 import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataTableService;
 import com.haizhi.databridge.util.Base64Utils;
+import com.haizhi.databridge.util.DLock;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
 import com.haizhi.databridge.web.controller.form.DataTableForm;
@@ -52,6 +53,9 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 
 	@Autowired
 	private TTableRepository tTableRepo;
+
+	@Autowired
+	private DLock dLock;
 
 	/**
 	 * @Description //数据源创建接口
@@ -80,45 +84,57 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 				&& !DataSourceConstants.DataBaseType.MYSQL.equals(dbBean.getDbType())) {
 			throw new DatabridgeException(StatusCode.TYPE_NOT_ALLOWED, "BINLOG同步方式仅支持MYSQL");
 		}
-		// 判断表是否存在
-		Optional<TTableBean> optionalTableBean = tTableRepo.findByTbNameAndDbIdAndOwner(
-				createBaseForm.getTbName(), dbBean.getDbId(), userId);
-		if (optionalTableBean.isPresent()) {
-			throw new DatabridgeException(StatusCode.DATA_TABLE_EXISTS,
-					String.format("数据表%s已存在", optionalTableBean.get().getTbName()));
-		}
 
-		// 生成api数据源的ref
-		if (DataSourceConstants.DataBaseType.API.equals(dbBean.getDbType())) {
-			List<String> refInfo = new ArrayList<>();
-			refInfo.add(dbBean.getDsName());
-			refInfo.add(null);
-			refInfo.add(createBaseForm.getTbName());
-			createBaseForm.setRef(refEncode(JsonUtils.list2Json(refInfo)));
-		}
-
+		String lockKey = String.format("IMPORT:TABLE:CREATE:s", createBaseForm.getTbName());
+		String lockVal = String.valueOf(System.currentTimeMillis());
 		String tableId = genKey("ntb");
+		try {
+			if (!dLock.tryLock(lockKey, lockVal)) {
+				throw new DatabridgeException(StatusCode.DATA_TABLE_EXISTS,
+						String.format("数据表%s已存在.", createBaseForm.getTbName()));
+			}
 
-		// 构建syncConfig字段的内容
-		DataTableDto.SyncConfigDto syncConfig = new DataTableDto.SyncConfigDto();
-		syncConfig.setType(createBaseForm.getType());
-		syncConfig.setModel(createBaseForm.getModel());
-		syncConfig.setRef(createBaseForm.getRef());
-		syncConfig.setTbName(createBaseForm.getTbName());
-		syncConfig.setTableId(tableId);
-		syncConfig.setSql("");
+			// 判断表是否存在
+			Optional<TTableBean> optionalTableBean = tTableRepo.findByTbNameAndDbIdAndOwner(
+					createBaseForm.getTbName(), dbBean.getDbId(), userId);
+			if (optionalTableBean.isPresent()) {
+				throw new DatabridgeException(StatusCode.DATA_TABLE_EXISTS,
+						String.format("数据表%s已存在", optionalTableBean.get().getTbName()));
+			}
 
-		// 保存到t_table表
-		TTableBean tTableBean = new TTableBean();
+			// 生成api数据源的ref
+			if (DataSourceConstants.DataBaseType.API.equals(dbBean.getDbType())) {
+				List<String> refInfo = new ArrayList<>();
+				refInfo.add(dbBean.getDsName());
+				refInfo.add(null);
+				refInfo.add(createBaseForm.getTbName());
+				createBaseForm.setRef(refEncode(JsonUtils.list2Json(refInfo)));
+			}
 
-		tTableBean.setTableId(tableId);
-		tTableBean.setTbName(createBaseForm.getTbName());
-		tTableBean.setDbId(dbId);
-		tTableBean.setOwner(userId);
-		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
-		tTableBean.setRemark(createBaseForm.getRemark());
-		tTableBean.setStatus(DataSourceConstants.DataTableStatus.STATUS_NEW);
-		tTableRepo.save(tTableBean);
+			// 构建syncConfig字段的内容
+			DataTableDto.SyncConfigDto syncConfig = new DataTableDto.SyncConfigDto();
+			syncConfig.setType(createBaseForm.getType());
+			syncConfig.setModel(createBaseForm.getModel());
+			syncConfig.setRef(createBaseForm.getRef());
+			syncConfig.setTbName(createBaseForm.getTbName());
+			syncConfig.setTableId(tableId);
+			syncConfig.setSql("");
+
+			// 保存到t_table表
+			TTableBean tTableBean = new TTableBean();
+
+			tTableBean.setTableId(tableId);
+			tTableBean.setTbName(createBaseForm.getTbName());
+			tTableBean.setDbId(dbId);
+			tTableBean.setOwner(userId);
+			tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
+			tTableBean.setRemark(createBaseForm.getRemark());
+			tTableBean.setStatus(DataSourceConstants.DataTableStatus.STATUS_NEW);
+			tTableRepo.save(tTableBean);
+		} finally {
+			dLock.unlock(lockKey, lockVal);
+		}
+
 
 		return DataTableVo.CreateVo.builder()
 				.tableId(tableId)

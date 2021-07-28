@@ -9,6 +9,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import com.haizhi.databridge.exception.DatabridgeException;
+import com.haizhi.databridge.util.DLock;
+
 /**
  * redis配置类
  */
@@ -52,5 +54,21 @@ public class RedisConfig extends CachingConfigurerSupport {
 
 		redisTemplate = template;
 		return template;
+	}
+
+	@Bean
+	public DLock dLock(RedisConnectionFactory factory) {
+		RedisTemplate<String, String> template = new RedisTemplate<>();
+		template.setConnectionFactory(factory);
+		StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();
+		template.setKeySerializer(stringRedisSerializer);
+		template.setValueSerializer(stringRedisSerializer);
+
+		// 设置hash key 和value序列化模式
+		template.setHashKeySerializer(stringRedisSerializer);
+		template.setHashValueSerializer(stringRedisSerializer);
+		template.afterPropertiesSet();
+
+		return new DLock(template);
 	}
 }
