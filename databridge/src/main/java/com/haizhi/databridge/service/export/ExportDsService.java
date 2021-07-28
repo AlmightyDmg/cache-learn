@@ -780,7 +780,7 @@ public class ExportDsService extends RequestCommonData {
 				form.getDbName(), dbType, isSecurity, isNetSSL,
 				Integer.valueOf(!ObjectUtils.isEmpty(form.getVersion()) ? form.getVersion() : "0"));
 		} catch (Exception e) {
-			throw new DatabridgeException(StatusCode.CONN_ERROR, e.getMessage());
+			throw new DatabridgeException(StatusCode.CONN_ERROR, "连接失败.");
 		}
 		return tableList;
 	}
