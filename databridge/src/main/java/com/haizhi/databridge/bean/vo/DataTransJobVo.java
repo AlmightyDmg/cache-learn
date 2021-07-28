@@ -38,6 +38,7 @@ public class DataTransJobVo {
         Reader reader;
         Writer writer;
         String userId;
+        String errorMsg;
     }
 
     @Data

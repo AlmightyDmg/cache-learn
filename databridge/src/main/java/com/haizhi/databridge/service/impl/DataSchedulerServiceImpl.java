@@ -689,8 +689,14 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 												String dmcUrl, String userId) throws Exception {
 		TDataBaseSourceBean dbBean = databaseRepo.findByDbId(tableBean.getDbId()).orElse(new TDataBaseSourceBean());
 		DataSourceObjDto.SetUp setup = JsonUtils.toObject(dbBean.getSetup(), DataSourceObjDto.SetUp.class);
-		List<DataTransJobVo.Column> columns =
-				getFromColumns(syncConfig, dbBean, tableBean.getTbName(), syncConfig.getFields(), userId);
+		List<DataTransJobVo.Column> columns = null;
+		String errorMsg = "";
+		try {
+			columns = getFromColumns(syncConfig, dbBean, tableBean.getTbName(), syncConfig.getFields(), userId);
+		} catch (Exception e) {
+			log.error(e);
+			errorMsg = e.getMessage();
+		}
 
 		DataTransJobVo.Sink toSink = DataTransJobVo.Sink.builder().url(dmcUrl).type("dmc")
 				.schema(dbBean.getDbId()).catalog(dbBean.getDsName()).build();
@@ -721,6 +727,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 					String.class);
 		} catch (UnsupportedEncodingException e) {
 			log.error(e);
+			if (ObjectUtils.isEmpty(errorMsg)) {
+				errorMsg = e.getMessage();
+			}
 		}
 		String syncType = syncConfig.getIncrease() != null ? "increment" : "overwrite";
 		Integer isTruncate = syncConfig.getIncrease() == null && Integer.valueOf(1).equals(syncConfig.getClean()) ? 1 : 0;
@@ -742,6 +751,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				.fromSink(DataTransJobVo.Sink.builder()
 						.url(setup.getServer() + ":" + setup.getPort()).username(setup.getUid()).password(pwd)
 						.type(dbBean.getDbType()).schema(schema).catalog(catalog).build())
+				.errorMsg(errorMsg)
 				.build();
 	}
 

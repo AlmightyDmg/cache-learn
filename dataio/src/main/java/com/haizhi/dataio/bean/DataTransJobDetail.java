@@ -42,6 +42,7 @@ public class DataTransJobDetail extends JobDetail {
         Reader reader;
         Writer writer;
         String userId;
+        String errorMsg;
     }
 
     @Data
