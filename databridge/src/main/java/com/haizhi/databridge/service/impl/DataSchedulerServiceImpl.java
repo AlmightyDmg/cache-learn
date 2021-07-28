@@ -19,6 +19,7 @@ import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_SYNCING;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_TERMINATED;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_TABLE_TERMINATED;
+import static com.haizhi.databridge.constants.DatabridgeConstants.JOB_FORCE_STOP;
 import static com.haizhi.databridge.service.impl.DataSourceServiceImpl.encodeConnectId;
 import static com.haizhi.databridge.util.CronUtils.toQuartsCron;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -687,6 +688,14 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		return filter;
 	}
 
+	private void rebuildPass(DataSourceObjDto.SetUp setup) throws IOException {
+		String pwd = setup.getPwd();
+		if (setup.getCrypter() != null && setup.getCrypter()) {
+			pwd = CrypterUtils.decryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY);
+			setup.setPwd(pwd);
+		}
+	}
+
 	private DataTransJobVo.SyncUnit getSyncUnit(DataTableDto.SyncConfigDto syncConfig, TTableBean tableBean,
 												String dmcUrl, String userId) throws Exception {
 		TDataBaseSourceBean dbBean = databaseRepo.findByDbId(tableBean.getDbId()).orElse(new TDataBaseSourceBean());
@@ -703,11 +712,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		DataTransJobVo.Sink toSink = DataTransJobVo.Sink.builder().url(dmcUrl).type("dmc")
 				.schema(dbBean.getDbId()).catalog(dbBean.getDsName()).build();
 
-		String pwd = setup.getPwd();
-		if (setup.getCrypter() != null && setup.getCrypter()) {
-			pwd = CrypterUtils.decryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY);
-			setup.setPwd(pwd);
-		}
+		rebuildPass(setup);
 		String connectId = encodeConnectId(JsonUtils.toJson(setup));
 		DataTransJobVo.Sync.SyncCondition syncCondition = getSyncCondition(syncConfig, connectId, userId);
 
@@ -723,16 +728,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 		DataSourceObjDto.Options options = JsonUtils.toObject(dbBean.getOptions(), DataSourceObjDto.Options.class);
 
-		List<String> schemaList = new ArrayList<>();
-		try {
-			schemaList = JsonUtils.toList(new String(Base64Utils.decodeBase64(syncConfig.getRef()), "UTF-8"),
+		List<String> schemaList = JsonUtils.toList(new String(Base64Utils.decodeBase64(syncConfig.getRef()), "UTF-8"),
 					String.class);
-		} catch (UnsupportedEncodingException e) {
-			log.error(e);
-			if (ObjectUtils.isEmpty(errorMsg)) {
-				errorMsg = e.getMessage();
-			}
-		}
+
 		String syncType = syncConfig.getIncrease() != null ? "increment" : "overwrite";
 		Integer isTruncate = syncConfig.getIncrease() == null && Integer.valueOf(1).equals(syncConfig.getClean()) ? 1 : 0;
 		String schema = schemaList.size() > 2 ? schemaList.get(1) : null;
@@ -743,15 +741,14 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 						.columns(columns)
 						.sync(DataTransJobVo.Sync.builder().type(syncType).isTruncate(isTruncate)
 								.fetchSize(syncConfig.getRows()).syncCondition(syncCondition).build())
-						.filter(filter)
-						.tableId(tableBean.getTableId()).tableName(tableBean.getTbName())
+						.filter(filter).tableId(tableBean.getTableId()).tableName(tableBean.getTbName())
 						.build())
 				.writer(DataTransJobVo.Writer.builder()
 						.columns(columns).tableId(toTableId).tablePath(toTablePath).tableName(tableBean.getTbName())
 						.build())
 				.toSink(toSink)
 				.fromSink(DataTransJobVo.Sink.builder()
-						.url(setup.getServer() + ":" + setup.getPort()).username(setup.getUid()).password(pwd)
+						.url(setup.getServer() + ":" + setup.getPort()).username(setup.getUid()).password(setup.getPwd())
 						.type(dbBean.getDbType()).schema(schema).catalog(catalog).build())
 				.errorMsg(errorMsg)
 				.build();
@@ -832,7 +829,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			case 0: status = IMPORT_STATUS_SYNCING; break;
 			case 1: status = IMPORT_STATUS_ERROR; break;
 			case 2: status = IMPORT_STATUS_IDLE; break;
-			case 3: status = IMPORT_STATUS_TERMINATED; break;
+			case JOB_FORCE_STOP: status = IMPORT_STATUS_TERMINATED; break;
 			default: break;
 		}
 

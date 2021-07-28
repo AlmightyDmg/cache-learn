@@ -1,7 +1,5 @@
 package com.haizhi.databridge.repository.importdata;
 
-import javax.transaction.Transactional;
-
 import org.springframework.stereotype.Repository;
 
 import com.haizhi.data.jpa.HaizhiBaseRepository;

@@ -2,11 +2,11 @@ package com.haizhi.databridge.service.export;
 
 import static com.haizhi.databridge.constants.DataSourceConstants.TaskType.EXPORT;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_CREATE;
-import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_QUEUE;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_STOP;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_SYNC;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_TABLE_CREATE;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_TABLE_QUEUE;
+import static com.haizhi.databridge.constants.DatabridgeConstants.M_PER_S;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.DATAHUB;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.GREENPLUM;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.MYSQL;
@@ -687,7 +687,7 @@ public class ExportJobService extends RequestCommonData {
 					.startTime(new Timestamp(jobStateForm.getStartTime()))
 					.status(jobStateForm.getJobStatus() == 1 ? 0 : 1)
 					.endTime(new Timestamp(jobStateForm.getEndTime()))
-					.costTime((int) (jobStateForm.getStartTime() - jobStateForm.getEndTime()))
+					.costTime((int) (jobStateForm.getStartTime() - jobStateForm.getEndTime()) / M_PER_S)
 					.errorMsg(jobStateForm.getErrmsg() == null ? "" : jobStateForm.getErrmsg())
 					.count(JsonUtils.toJson(countVo))
 					.isDel(0)

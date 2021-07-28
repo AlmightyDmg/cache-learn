@@ -89,18 +89,14 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		String lockVal = String.valueOf(System.currentTimeMillis());
 		String tableId = genKey("ntb");
 		try {
+			String tableExistMsg = String.format("数据表%s已存在.", createBaseForm.getTbName());
 			if (!dLock.tryLock(lockKey, lockVal)) {
-				throw new DatabridgeException(StatusCode.DATA_TABLE_EXISTS,
-						String.format("数据表%s已存在.", createBaseForm.getTbName()));
+				throw new DatabridgeException(StatusCode.DATA_TABLE_EXISTS, tableExistMsg);
 			}
 
 			// 判断表是否存在
-			Optional<TTableBean> optionalTableBean = tTableRepo.findByTbNameAndDbIdAndOwner(
-					createBaseForm.getTbName(), dbBean.getDbId(), userId);
-			if (optionalTableBean.isPresent()) {
-				throw new DatabridgeException(StatusCode.DATA_TABLE_EXISTS,
-						String.format("数据表%s已存在", optionalTableBean.get().getTbName()));
-			}
+			tTableRepo.findByTbNameAndDbIdAndOwner(createBaseForm.getTbName(), dbBean.getDbId(), userId)
+					.orElseThrow(() -> new DatabridgeException(StatusCode.DATA_TABLE_EXISTS, tableExistMsg));
 
 			// 生成api数据源的ref
 			if (DataSourceConstants.DataBaseType.API.equals(dbBean.getDbType())) {
@@ -135,11 +131,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 			dLock.unlock(lockKey, lockVal);
 		}
 
-
-		return DataTableVo.CreateVo.builder()
-				.tableId(tableId)
-				.name(createBaseForm.getTbName())
-				.build();
+		return DataTableVo.CreateVo.builder().tableId(tableId).name(createBaseForm.getTbName()).build();
 	}
 
 	public DataTableVo.RetrieveVo retrieve(DataTableForm.DataTableRetrieveForm tableRetrieveForm) throws UnsupportedEncodingException {
@@ -533,7 +525,8 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 		}
 		if (!ObjectUtils.isEmpty(tbName)) {
 			tTableBeans = tTableBeans.stream().filter(
-					tTableBean -> tTableBean.getTbName().toLowerCase().contains(tbName.toLowerCase())).collect(Collectors.toList());
+					tTableBean -> tTableBean.getTbName().toLowerCase().contains(tbName.toLowerCase()))
+					.collect(Collectors.toList());
 		}
 		Map<String, DataTableVo.TableVo> tableId2TableVoMap = buildTableId2TableVoMap(owner, tTableBeans);
 		return new ArrayList<>(tableId2TableVoMap.values());
