@@ -5,6 +5,7 @@ import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_QUEUE;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_STOP;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_SYNC;
+import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_TABLE_QUEUE;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.DATAHUB;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.GREENPLUM;
 import static com.haizhi.databridge.constants.MetaConstants.DsType.MYSQL;
@@ -303,6 +304,8 @@ public class ExportJobService extends RequestCommonData {
 
 		// 创建完默认执行一次
 		jobClientApi.trigger(jobId, DataTransJobParam.builder().jobId(jobId).jobType(EXPORT).build());
+
+		jobRepository.updateJob(jobId, EXPORT_TABLE_QUEUE);
 	}
 
 	private String getXtbId(ExportJobForm.ExportJobCreateForm form) {
