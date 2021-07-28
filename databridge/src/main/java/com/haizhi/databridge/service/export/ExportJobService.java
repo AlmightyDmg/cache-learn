@@ -479,11 +479,11 @@ public class ExportJobService extends RequestCommonData {
 	@Transactional
 	public void jobExec(String jobId) {
 		JobBean jobBean = jobRepository.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("任务不存在"));
-		if (jobBean.getStatus() == EXPORT_STATUS_QUEUE || jobBean.getStatus() == EXPORT_STATUS_SYNC) {
+		if (jobBean.getStatus() == EXPORT_STATUS_SYNC) {
 			throw new DatabridgeException("任务已在运行中，请勿重复触发");
 		}
 
-		jobBean.setStatus(EXPORT_STATUS_QUEUE);
+		jobBean.setStatus(EXPORT_STATUS_SYNC);
 		jobRepository.update(jobBean);
 
 		// if xxl-job not exist, then create it.
