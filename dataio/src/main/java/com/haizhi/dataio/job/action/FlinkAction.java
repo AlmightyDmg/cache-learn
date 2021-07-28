@@ -120,6 +120,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
 
         int readRecords = 0;
         int writeRecords = 0;
+        String errorMsg = "success";
     }
 
     public static boolean isSupportedDb(String fromDbType, String toDbTYpe) {
@@ -452,7 +453,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         FlinkxJobStatus flinkxJobStatus = flinkxClient.getStatus(taskId).getResult();
 
         String state = flinkxJobStatus.getStatus().getState();
-        if ("finished".equalsIgnoreCase(state) || "failed".equalsIgnoreCase(state)) {
+        if ("finished".equalsIgnoreCase(state)) {
             Optional.ofNullable(flinkxJobStatus.getStatus().getVertices()).orElse(new ArrayList<>()).forEach(ver -> {
                 unitParam.readRecords += ver.getReadRecords();
                 unitParam.writeRecords += ver.getWriteRecords();

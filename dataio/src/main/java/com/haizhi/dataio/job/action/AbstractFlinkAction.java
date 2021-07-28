@@ -73,8 +73,8 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
 
                         if ("finished".equalsIgnoreCase(state) || "failed".equalsIgnoreCase(state)) {
                             // task结束后的处理
-                            afterExec(unit, isSuccess);
                             isSuccess = "finished".equalsIgnoreCase(state);
+                            afterExec(unit, isSuccess);
                             unitCount--;
                         } else {
                             unfinished.add(unit);
@@ -102,7 +102,7 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
             }
 
             // 整个Job结束后的处理
-            end(detail, 2, "success");
+            end(detail, totalSuccess ? 2 : 1, "success");
         } catch (InterruptedException e) {
             for (U u : runningUnit) {
                 cancel(u);
