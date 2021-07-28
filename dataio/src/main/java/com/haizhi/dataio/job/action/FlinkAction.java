@@ -144,7 +144,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     }
 
     @Override
-    protected void end(DataTransJobDetail info, boolean success, String errmsg) {
+    protected void end(DataTransJobDetail info, int status, String errmsg) {
         JobExecCountDto jobExecCountDto = new JobExecCountDto();
         log.info(String.format("jobid: %s, end to sync", info.getJobId()));
         if (countRes.get() != null) {
@@ -158,7 +158,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             });
         }
         databridgeClient.updateJobStatus(JobStateForm.builder().jobId(info.getJobId()).jobType(info.getJobType())
-                .jobStatus(success ? 2 : 1).startTime(startTime.get()).endTime(new Date().getTime())
+                .jobStatus(status).startTime(startTime.get()).endTime(new Date().getTime())
                 .allCount(jobExecCountDto.getAllCount())
                 .appendCount(jobExecCountDto.getAppendCount())
                 .deleteCount(jobExecCountDto.getDeleteCount())

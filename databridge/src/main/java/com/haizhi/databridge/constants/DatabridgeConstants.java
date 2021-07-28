@@ -103,4 +103,6 @@ public final class DatabridgeConstants {
     public static final String IMPORT_STATUS_ERROR = "error";
     public static final String IMPORT_STATUS_TERMINATED = "terminated";
     public static final String IMPORT_STATUS_PENDING = "pending";
+
+    public static final String IMPORT_TABLE_TERMINATED = "terminated";
 }

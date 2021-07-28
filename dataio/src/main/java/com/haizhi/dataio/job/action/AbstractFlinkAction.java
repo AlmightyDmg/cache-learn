@@ -15,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
     protected abstract void begin(D info);
-    protected abstract void end(D info, boolean success, String errmsg);
+    protected abstract void end(D info, int success, String errmsg);
 
     protected abstract void beforeExec(U unit) throws Exception;
     protected abstract String execute(U unit);
@@ -102,16 +102,16 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
             }
 
             // 整个Job结束后的处理
-            end(detail, totalSuccess, "success");
+            end(detail, 2, "success");
         } catch (InterruptedException e) {
             for (U u : runningUnit) {
                 cancel(u);
             }
-            end(detail, false, "cancel the job");
+            end(detail, 3, "cancel the job");
             throw e;
         } catch (Exception e) {
             log.error("sync failed", e);
-            end(detail, false, e.getMessage());
+            end(detail, 1, e.getMessage());
         }
     }
 }

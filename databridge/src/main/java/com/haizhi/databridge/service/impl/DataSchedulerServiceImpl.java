@@ -18,6 +18,7 @@ import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_PENDING;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_SYNCING;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_TERMINATED;
+import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_TABLE_TERMINATED;
 import static com.haizhi.databridge.service.impl.DataSourceServiceImpl.encodeConnectId;
 import static com.haizhi.databridge.util.CronUtils.toQuartsCron;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -39,6 +40,7 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -840,6 +842,16 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 		tSchedulerRepo.update(schedulerBean);
 
+		if (Objects.equals(status, IMPORT_STATUS_TERMINATED)) {
+			JsonUtils.toObject(schedulerBean.getOptions(), DataSchedulerDto.OptionsDto.class)
+					.getTables().stream().map(tableId -> tTableRepo.findByTableId(tableId).orElse(null))
+					.filter(Objects::nonNull)
+					.forEach(table -> {
+						table.setStatus(IMPORT_TABLE_TERMINATED);
+						tTableRepo.update(table);
+					});
+		}
+
 		return null;
 	}
 
@@ -1127,11 +1139,22 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		TSchedulerBean schedulerBean = optionalTSchedulerBean.get();
 		int stopCount = jobClientApi.cancel(stopForm.getSchedulerId());
 		String status = schedulerBean.getStatus();
+
 		if ((ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_SYNCING)
 				|| ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_PENDING))
 				&& stopCount == 0) {
+			// shutdown import job by force
 			schedulerBean.setStatus(IMPORT_STATUS_TERMINATED);
 			tSchedulerRepo.update(schedulerBean);
+
+			// shutdown table sync by force
+			JsonUtils.toObject(schedulerBean.getOptions(), DataSchedulerDto.OptionsDto.class)
+					.getTables().stream().map(tableId -> tTableRepo.findByTableId(tableId).orElse(null))
+					.filter(Objects::nonNull)
+					.forEach(table -> {
+						table.setStatus(IMPORT_TABLE_TERMINATED);
+						tTableRepo.update(table);
+					});
 		}
 	}
 

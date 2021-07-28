@@ -105,7 +105,7 @@ public class DataTransHandler {
                 }
             }
         } catch (InterruptedException e) {
-            shutdownJob(startTime, jobParam, 3, "");
+            // cancel job
             throw e;
         } catch (Exception e) {
             logger.error("", e);
@@ -119,10 +119,10 @@ public class DataTransHandler {
         XxlJobHelper.handleSuccess("success");
     }
 
-    private void shutdownJob(long startTime, DataTransJobParam jobParam, int success, String message) {
+    private void shutdownJob(long startTime, DataTransJobParam jobParam, int status, String message) {
         JobExecCountDto jobExecCountDto = new JobExecCountDto();
         databridgeClient.updateJobStatus(JobStateForm.builder().jobId(jobParam.getJobId()).jobType(jobParam.getJobType())
-                .jobStatus(success).startTime(startTime).endTime(new Date().getTime())
+                .jobStatus(status).startTime(startTime).endTime(new Date().getTime())
                 .errmsg(message)
                 .allCount(jobExecCountDto.getAllCount())
                 .appendCount(jobExecCountDto.getAppendCount())
