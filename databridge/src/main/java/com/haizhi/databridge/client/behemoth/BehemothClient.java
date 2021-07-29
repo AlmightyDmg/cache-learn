@@ -4,6 +4,7 @@ import java.util.List;
 
 import javax.validation.Valid;
 
+import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.POST;
 import retrofit2.http.QueryBean;
@@ -21,7 +22,15 @@ public interface BehemothClient {
 	@FormUrlEncoded
 	BehemothResult<List<RoleListResp>> roleList(@Valid @QueryBean RoleListReq request);
 
+	@POST("api/role/inner_list")
+	@FormUrlEncoded
+	BehemothResult<List<RoleListResp>> innerRoleList(@Valid @Field("inner_user_id") String innerUserId);
+
 	@POST("api/chat/list")
 	@FormUrlEncoded
 	BehemothResult<List<ChatListResp>> chatList(@Valid @QueryBean ChatListReq request);
+
+	@POST("api/chat/inner_list")
+	@FormUrlEncoded
+	BehemothResult<List<ChatListResp>> innerChatList(@Valid @Field("inner_user_id") String innerUserId);
 }

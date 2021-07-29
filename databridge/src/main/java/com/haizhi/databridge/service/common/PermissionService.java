@@ -68,17 +68,17 @@ public class PermissionService extends RequestCommonData {
 
     public void getRoleInfoByIds(Map<String, String> roleId2Name, List<String> roleIds) {
         if (!roleIds.isEmpty()) {
-            BehemothResult<List<RoleListResp>> roleListResult = behemothClient.roleList(
-                    RoleListReq.builder().roleList(JsonUtils.toJson(roleIds)).build());
-            List<RoleListResp> userList = roleListResult.getResult();
+            List<RoleListResp> userList = behemothClient.innerRoleList(this.getUserId()).getResult()
+                    .stream().filter(x -> roleIds.contains(x.getRoleId())).collect(Collectors.toList());
+
             roleId2Name.putAll(userList.stream().collect(Collectors.toMap(RoleListResp::getRoleId, RoleListResp::getRoleName)));
         }
     }
     public void getChatInfoByIds(Map<String, String> roleId2Name, List<String> chatIds) {
         if (!chatIds.isEmpty()) {
-            BehemothResult<List<ChatListResp>> chatListResult = behemothClient.chatList(
-                    ChatListReq.builder().chatIds(JsonUtils.toJson(chatIds)).build());
-            List<ChatListResp> userList = chatListResult.getResult();
+            List<ChatListResp> userList = behemothClient.innerChatList(this.getUserId()).getResult()
+                    .stream().filter(x -> chatIds.contains(x.getChatId())).collect(Collectors.toList());
+
             roleId2Name.putAll(userList.stream().collect(Collectors.toMap(ChatListResp::getChatId, ChatListResp::getChatName)));
         }
     }
