@@ -297,7 +297,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                         .table(Arrays.asList(unit.getWriter().getTableName()))
                         .build()))
                 .column(unit.getWriter().getColumns().stream().map(col ->
-                        MetaColumn.builder().name(col.getName()).type("text").value(col.getValue()).build())
+                        MetaColumn.builder().name(col.getName()).type(col.getType()).value(col.getValue()).build())
                         .collect(Collectors.toList()))
                 .insertSqlMode("copy")
                 .writeMode("insert")
