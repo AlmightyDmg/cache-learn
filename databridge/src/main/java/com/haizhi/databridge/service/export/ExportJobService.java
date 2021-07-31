@@ -56,6 +56,7 @@ import com.haizhi.databridge.repository.exportdata.ExportDsTbRepository;
 import com.haizhi.databridge.repository.exportdata.ExportLogRepository;
 import com.haizhi.databridge.repository.exportdata.JobRepository;
 import com.haizhi.databridge.repository.importdata.TblTransTaskRelRepository;
+import com.haizhi.databridge.util.CronUtils;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
 import com.haizhi.databridge.util.SpringUtils;
@@ -329,7 +330,7 @@ public class ExportJobService extends RequestCommonData {
 	}
 
 	public void checkCrontabValid(String crontab) {
-		if (!CronSequenceGenerator.isValidExpression(crontab)) {
+		if (!CronUtils.isValidExpression(crontab)) {
 			throw new DatabridgeException("cron invalid");
 		}
 	}

@@ -4,12 +4,24 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 public final class CronUtils {
     private CronUtils() { }
-    public static String toQuartsCron(String linuxCron) {
+
+    /**
+     * 转为spring quarts的格式
+     * @param linuxCrons 支持多个，以";"分割
+     * @return
+     */
+    public static String toQuartsCron(String linuxCrons) {
+        List<String> cronList = genCronList(linuxCrons).stream().map(CronUtils::toQuarts).collect(Collectors.toList());
+        return String.join(";", cronList);
+    }
+
+    private static String toQuarts(String linuxCron) {
         if (ObjectUtils.isEmpty(linuxCron)) {
             return linuxCron;
         }
@@ -27,5 +39,29 @@ public final class CronUtils {
 
             return String.join(" ", cronPartList);
         }
+    }
+
+    /**
+     * check spring quarts String
+     * @param cronArray 支持多个，以";"分割
+     * @return
+     */
+    public static boolean isValidExpression(String cronArray) {
+        List<String> cronList = genCronList(cronArray);
+        if (cronList == null || cronList.isEmpty()) {
+            return false;
+        }
+
+        for (String cron : cronList) {
+            if (!CronSequenceGenerator.isValidExpression(cron)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static List<String> genCronList(String cronArray) {
+        return Arrays.stream(cronArray.split(";"))
+                .filter(x -> x.trim().length() > 0).collect(Collectors.toList());
     }
 }
