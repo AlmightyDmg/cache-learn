@@ -1146,8 +1146,20 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		if ((ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_SYNCING)
 				|| ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_PENDING))
 				&& stopCount == 0) {
-			// 调用noah的接口暂停任务
+
+			// 若xxl服务停止或者重启，可能noah还在执行，调用noah的接口暂停任务
 			dmcJobApi.stopImportJob(schedulerBean.getOwner(), schedulerBean.getSchedulerId());
+
+			// 修复状态为运行中，但实际已经停止的情况
+			schedulerBean.setStatus(IMPORT_STATUS_TERMINATED);
+			tSchedulerRepo.update(schedulerBean);
+			JsonUtils.toObject(schedulerBean.getOptions(), DataSchedulerDto.OptionsDto.class)
+					.getTables().stream().map(tableId -> tTableRepo.findByTableId(tableId).orElse(null))
+					.filter(Objects::nonNull)
+					.forEach(table -> {
+						table.setStatus(IMPORT_TABLE_TERMINATED);
+						tTableRepo.update(table);
+					});
 		}
 	}
 
