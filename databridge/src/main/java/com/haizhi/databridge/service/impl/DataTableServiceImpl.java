@@ -85,7 +85,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 			throw new DatabridgeException(StatusCode.TYPE_NOT_ALLOWED, "BINLOG同步方式仅支持MYSQL");
 		}
 
-		String lockKey = String.format("IMPORT:TABLE:CREATE:s", createBaseForm.getTbName());
+		String lockKey = String.format("IMPORT:TABLE:CREATE:%s:%s", dbId, createBaseForm.getTbName());
 		String lockVal = String.valueOf(System.currentTimeMillis());
 		String tableId = genKey("ntb");
 		try {
@@ -96,7 +96,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 
 			// 判断表是否存在
 			tTableRepo.findByTbNameAndDbIdAndOwner(createBaseForm.getTbName(), dbBean.getDbId(), userId)
-					.orElseThrow(() -> new DatabridgeException(StatusCode.DATA_TABLE_EXISTS, tableExistMsg));
+					.ifPresent(x -> {throw new DatabridgeException(StatusCode.DATA_TABLE_EXISTS, tableExistMsg);});
 
 			// 生成api数据源的ref
 			if (DataSourceConstants.DataBaseType.API.equals(dbBean.getDbType())) {
