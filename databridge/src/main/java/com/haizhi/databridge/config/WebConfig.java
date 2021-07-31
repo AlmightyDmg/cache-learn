@@ -30,6 +30,7 @@ import com.haizhi.databridge.web.interceptor.RequestLogInterceptor;
 import com.haizhi.dataclient.connection.dmc.client.DmcClientUtils;
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
 import com.haizhi.dataclient.datapi.dmc.DmcApiFactory;
+import com.haizhi.dataclient.datapi.dmc.DmcJobApi;
 import com.haizhi.dataclient.datapi.dmc.DmcTableApi;
 
 @Configuration
@@ -111,6 +112,16 @@ public class WebConfig implements WebMvcConfigurer {
 	@Bean
 	public DmcTableApi dmcTableApi(DmcClientProperties localDsProp) {
 		return DmcApiFactory.getDmcTableApi(DmcConfig.builder()
+				.mobiusProp(localDsProp.getMobius())
+				.noahProp(localDsProp.getNoah())
+				.pentagonProp(localDsProp.getPentagon())
+				.tassadarProp(localDsProp.getTassadar())
+				.build());
+	}
+
+	@Bean
+	public DmcJobApi dmcJobApi(DmcClientProperties localDsProp) {
+		return DmcApiFactory.getDmcJobApi(DmcConfig.builder()
 				.mobiusProp(localDsProp.getMobius())
 				.noahProp(localDsProp.getNoah())
 				.pentagonProp(localDsProp.getPentagon())

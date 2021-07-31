@@ -116,6 +116,14 @@ public class JobClientApi {
         return ((List<Map<String, Object>>) logs.get(DATA_FIELD)).size();
     }
 
+    public boolean isJobRunning(String jobId) {
+        XxlJobInfo xxlJobInfo = getJobInfo(jobId);
+        Map<String, Object> logs = client.logList(LogQueryParam.builder()
+                .start(0).length(PAGE_SIZE).jobGroup(DEFAULT_JOB_GROUP).jobId(xxlJobInfo.getId()).logStatus(LOG_STATUS_RUNNING).build());
+
+        return logs.size() > 0;
+    }
+
     public Integer getXxlJobId(String jobId) {
         JobRelBean jobRelBean = jobRel.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("xxljob not exist"));
         if (StringUtils.isEmpty(jobRelBean.getDistJobId())) {

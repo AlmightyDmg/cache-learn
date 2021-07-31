@@ -88,6 +88,7 @@ import com.haizhi.databridge.web.controller.form.JobUnitStateForm;
 import com.haizhi.databridge.web.result.StatusCode;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataFieldResp;
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
+import com.haizhi.dataclient.datapi.dmc.DmcJobApi;
 import com.haizhi.dataclient.datapi.dmc.DmcTableApi;
 
 @Service
@@ -114,6 +115,9 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 	@Autowired
 	private TSchedulerHistoryRepository schedulerHistoryRepo;
+
+	@Autowired
+	private DmcJobApi dmcJobApi;
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
@@ -1134,24 +1138,16 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 					String.format("任务不存在：%s", stopForm.getSchedulerId()));
 		}
 		TSchedulerBean schedulerBean = optionalTSchedulerBean.get();
-		int stopCount = jobClientApi.cancel(stopForm.getSchedulerId());
-		String status = schedulerBean.getStatus();
 
+		// 调用xxljob的取消任务接口
+		int stopCount = jobClientApi.cancel(stopForm.getSchedulerId());
+
+		String status = schedulerBean.getStatus();
 		if ((ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_SYNCING)
 				|| ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_PENDING))
 				&& stopCount == 0) {
-			// shutdown import job by force
-			schedulerBean.setStatus(IMPORT_STATUS_TERMINATED);
-			tSchedulerRepo.update(schedulerBean);
-
-			// shutdown table sync by force
-			JsonUtils.toObject(schedulerBean.getOptions(), DataSchedulerDto.OptionsDto.class)
-					.getTables().stream().map(tableId -> tTableRepo.findByTableId(tableId).orElse(null))
-					.filter(Objects::nonNull)
-					.forEach(table -> {
-						table.setStatus(IMPORT_TABLE_TERMINATED);
-						tTableRepo.update(table);
-					});
+			// 调用noah的接口暂停任务
+			dmcJobApi.stopImportJob(schedulerBean.getOwner(), schedulerBean.getSchedulerId());
 		}
 	}
 
