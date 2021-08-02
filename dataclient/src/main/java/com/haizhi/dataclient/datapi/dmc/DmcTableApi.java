@@ -28,7 +28,10 @@ import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataRes
 import com.haizhi.dataclient.connection.dmc.client.pentagon.dto.PentagonResult;
 import com.haizhi.dataclient.connection.dmc.client.pentagon.response.GetTableSchemaResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ChangeFolderReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CheckTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteMapTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.InfoTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbFileReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbReq;
@@ -40,6 +43,7 @@ import com.haizhi.dataclient.connection.dmc.client.tassadar.response.TassadarRes
 import com.haizhi.dataclient.datapi.DataApi;
 import com.haizhi.dataclient.exception.SDKException;
 import com.haizhi.dataclient.utils.JsonUtils;
+import com.haizhi.dataclient.utils.ObjectUtils;
 
 /**
  * @author duanxiaoyi
@@ -181,5 +185,32 @@ public class DmcTableApi extends DataApi<DmcConnection> {
 
     public GetTableDataResp getTableDataQuery(String connectId, String sql, String userId) {
         return getDataConnection().getNoahClient().getTableDataQuery(connectId, sql, userId);
+    }
+
+    public void deleteTb(DeleteTbReq deleteTbReq) {
+        getDataConnection().getTassadarClient().deleteTb(deleteTbReq);
+    }
+
+    public void deleteMapTb(DeleteMapTbReq deleteMapTbReq) {
+        getDataConnection().getTassadarClient().deleteMapTb(deleteMapTbReq);
+    }
+
+    public boolean checkTableDep(String tbId, String userId) {
+        if (getDataConnection().getTassadarClient().checkTb(CheckTbReq.builder().tbId(tbId).build()).getResult()) {
+            return true;
+        }
+
+
+        if (getDataConnection().getTassadarClient().standartableInfo(tbId, userId).getResult() != null) {
+            return true;
+        }
+
+
+        if (!ObjectUtils.isEmpty(getDataConnection().getPandoraClient()
+                .chartGetListByTb(userId, tbId, 0, 1, 0).getResult().getChart())) {
+            return true;
+        }
+
+        return false;
     }
 }

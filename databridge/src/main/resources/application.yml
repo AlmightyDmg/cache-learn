@@ -93,6 +93,10 @@ localdmc:
     url: http://10.0.0.108:22481
     connect-timeout-ms: 20000
     logging: false
+  pandora:
+    url: http://10.0.0.108:22781
+    connect-timeout-ms: 20000
+    logging: false
 
 logging:
   pattern:

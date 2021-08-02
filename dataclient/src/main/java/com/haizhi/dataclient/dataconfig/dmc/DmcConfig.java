@@ -23,6 +23,7 @@ public class DmcConfig implements DataConfig<DataSource> {
     private ServicePropertieBean pentagonProp;
     private ServicePropertieBean noahProp;
     private ServicePropertieBean tassadarProp;
+    private ServicePropertieBean pandoraProp;
 
 
     @Override

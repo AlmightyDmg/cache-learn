@@ -116,6 +116,7 @@ public class WebConfig implements WebMvcConfigurer {
 				.noahProp(localDsProp.getNoah())
 				.pentagonProp(localDsProp.getPentagon())
 				.tassadarProp(localDsProp.getTassadar())
+				.pandoraProp(localDsProp.getPandora())
 				.build());
 	}
 
@@ -126,6 +127,7 @@ public class WebConfig implements WebMvcConfigurer {
 				.noahProp(localDsProp.getNoah())
 				.pentagonProp(localDsProp.getPentagon())
 				.tassadarProp(localDsProp.getTassadar())
+				.pandoraProp(localDsProp.getPandora())
 				.build());
 	}
 

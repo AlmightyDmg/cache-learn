@@ -10,16 +10,22 @@ import retrofit2.http.QueryBean;
 
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.CreateFolderResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ChangeFolderReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CheckTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteMapTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.InfoTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbFileReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ModifyTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.CreateTbResp;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.response.DeleteMapTbResp;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.response.DeleteTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.InfoTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.MergeTbFileResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.MergeTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.ModifyTbResp;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.response.StandartableInfoResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.TassadarResult;
 
 public interface TassadarClient {
@@ -53,4 +59,21 @@ public interface TassadarClient {
     @POST("folder/change")
     @FormUrlEncoded
     TassadarResult<String> changeFolder(@Valid @QueryBean ChangeFolderReq request);
+
+    @POST("tb/delete")
+    @FormUrlEncoded
+    TassadarResult<DeleteTbResp> deleteTb(@Valid @QueryBean DeleteTbReq request);
+
+    @POST("tb/deletemaptb")
+    @FormUrlEncoded
+    TassadarResult<DeleteMapTbResp> deleteMapTb(@Valid @QueryBean DeleteMapTbReq request);
+
+    @POST("tb/check")
+    @FormUrlEncoded
+    TassadarResult<Boolean> checkTb(@Valid @QueryBean CheckTbReq request);
+
+    @POST("tb/standarinfo")
+    @FormUrlEncoded
+    TassadarResult<StandartableInfoResp> standartableInfo(@NotBlank @Field("tb_id") String tbId,
+                                                          @NotBlank @Field("user_id") String userId);
 }

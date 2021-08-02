@@ -2,6 +2,7 @@ package com.haizhi.databridge.service.impl;
 
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncType.SYNC_TYPE_FULL;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncType.SYNC_TYPE_INCREASE;
+import static com.haizhi.databridge.service.impl.DataSchedulerServiceImpl.base64Decode;
 import static com.haizhi.databridge.util.IdUtils.genKey;
 
 import java.io.IOException;
@@ -37,6 +38,9 @@ import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
 import com.haizhi.databridge.web.controller.form.DataTableForm;
 import com.haizhi.databridge.web.result.StatusCode;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteMapTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteTbReq;
+import com.haizhi.dataclient.datapi.dmc.DmcTableApi;
 
 @Service
 @Log4j2
@@ -56,6 +60,9 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 
 	@Autowired
 	private DLock dLock;
+
+	@Autowired
+	private DmcTableApi dmcTableApi;
 
 	/**
 	 * @Description //数据源创建接口
@@ -270,6 +277,9 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 	 * @return void
 	 **/
 	public void dependency(DataTableForm.DataTableDependencyForm dependencyForm) {
+		TTableBean tableBean = tTableRepo.findByTableId(dependencyForm.getTableId())
+				.orElseThrow(() -> new DatabridgeException("表不存在"));
+
 		delete(dependencyForm.getTableId(), dependencyForm.getUserId());
 	}
 
@@ -285,6 +295,21 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 				tableId, userId);
 		if (optionalTTableBean.isPresent()) {
 			tTableRepo.logicDeleteByTableId(tableId);
+		}
+
+		TTableBean tableBean = optionalTTableBean.get();
+		DataTableDto.SyncConfigDto syncConfig = JsonUtils.toObject(
+				tableBean.getSyncConfig(), DataTableDto.SyncConfigDto.class);
+		if (!ObjectUtils.isEmpty(syncConfig.getOutputRef())) {
+
+			List<String> folderTable = JsonUtils.json2List(base64Decode(syncConfig.getOutputRef(), "+-"));
+			String tbId = folderTable.get(1);
+			if (dmcTableApi.checkTableDep(tbId, this.getUserId())) {
+				throw new DatabridgeException("数据表正在使用中，不可删除，请检查工作表关联概况");
+			}
+
+			dmcTableApi.deleteTb(DeleteTbReq.builder().tbId(tbId).build());
+			dmcTableApi.deleteMapTb(DeleteMapTbReq.builder().tbId(tbId).build());
 		}
 	}
 

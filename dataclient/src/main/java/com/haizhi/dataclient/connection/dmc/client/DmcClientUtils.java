@@ -15,6 +15,7 @@ import com.haizhi.dataclient.connection.dmc.client.common.SynchronousCallAdapter
 import com.haizhi.dataclient.connection.dmc.client.endpoint.EndpointClient;
 import com.haizhi.dataclient.connection.dmc.client.mobius.MobiusClient;
 import com.haizhi.dataclient.connection.dmc.client.noah.NoahClient;
+import com.haizhi.dataclient.connection.dmc.client.pandora.PandoraClient;
 import com.haizhi.dataclient.connection.dmc.client.pentagon.PentagonClient;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.TassadarClient;
 import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
@@ -52,6 +53,10 @@ public final class DmcClientUtils {
 
     public static TassadarClient tassadarClient(DmcConfig.ServicePropertieBean properties) {
         return createClient("tassadar", properties, TassadarClient.class);
+    }
+
+    public static PandoraClient pandoraClient(DmcConfig.ServicePropertieBean properties) {
+        return createClient("pandora", properties, PandoraClient.class);
     }
 
     public static <T> T createClient(String serviceName, DmcConfig.ServicePropertieBean properties, Class<T> clazz) {

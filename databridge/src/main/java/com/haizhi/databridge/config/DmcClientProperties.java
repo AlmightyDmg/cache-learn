@@ -25,4 +25,5 @@ public class DmcClientProperties {
     private DmcConfig.ServicePropertieBean pentagon;
     private DmcConfig.ServicePropertieBean noah;
     private DmcConfig.ServicePropertieBean tassadar;
+    private DmcConfig.ServicePropertieBean pandora;
 }

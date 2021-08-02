@@ -8,6 +8,7 @@ import lombok.experimental.SuperBuilder;
 import com.haizhi.dataclient.connection.DataConnection;
 import com.haizhi.dataclient.connection.dmc.client.mobius.MobiusClient;
 import com.haizhi.dataclient.connection.dmc.client.noah.NoahClient;
+import com.haizhi.dataclient.connection.dmc.client.pandora.PandoraClient;
 import com.haizhi.dataclient.connection.dmc.client.pentagon.PentagonClient;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.TassadarClient;
 
@@ -25,4 +26,5 @@ public class DmcConnection extends DataConnection {
     private NoahClient noahClient;
     private PentagonClient pentagonClient;
     private TassadarClient tassadarClient;
+    private PandoraClient pandoraClient;
 }

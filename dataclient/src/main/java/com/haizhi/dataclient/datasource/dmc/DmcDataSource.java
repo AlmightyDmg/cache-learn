@@ -33,6 +33,7 @@ public class DmcDataSource implements DataSource<DmcConnection> {
                     .noahClient(DmcClientUtils.noahClient(dmcConfig.getNoahProp()))
                     .pentagonClient(DmcClientUtils.pentagonClient(dmcConfig.getPentagonProp()))
                     .tassadarClient(DmcClientUtils.tassadarClient(dmcConfig.getTassadarProp()))
+                    .pandoraClient(DmcClientUtils.pandoraClient(dmcConfig.getPandoraProp()))
                     .build();
 
             cntThreadLocal.set(dmcConnection);
