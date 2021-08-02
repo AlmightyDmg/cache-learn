@@ -50,6 +50,7 @@ import com.haizhi.dataio.job.reader.Reader;
 import com.haizhi.dataio.job.sql.BaseSqlOperator;
 import com.haizhi.dataio.job.sql.CompareOperator;
 import com.haizhi.dataio.job.sql.EmptyOperator;
+import com.haizhi.dataio.job.sql.JdbcTypeMapping;
 import com.haizhi.dataio.job.sql.NotOperator;
 import com.haizhi.dataio.job.sql.RelOperator;
 import com.haizhi.dataio.job.sql.SqlOperator;
@@ -270,7 +271,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                         .schema(unit.getFromSink().getSchema())
                         .build()))
                 .column(unit.getReader().getColumns().stream().map(col ->
-                        MetaColumn.builder().name("BDP_AUDIT".equals(col.getName())? "now() as BDP_AUDIT" : col.getName())
+                        MetaColumn.builder()
+                                .name("BDP_AUDIT".equals(col.getName())? "now() as BDP_AUDIT" : "\"" + col.getName() + "\"")
                                 .value(col.getValue()).build())
                         .collect(Collectors.toList()))
                 .where(genWhere(unit).generate())
@@ -297,7 +299,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                         .table(Arrays.asList(unit.getWriter().getTableName()))
                         .build()))
                 .column(unit.getWriter().getColumns().stream().map(col ->
-                        MetaColumn.builder().name(col.getName()).type(col.getType()).value(col.getValue()).build())
+                        MetaColumn.builder().name(col.getName()).type(JdbcTypeMapping.getType(col.getType())).build())
                         .collect(Collectors.toList()))
                 .insertSqlMode("copy")
                 .writeMode("insert")
