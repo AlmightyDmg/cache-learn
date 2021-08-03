@@ -551,7 +551,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	public DataTransJobVo getJobExecInfo(String jobId) {
 		TSchedulerBean tSchedulerBean = tSchedulerRepo.findBySchedulerId(jobId).orElseThrow(() -> new DatabridgeException("job not exist"));
 		String dmcUrl = JsonUtils.toJson(DmcConfig.builder().pentagonProp(dmcProp.getPentagon())
-				.noahProp(dmcProp.getNoah()).mobiusProp(dmcProp.getMobius()).tassadarProp(dmcProp.getTassadar()).build());
+				.noahProp(dmcProp.getNoah()).mobiusProp(dmcProp.getMobius())
+				.tassadarProp(dmcProp.getTassadar()).pandoraProp(dmcProp.getPandora()).build());
 		List<TTableBean> tableBeans = JsonUtils.toObject(tSchedulerBean.getOptions(), DataSchedulerDto.OptionsDto.class)
 				.getTables().stream().map(tableId -> tTableRepo.findByTableId(tableId).orElse(null)).collect(Collectors.toList());
 
