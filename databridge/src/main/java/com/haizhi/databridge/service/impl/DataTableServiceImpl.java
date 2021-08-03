@@ -103,7 +103,9 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 
 			// 判断表是否存在
 			tTableRepo.findByTbNameAndDbIdAndOwner(createBaseForm.getTbName(), dbBean.getDbId(), userId)
-					.ifPresent(x -> {throw new DatabridgeException(StatusCode.DATA_TABLE_EXISTS, tableExistMsg);});
+					.ifPresent(x -> {
+						throw new DatabridgeException(StatusCode.DATA_TABLE_EXISTS, tableExistMsg);
+					});
 
 			// 生成api数据源的ref
 			if (DataSourceConstants.DataBaseType.API.equals(dbBean.getDbType())) {

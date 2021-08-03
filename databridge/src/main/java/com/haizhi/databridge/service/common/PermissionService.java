@@ -15,9 +15,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import com.haizhi.databridge.client.behemoth.BehemothClient;
-import com.haizhi.databridge.client.behemoth.request.ChatListReq;
-import com.haizhi.databridge.client.behemoth.request.RoleListReq;
-import com.haizhi.databridge.client.behemoth.response.BehemothResult;
 import com.haizhi.databridge.client.behemoth.response.ChatListResp;
 import com.haizhi.databridge.client.behemoth.response.RoleListResp;
 import com.haizhi.databridge.client.overlord.OverlordClient;

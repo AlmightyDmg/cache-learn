@@ -16,7 +16,6 @@ import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.ObjectUtils;
 
 import com.haizhi.databridge.bean.domain.exportdata.JobBean;
 import com.haizhi.databridge.bean.domain.importdata.TSchedulerBean;
@@ -44,7 +43,7 @@ public class SyncXxlJob {
     void sync() {
         new Thread(() -> {
             List<JobBean> jobBeanList = jobRepository.findAll();
-            if (!ObjectUtils.isEmpty(jobBeanList)) {
+//            if (!ObjectUtils.isEmpty(jobBeanList)) {
 //                log.info("start check running export job");
 //                jobBeanList.forEach(jobBean -> {
 //                    String jobId = jobBean.getJobId();
@@ -59,10 +58,10 @@ public class SyncXxlJob {
 //                        }
 //                    }
 //                });
-            }
+//            }
 
             List<TSchedulerBean> schedulerBeanList = schedulerRepository.findAll();
-            if (!ObjectUtils.isEmpty(schedulerBeanList)) {
+//            if (!ObjectUtils.isEmpty(schedulerBeanList)) {
 //                log.info("start check running import job");
 //                schedulerBeanList.forEach(schedulerBean -> {
 //                    String schedulerId = schedulerBean.getSchedulerId();
@@ -80,11 +79,7 @@ public class SyncXxlJob {
 //                        }
 //                    }
 //                });
-            }
+//            }
         }).start();
-    }
-
-    private boolean expire(long startTime) {
-        return System.currentTimeMillis() - startTime > 30 * 60 * 1000;
     }
 }

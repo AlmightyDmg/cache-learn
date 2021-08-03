@@ -3,7 +3,7 @@ package com.haizhi.dataio.job.sql;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JdbcTypeMapping {
+public final class JdbcTypeMapping {
     private JdbcTypeMapping() { }
     private static Map<String, String> typeMap = new HashMap<>();
 
