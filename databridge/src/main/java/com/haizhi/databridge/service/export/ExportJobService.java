@@ -645,7 +645,7 @@ public class ExportJobService extends RequestCommonData {
 				exportTbRepo.findByXtbId(jobBean.getXtbId()).orElseThrow(() -> new DatabridgeException("xtable not exist"));
 
 		String dmcUrl = JsonUtils.toJson(DmcConfig.builder().pentagonProp(dmcProp.getPentagon()).noahProp(dmcProp.getNoah())
-				.mobiusProp(dmcProp.getMobius()).tassadarProp(dmcProp.getTassadar()).build());
+				.mobiusProp(dmcProp.getMobius()).tassadarProp(dmcProp.getTassadar()).pandoraProp(dmcProp.getPandora()).build());
 
 		String toType = Optional.ofNullable(genTypeToDbNameMap().get(dsBean.getType())).orElse("").toLowerCase();
 
