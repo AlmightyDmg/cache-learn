@@ -1,5 +1,7 @@
 package com.haizhi.databridge.service.export;
 
+import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerType.CRON;
+import static com.haizhi.databridge.constants.DataSourceConstants.SchedulerType.NORMAL;
 import static com.haizhi.databridge.constants.DataSourceConstants.TaskType.EXPORT;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_CREATE;
 import static com.haizhi.databridge.constants.DatabridgeConstants.EXPORT_STATUS_STOP;
@@ -399,15 +401,21 @@ public class ExportJobService extends RequestCommonData {
 			String scheduleType = "";
 			String cron = "";
 			if (form.getSchedulerConf().getMode() == 1 || form.getSchedulerConf().getMode() == 0) {
-				scheduleType = "CRON";
+				scheduleType = CRON;
 				cron = toQuartsCron(form.getSchedulerConf().getSyncConfig());
 			} else {
-				scheduleType = "NONE";
+				scheduleType = NORMAL;
 				cron = "";
 			}
 
+			if (NORMAL.equalsIgnoreCase(scheduleType)) {
+				jobClientApi.stop(jobId);
+			}
 
 			jobClientApi.update(jobId, cron, scheduleType, DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
+			if (CRON.equalsIgnoreCase(scheduleType)) {
+				jobClientApi.start(jobId);
+			}
 		}
 	}
 
