@@ -83,6 +83,10 @@ public final class CronUtils {
     }
 
     private static long cronDiff(String cron1, String cron2) {
+        if (ObjectUtils.nullSafeEquals(cron1, cron2)) {
+            return 0L;
+        }
+
         CronSequenceGenerator generator1 = new CronSequenceGenerator(cron1);
         CronSequenceGenerator generator2 = new CronSequenceGenerator(cron2);
 
@@ -90,7 +94,7 @@ public final class CronUtils {
         LocalDateTime localDateTime = LocalDateTime.now().plusMinutes(1);
         ZonedDateTime zdt = localDateTime.atZone(zoneId);
 
-        Date fromDate = Date.from(zdt.toInstant());
+        Date fromDate = new Date();
         Date firstDate = generator1.next(fromDate);
         Date secondDate = generator2.next(firstDate);
         Date thirdDate = generator1.next(secondDate);
