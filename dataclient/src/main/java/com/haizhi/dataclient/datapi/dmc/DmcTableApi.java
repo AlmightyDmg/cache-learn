@@ -127,7 +127,7 @@ public class DmcTableApi extends DataApi<DmcConnection> {
     public List<String> createTb(String tableName, List<CreateTbReq.TbField> fields, String userId,
                                  String dbId, String dbName) {
         String folder = getDataConnection().getTassadarClient()
-                .createFolderIfNotExist(1, userId, dbName, userId.substring(7)).getResult().getFolder();
+                .createFolderIfNotExist(1, userId, dbName, 1).getResult().getFolder();
         CreateTbReq createTbReq = CreateTbReq.builder()
                 .name(tableName).userId(userId).manageType(1).treeType(0)
                 .dmcRequest(1).fields(fields).type(2)
@@ -135,8 +135,9 @@ public class DmcTableApi extends DataApi<DmcConnection> {
                 .build();
         String tbId = getDataConnection().getTassadarClient().createTb(createTbReq).getResult().getTbId();
 
+        /* 使用真实的UserId */
         getDataConnection().getTassadarClient()
-                .changeFolder(ChangeFolderReq.builder().userId(userId).role(0).toFolder(folder).tbId(tbId).build());
+                .changeFolder(ChangeFolderReq.builder().userId(userId).role(0).toFolder(folder).tbId(tbId).dmcRequest(1).build());
 
         return Arrays.asList(folder, tbId);
     }

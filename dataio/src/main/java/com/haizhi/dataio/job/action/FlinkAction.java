@@ -18,6 +18,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.util.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
@@ -357,6 +358,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
                 DmcReader dmcReader = dmcTableApi.getDmcReader(req);
 
+                log.info("max_value: (%s)", dmcReader.getMaxValue());
                 unit.getReader().setRealName(dmcReader.getTabName().split("_")[0]);
 
                 setNextMaxValue(unit, dmcReader.getMaxValue());
@@ -446,10 +448,10 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     }
 
     @Override
-    protected String checkResult(FlinkActionParam unitParam) {
+    protected boolean checkResult(FlinkActionParam unitParam) throws DataioException {
         String taskId = unitParam.getTaskId();
         if (StringUtils.isEmpty(taskId)) {
-            return "failed";
+            throw new DataioException("flink task id is empty.");
         }
 
         FlinkxJobStatus flinkxJobStatus = flinkxClient.getStatus(taskId).getResult();
@@ -460,9 +462,33 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 unitParam.readRecords += ver.getReadRecords();
                 unitParam.writeRecords += ver.getWriteRecords();
             });
+            return true;
         }
 
-        return state.toLowerCase();
+        if ("failed".equalsIgnoreCase(state)) {
+            log.error("flink task failed.");
+            throw new DataioException("flink task failed.");
+        }
+
+        // 实时更新同步数量
+        databridgeClient.updateJobExecUnit(JobUnitStateForm.builder()
+                .jobId(unitParam.getJobId())
+                .fromTableId(unitParam.getReader().getTableId())
+                .toTableId(unitParam.getWriter().getTableId())
+                .startTime(unitStartTime.get().get(unitParam.getReader().getTableName()))
+                .jobType(unitParam.getJobType())
+                .tableStatus(0)
+                .userId(unitParam.getUserId())
+                .appendCount(unitParam.getWriteRecords())
+                .filterCount(unitParam.getReadRecords())
+                .failedCount(unitParam.getReadRecords() - unitParam.getWriteRecords())
+                .allCount(0)
+                .updateCount(0)
+                .deleteCount(0)
+                .errorMsg("success")
+                .build());
+
+        return false;
     }
 
     private JobExecCountDto getExecCount(String tableName) {
@@ -477,52 +503,51 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     }
 
     @Override
-    protected void afterExec(FlinkActionParam unit, boolean success) {
+    protected void afterExec(FlinkActionParam unit, boolean success, String errorMsg) {
         // 同步表状态
-        log.info(String.format("jobid: %s, after from %s to %s",
-                unit.getJobId(), unit.getReader().getTableName(), unit.getWriter().getTableName()));
-        if ("dmc".equalsIgnoreCase(unit.getToSink().getType())) {
-            DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
-
-            /* 合表 */
-//            TassadarResult<MergeTbResp> merge = dmcTableApi.mergeTb(unit.getWriter().getTableId(), unit.getUserId());
-//            String tableName = unit.getReader().getTableName();
-//            getExecCount(tableName).setAllCount(getExecCount(tableName).getAllCount() + merge.getResult().getDataCount());
-//            getExecCount(tableName).setAllCount(getExecCount(tableName).getAppendCount() + merge.getResult().getInsertCount());
-//            getExecCount(tableName).setAllCount(getExecCount(tableName).getUpdateCount() + merge.getResult().getUpdateCount());
-//            getExecCount(tableName).setAllCount(getExecCount(tableName).getDeleteCount() + merge.getResult().getDeleteCount());
-
-            dmcTableApi.mergeTbFile(unit.getWriter().getTableId(), unit.getUserId(),
-                    unit.getWriter().getColumns().stream()
-                            .map(DataTransJobDetail.Column::getRealName).collect(Collectors.toList()));
-            dmcTableApi.viewCascade(unit.getUserId(), Arrays.asList(unit.getWriter().getRealName()));
-            /* 更新表状态 */
-            dmcTableApi.updateTableStatus(unit.getWriter().getTableId(), 1, unit.getUserId());
-
-            TassadarResult<MergeTbResp> merge = dmcTableApi.mergeTb(unit.getWriter().getTableId(), unit.getUserId());
-        } else {
-
-            // 删除导出时生成的临时文件
-            DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
-            dmcTableApi.deleteOldData(unit.getReader().getRealName(), unit.getJobId());
-        }
-
         String nextIncrValue = null;
-        if (unit.getReader().getSync() != null
-                && unit.getReader().getSync().getSyncCondition() != null
-                && unit.getReader().getSync().getSyncCondition().getEnd() != null) {
-            nextIncrValue = unit.getReader().getSync().getSyncCondition().getEnd().getValue();
+        if (success) {
+            log.info(String.format("jobid: %s, after from %s to %s",
+                    unit.getJobId(), unit.getReader().getTableName(), unit.getWriter().getTableName()));
+            try {
+                if ("dmc".equalsIgnoreCase(unit.getToSink().getType())) {
+                    DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
+
+                    dmcTableApi.mergeTbFile(unit.getWriter().getTableId(), unit.getUserId(),
+                            unit.getWriter().getColumns().stream()
+                                    .map(DataTransJobDetail.Column::getRealName).collect(Collectors.toList()));
+                    dmcTableApi.viewCascade(unit.getUserId(), Lists.newArrayList(unit.getWriter().getRealName()));
+//                    /* 更新表状态 */
+//                    dmcTableApi.updateTableStatus(unit.getWriter().getTableId(), 1, unit.getUserId());
+
+                    TassadarResult<MergeTbResp> merge = dmcTableApi.mergeTb(unit.getWriter().getTableId(), unit.getUserId());
+                } else {
+
+                    // 删除导出时生成的临时文件
+                    DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
+                    dmcTableApi.deleteOldData(unit.getReader().getRealName(), unit.getJobId());
+                }
+
+                if (unit.getReader().getSync() != null
+                        && unit.getReader().getSync().getSyncCondition() != null
+                        && unit.getReader().getSync().getSyncCondition().getEnd() != null) {
+                    nextIncrValue = unit.getReader().getSync().getSyncCondition().getEnd().getValue();
+                }
+
+                String tableName = unit.getReader().getTableName();
+                getExecCount(tableName).setUpdateCount(0);
+                getExecCount(tableName).setAllCount(0);
+                getExecCount(tableName).setDeleteCount(0);
+                getExecCount(tableName).setAppendCount(getExecCount(tableName).getAppendCount() + unit.getReadRecords());
+                getExecCount(tableName).setFilterCount(getExecCount(tableName).getFilterCount() + unit.getWriteRecords());
+                getExecCount(tableName).setFailedCount(getExecCount(tableName).getFailedCount()
+                        + (unit.getReadRecords() - unit.getWriteRecords()));
+            } catch (Exception e) {
+                success = false;
+                errorMsg = "数据同步完成，合表失败.";
+                log.error(errorMsg, e);
+            }
         }
-
-        String tableName = unit.getReader().getTableName();
-        getExecCount(tableName).setUpdateCount(0);
-        getExecCount(tableName).setAllCount(0);
-        getExecCount(tableName).setDeleteCount(0);
-        getExecCount(tableName).setAppendCount(getExecCount(tableName).getAppendCount() + unit.getReadRecords());
-        getExecCount(tableName).setFilterCount(getExecCount(tableName).getFilterCount() + unit.getWriteRecords());
-        getExecCount(tableName).setFailedCount(getExecCount(tableName).getFailedCount()
-                + (unit.getReadRecords() - unit.getWriteRecords()));
-
 
         databridgeClient.updateJobExecUnit(JobUnitStateForm.builder()
                 .jobId(unit.getJobId())
@@ -540,6 +565,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 .allCount(0)
                 .updateCount(0)
                 .deleteCount(0)
+                .errorMsg(errorMsg)
                 .build());
     }
 
@@ -550,8 +576,6 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 flinkxClient.stopJob(unit.getTaskId());
             } catch (Exception e) {
                 log.error("flink task stop failed: ", e);
-            } finally {
-                afterExec(unit, false);
             }
         }
 

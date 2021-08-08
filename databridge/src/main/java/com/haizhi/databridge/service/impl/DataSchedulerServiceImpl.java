@@ -898,6 +898,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
 		tTableBean.setPosted(form.getAppendCount());
 		tTableBean.setFetched(form.getFilterCount());
+		tTableBean.setException(form.getErrorMsg());
 
 		tTableRepo.update(tTableBean);
 

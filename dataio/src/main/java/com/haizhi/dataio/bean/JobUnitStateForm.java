@@ -58,4 +58,7 @@ public class JobUnitStateForm {
     private Integer allCount = 0;
     @Field("filterCount")
     private Integer filterCount = 0;
+
+    @Field("error_msg")
+    private String errorMsg = "";
 }

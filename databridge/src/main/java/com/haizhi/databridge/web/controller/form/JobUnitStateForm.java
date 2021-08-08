@@ -32,4 +32,6 @@ public class JobUnitStateForm {
     private Integer failedCount = 0;
     private Integer allCount = 0;
     private Integer filterCount = 0;
+
+    private String errorMsg = "";
 }

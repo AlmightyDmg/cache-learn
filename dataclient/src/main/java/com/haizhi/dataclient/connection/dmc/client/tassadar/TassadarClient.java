@@ -54,7 +54,7 @@ public interface TassadarClient {
     TassadarResult<CreateFolderResp> createFolderIfNotExist(@NotBlank @Field("role") Integer role,
                                                             @NotBlank @Field("user_id") String userId,
                                                             @NotBlank @Field("folder_name") String folderName,
-                                                            @Field("ent_id") String entId);
+                                                            @Field("dmc_request") Integer dmcRequest);
 
     @POST("folder/change")
     @FormUrlEncoded

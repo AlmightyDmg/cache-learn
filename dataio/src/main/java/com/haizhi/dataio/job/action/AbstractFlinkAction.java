@@ -19,8 +19,8 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
 
     protected abstract void beforeExec(U unit) throws Exception;
     protected abstract String execute(U unit);
-    protected abstract String checkResult(U unit);
-    protected abstract void afterExec(U unit, boolean success);
+    protected abstract boolean checkResult(U unit);
+    protected abstract void afterExec(U unit, boolean success, String errorMsg);
     protected abstract String cancel(U unit);
 
     protected abstract List<U> getExecUnitList(D info);
@@ -32,6 +32,7 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
         D detail = getJobDetail(actionInfo);
         LinkedList<U> runningUnit = new LinkedList<>();
         try {
+            StringBuilder error = new StringBuilder();
             // 准备执行job
             begin(detail);
 
@@ -39,56 +40,50 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
             List<U> execUnits = getExecUnitList(detail);
             int unitCount = execUnits.size();
 
-            // 遍历执行
+            // 遍历执行启动flink任务
             for (U unit : execUnits) {
                 try {
                     // 每个单元执行前的准备
                     beforeExec(unit);
 
-                    // 执行
+                    // 启动任务
                     execute(unit);
+
+                    // 加入正在执行的列表中
+                    runningUnit.offer(unit);
                 } catch (InterruptedException e) {
                     throw e;
                 } catch (Exception e) {
                     log.error("execute flink task error.", e);
-                } finally {
-                    // 加入正在执行的列表中
-                    runningUnit.offer(unit);
+                    afterExec(unit, false, e.getMessage());
+                    error.append(e.getMessage()).append("\r\n");
                 }
             }
 
-
             // 定时检查更新执行的结果
-            boolean totalSuccess = true;
             while (true) {
                 LinkedList<U> unfinished = new LinkedList<>();
                 while (!runningUnit.isEmpty()) {
-                    String state = "";
+                    U unit = runningUnit.poll();
                     try {
-                        U unit = runningUnit.poll();
-
-                        // 调用接口去检查执行的task的状态
-                        state = checkResult(unit);
-                        boolean isSuccess = true;
-
-                        if ("finished".equalsIgnoreCase(state) || "failed".equalsIgnoreCase(state)) {
-                            // task结束后的处理
-                            isSuccess = "finished".equalsIgnoreCase(state);
-                            afterExec(unit, isSuccess);
+                        // 若执行成功退出，否则继续加入进行检查
+                        if (checkResult(unit)) {
                             unitCount--;
+                            afterExec(unit, true, "success");
                         } else {
                             unfinished.add(unit);
                         }
 
-                        if (!isSuccess) {
-                            totalSuccess = false;
-                        }
-                        Thread.sleep(0);
+                        Thread.sleep(10000);
                     } catch (InterruptedException e) {
                         throw e;
                     } catch (Exception e) {
                         log.error("", e);
+                        String errorMsg = e.getMessage();
+                        error.append(errorMsg).append("\r\n");
                         unitCount--;
+
+                        afterExec(unit, false, errorMsg);
                     }
                 }
 
@@ -102,7 +97,7 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
             }
 
             // 整个Job结束后的处理
-            end(detail, totalSuccess ? 2 : 1, "success");
+            end(detail, error.length() == 0 ? 2 : 1, error.length() == 0 ? "success" : error.toString());
         } catch (InterruptedException e) {
             for (U u : runningUnit) {
                 cancel(u);
