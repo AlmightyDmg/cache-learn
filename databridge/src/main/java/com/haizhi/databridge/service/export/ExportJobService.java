@@ -688,6 +688,9 @@ public class ExportJobService extends RequestCommonData {
 		jobBean.setStatus(status);
 		jobBean.setCount(JsonUtils.toJson(countVo));
 		jobBean.setErrorMsg(jobStateForm.getErrmsg() == null ? "" : jobStateForm.getErrmsg());
+		if (jobStateForm.getEndTime() != null) {
+			jobBean.setEtime(new Timestamp(jobStateForm.getEndTime()));
+		}
 		jobRepository.update(jobBean);
 
 		if (jobStateForm.getEndTime() != null) {
