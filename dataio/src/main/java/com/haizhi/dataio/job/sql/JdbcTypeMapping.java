@@ -28,21 +28,11 @@ public final class JdbcTypeMapping {
     }
 
     static {
-        gp2DmcTypeMap.put("int2", "number");
-        gp2DmcTypeMap.put("int4", "number");
-        gp2DmcTypeMap.put("int8", "number");
-        gp2DmcTypeMap.put("boolean", "number");
-        gp2DmcTypeMap.put("float4", "double");
-        gp2DmcTypeMap.put("float8", "double");
-        gp2DmcTypeMap.put("text", "string");
-        gp2DmcTypeMap.put("bytea", "float4");
-        gp2DmcTypeMap.put("timestamp", "date");
-        gp2DmcTypeMap.put("decimal", "double");
-        gp2DmcTypeMap.put("character", "string");
-        gp2DmcTypeMap.put("time", "date");
-        gp2DmcTypeMap.put("numeric", "number");
-        gp2DmcTypeMap.put("real", "double");
-        gp2DmcTypeMap.put("date", "date");
+        gp2DmcTypeMap.put("BOOLEAN", "number");
+        gp2DmcTypeMap.put("TEXT", "string");
+        gp2DmcTypeMap.put("CHARACTER", "string");
+        gp2DmcTypeMap.put("BIT", "number");
+        gp2DmcTypeMap.put("TIME", "date");
 
 
         gp2DmcTypeMap.put("DATETIME", "date");
