@@ -300,7 +300,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                         .table(Arrays.asList(unit.getWriter().getTableName()))
                         .build()))
                 .column(unit.getWriter().getColumns().stream().map(col ->
-                        MetaColumn.builder().name(col.getName()).type(JdbcTypeMapping.getType(col.getType())).build())
+                        MetaColumn.builder().name(col.getName()).type(JdbcTypeMapping.getGpType(col.getType())).build())
                         .collect(Collectors.toList()))
                 .insertSqlMode("copy")
                 .writeMode("insert")
@@ -332,7 +332,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                         .jobId(unit.getJobId()).storageId(unit.getWriter().getRealName())
                         .column(unit.getWriter().getColumns().stream().map(col ->
                                 TbCol.builder().name(col.getRealName())
-                                        .type(col.getType()).build()).collect(Collectors.toList())).build();
+                                        .type("BDP_AUDIT".equals(col.getName()) ? "timestamp" : col.getType()).build())
+                                .collect(Collectors.toList())).build();
                 DmcWriter dmcWriter = dmcTableApi.getDmcWriter(req);
                 writer = dmcWriter.getWriter();
                 reader = jdbcReader;
@@ -426,11 +427,14 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         }
 
         if (unit.getReader().getFilter() != null) {
+            Map<String, String> columnTypeMap = unit.getReader().getColumns().stream()
+                    .collect(Collectors.toMap(DataTransJobDetail.Column::getName, DataTransJobDetail.Column::getType));
             DataTransJobDetail.Filter.FilterCondition filterCon = unit.getReader().getFilter().getFilterConditions();
             if (!ObjectUtils.isEmpty(filterCon)) {
                 List<SqlOperator> subList = new ArrayList<>();
                 for (DataTransJobDetail.Filter.FilterCondition.Condition cond : filterCon.getConditions()) {
-                    subList.add(new CompareOperator(cond.getName(), cond.getType(), "", cond.getValue()));
+                    subList.add(new CompareOperator(cond.getName(), cond.getType(),
+                            JdbcTypeMapping.getDmcType(columnTypeMap.get(cond.getName())), cond.getValue()));
                 }
 
                 sqlOperatorList.add(new RelOperator(filterCon.getRelationType(), subList));
