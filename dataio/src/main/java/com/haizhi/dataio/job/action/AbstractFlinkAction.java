@@ -55,6 +55,7 @@ public abstract class AbstractFlinkAction<T, D, U> implements IAction<T> {
                     throw e;
                 } catch (Exception e) {
                     log.error("execute flink task error.", e);
+                    unitCount--;
                     afterExec(unit, false, e.getMessage());
                     error.append(e.getMessage()).append("\r\n");
                 }

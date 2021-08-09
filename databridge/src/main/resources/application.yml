@@ -72,7 +72,7 @@ localdmc:
     connect_timeout_ms: 20000
     call_timeout_ms: 600000
     read_timeout_ms: 600000
-    logging: false
+    logging: true
   overlord:
     url: http://10.0.0.108:22881
     connect-timeout-ms: 10000
@@ -80,23 +80,23 @@ localdmc:
   behemoth:
     url: http://10.0.0.108:22184
     connect-timeout-ms: 10000
-    logging: false
+    logging: true
   pentagon:
     url: http://10.0.0.108:22281
     connect-timeout-ms: 10000
-    logging: false
+    logging: true
   noah:
     url: http://10.0.0.108:22183
     connect-timeout-ms: 10000
-    logging: false
+    logging: true
   tassadar:
     url: http://10.0.0.108:22481
     connect-timeout-ms: 20000
-    logging: false
+    logging: true
   pandora:
     url: http://10.0.0.108:22781
     connect-timeout-ms: 20000
-    logging: false
+    logging: true
 
 logging:
   pattern:

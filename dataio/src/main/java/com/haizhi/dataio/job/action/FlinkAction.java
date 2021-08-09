@@ -378,6 +378,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                     unit.getWriter().getTableId(), unit.getUserId());
         } catch (DataioException e) {
             log.error("flink sync failed", e);
+            throw e;
         }
 
         return taskId;
