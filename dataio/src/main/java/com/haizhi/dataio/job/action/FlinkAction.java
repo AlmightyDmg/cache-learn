@@ -273,8 +273,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                         .build()))
                 .column(unit.getReader().getColumns().stream().map(col ->
                         MetaColumn.builder()
-                                .name("BDP_AUDIT".equals(col.getName())? "now() as BDP_AUDIT" : "\"" + col.getName() + "\"")
-                                .value(col.getValue()).build())
+                                .name(col.getName())
+                                .value("BDP_AUDIT".equals(col.getName()) ? "now()" : col.getValue()).build())
                         .collect(Collectors.toList()))
                 .where(genWhere(unit).generate())
                 .build());
