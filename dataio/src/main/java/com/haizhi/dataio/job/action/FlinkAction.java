@@ -433,7 +433,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             if (!ObjectUtils.isEmpty(filterCon)) {
                 List<SqlOperator> subList = new ArrayList<>();
                 for (DataTransJobDetail.Filter.FilterCondition.Condition cond : filterCon.getConditions()) {
-                    subList.add(new CompareOperator(cond.getName(), cond.getType(), columnTypeMap.get(cond.getName()).getType(),
+                    subList.add(new CompareOperator("\"" + cond.getName() + "\"", cond.getType(),
+                            columnTypeMap.get(cond.getName()).getType(),
                             cond.getValue(), columnTypeMap.get(cond.getName()).getRealType()));
                 }
 
