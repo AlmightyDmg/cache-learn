@@ -485,10 +485,15 @@ public class ExportJobService extends RequestCommonData {
 	}
 
 	@Transactional
-	public void jobExec(String jobId) {
+	public void jobExec(String jobId, Integer isAuto) {
 		JobBean jobBean = jobRepository.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("任务不存在"));
 		if (jobBean.getStatus() == EXPORT_STATUS_SYNC) {
 			throw new DatabridgeException("任务已在运行中，请勿重复触发");
+		}
+
+		if (isAuto == 1 && EXPORT_STATUS_STOP == jobBean.getStatus()) {
+			log.info(String.format("任务(%s)已经暂定，不执行导出任务.", jobId));
+			return;
 		}
 
 		jobBean.setStatus(EXPORT_STATUS_SYNC);

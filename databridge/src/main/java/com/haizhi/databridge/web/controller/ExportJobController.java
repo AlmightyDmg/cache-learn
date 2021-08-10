@@ -105,8 +105,9 @@ public class ExportJobController extends BaseController {
 	 * @return void
 	 **/
 	@RequestMapping("job/exec")
-	public void jobExec(@NotNull @NotBlank @ApiParam("job_id") @RequestParam(name = "job_id") String jobId) {
-		exportJobService.jobExec(jobId);
+	public void jobExec(@NotNull @NotBlank @ApiParam("job_id") @RequestParam(name = "job_id") String jobId,
+						@ApiParam("is_auto") @RequestParam(name = "is_auto", defaultValue = "0", required = false) Integer isAuto) {
+		exportJobService.jobExec(jobId, isAuto);
 	}
 
 	/**
