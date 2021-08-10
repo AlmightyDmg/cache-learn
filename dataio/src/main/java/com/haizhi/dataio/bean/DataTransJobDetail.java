@@ -79,6 +79,7 @@ public class DataTransJobDetail extends JobDetail {
         String name;
         String realName;
         String type;
+        String realType;
         String value;
         @JsonProperty("uniq_index")
         Boolean uniqIndex;

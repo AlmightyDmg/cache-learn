@@ -14,6 +14,14 @@ public class CompareOperator extends SqlOperator {
     String compareOp;
     String fieldType;
     String value;
+    String realType;
+
+    public CompareOperator(String fieldName, String compareOp, String fieldType, String value) {
+        this.fieldName = fieldName;
+        this.compareOp = compareOp;
+        this.fieldType = fieldType;
+        this.value = value;
+    }
 
     @Override
     public String generate() {
@@ -21,11 +29,19 @@ public class CompareOperator extends SqlOperator {
             return " (1=1) ";
         }
 
+        if ("bit".equalsIgnoreCase(realType)) {
+            value = String.format("cast('%s' as bit)", value);
+        }
+
         String quota = getQuot(fieldType);
         return String.format(COMPARE_PATTERN, fieldName, compareOp, quota, value, quota);
     }
 
     public String getQuot(String type) {
+        if ("bit".equalsIgnoreCase(realType)) {
+            return "";
+        }
+
         if ("string".equalsIgnoreCase(type) || "date".equalsIgnoreCase(type)) {
             return "'";
         }

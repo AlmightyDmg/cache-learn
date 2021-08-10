@@ -74,6 +74,7 @@ public class DataTransJobVo {
         String name;
         String realName;
         String type;
+        String realType;
         String value;
 
         @JsonProperty("uniq_index")

@@ -427,14 +427,14 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         }
 
         if (unit.getReader().getFilter() != null) {
-            Map<String, String> columnTypeMap = unit.getReader().getColumns().stream()
-                    .collect(Collectors.toMap(DataTransJobDetail.Column::getName, DataTransJobDetail.Column::getType));
+            Map<String, DataTransJobDetail.Column> columnTypeMap = unit.getReader().getColumns().stream()
+                    .collect(Collectors.toMap(DataTransJobDetail.Column::getName, x -> x));
             DataTransJobDetail.Filter.FilterCondition filterCon = unit.getReader().getFilter().getFilterConditions();
             if (!ObjectUtils.isEmpty(filterCon)) {
                 List<SqlOperator> subList = new ArrayList<>();
                 for (DataTransJobDetail.Filter.FilterCondition.Condition cond : filterCon.getConditions()) {
-                    subList.add(new CompareOperator(cond.getName(), cond.getType(),
-                            JdbcTypeMapping.getDmcType(columnTypeMap.get(cond.getName())), cond.getValue()));
+                    subList.add(new CompareOperator(cond.getName(), cond.getType(), columnTypeMap.get(cond.getName()).getType(),
+                            cond.getValue(), columnTypeMap.get(cond.getName()).getRealType()));
                 }
 
                 sqlOperatorList.add(new RelOperator(filterCon.getRelationType(), subList));

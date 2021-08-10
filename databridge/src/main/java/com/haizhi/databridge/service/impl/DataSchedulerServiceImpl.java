@@ -813,7 +813,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			if (ObjectUtils.isEmpty(userConfigFields) || userConfigFields.contains(field.getName())) {
 				result.add(DataTransJobVo.Column.builder()
 						.name(field.getName()).remark(field.getRemark()).uniqIndex(field.isUniq_index())
-						.type(field.getType()).build());
+						.type(field.getType()).realType(field.getRaw_type()).build());
 			}
 		}
 
