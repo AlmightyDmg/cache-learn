@@ -332,7 +332,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                         .jobId(unit.getJobId()).storageId(unit.getWriter().getRealName())
                         .column(unit.getWriter().getColumns().stream().map(col ->
                                 TbCol.builder().name(col.getRealName())
-                                        .type("BDP_AUDIT".equals(col.getName()) ? "timestamp" : col.getType()).build())
+                                        .type("date".equals(col.getType()) ? "timestamp" : col.getType()).build())
                                 .collect(Collectors.toList())).build();
                 DmcWriter dmcWriter = dmcTableApi.getDmcWriter(req);
                 writer = dmcWriter.getWriter();
