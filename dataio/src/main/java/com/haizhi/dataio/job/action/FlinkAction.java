@@ -315,6 +315,13 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         return jdbcWriter;
     }
 
+    private String getHdfsType(String dmcType) {
+        switch (dmcType) {
+            case "date": return "timestamp";
+            default: return "string";
+        }
+    }
+
     @Override
     protected String execute(FlinkActionParam unit) {
         log.info(String.format("jobid: %s, exec from %s to %s",
@@ -336,8 +343,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 GetWriterReq req = GetWriterReq.builder()
                         .jobId(unit.getJobId()).storageId(unit.getWriter().getRealName())
                         .column(unit.getWriter().getColumns().stream().map(col ->
-                                TbCol.builder().name(col.getRealName())
-                                        .type("date".equals(col.getType()) ? "timestamp" : col.getType()).build())
+                                TbCol.builder().name(col.getRealName()).type(getHdfsType(col.getType())).build())
                                 .collect(Collectors.toList())).build();
                 DmcWriter dmcWriter = dmcTableApi.getDmcWriter(req);
                 writer = dmcWriter.getWriter();
