@@ -84,12 +84,12 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     static {
         unitStartTime.set(new HashMap<>());
 
-        fieldTypeMap.put(NUMBER_TYPE, "bigint");
+        fieldTypeMap.put(NUMBER_TYPE, "number");
         fieldTypeMap.put(DOUBLE_TYPE, "double");
         fieldTypeMap.put(STRING_TYPE, "string");
         fieldTypeMap.put(DATE_TYPE, "date");
 
-        fieldTypeIndexMap.put("bigint", NUMBER_TYPE);
+        fieldTypeIndexMap.put("number", NUMBER_TYPE);
         fieldTypeIndexMap.put("double", DOUBLE_TYPE);
         fieldTypeIndexMap.put("string", STRING_TYPE);
         fieldTypeIndexMap.put("date", DATE_TYPE);
