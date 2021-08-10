@@ -167,7 +167,9 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 .deleteCount(jobExecCountDto.getDeleteCount())
                 .failedCount(jobExecCountDto.getFailedCount())
                 .updateCount(jobExecCountDto.getUpdateCount())
-                .filterCount(jobExecCountDto.getFilterCount()).build());
+                .filterCount(jobExecCountDto.getFilterCount())
+                .errmsg(errmsg)
+                .build());
     }
 
     private List<String> createDmcTable(FlinkActionParam unit) {
