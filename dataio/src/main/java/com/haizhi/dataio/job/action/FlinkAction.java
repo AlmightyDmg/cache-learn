@@ -80,6 +80,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     private static final int DOUBLE_TYPE = 1;
     private static final int STRING_TYPE = 2;
     private static final int DATE_TYPE = 3;
+    private static final int BLOB_TYPE = 4;
 
     static {
         unitStartTime.set(new HashMap<>());
@@ -88,11 +89,13 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         fieldTypeMap.put(DOUBLE_TYPE, "double");
         fieldTypeMap.put(STRING_TYPE, "string");
         fieldTypeMap.put(DATE_TYPE, "date");
+        fieldTypeMap.put(BLOB_TYPE, "blob");
 
         fieldTypeIndexMap.put("number", NUMBER_TYPE);
         fieldTypeIndexMap.put("double", DOUBLE_TYPE);
         fieldTypeIndexMap.put("string", STRING_TYPE);
         fieldTypeIndexMap.put("date", DATE_TYPE);
+        fieldTypeIndexMap.put("blob", BLOB_TYPE);
     }
     private static Set<String> useFlinkDbType = new HashSet<>();
     static {
