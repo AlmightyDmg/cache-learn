@@ -299,7 +299,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 && "increment".equalsIgnoreCase(unit.getReader().getSync().getType())
                 && !ObjectUtils.isEmpty(unit.getReader().getSync().getSyncCondition())
                 && !ObjectUtils.isEmpty(unit.getReader().getSync().getSyncCondition().getStart())
-                && unit.getReader().getSync().getSyncCondition().getStart().getValue() != null) {
+                && unit.getReader().getSync().getSyncCondition().getStart().getValue() == null) {
             return true;
         }
 
