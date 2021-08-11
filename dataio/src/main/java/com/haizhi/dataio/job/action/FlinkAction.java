@@ -451,8 +451,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                         unit.getReader().getSync().getSyncCondition().getStart().getValue());
 
                 CompareOperator toOp = new CompareOperator(field,
-                        fieldType,
                         unit.getReader().getSync().getSyncCondition().getEnd().getOperator(),
+                        fieldType,
                         unit.getReader().getSync().getSyncCondition().getEnd().getValue());
 
                 sqlOperatorList.add(fromOp);
