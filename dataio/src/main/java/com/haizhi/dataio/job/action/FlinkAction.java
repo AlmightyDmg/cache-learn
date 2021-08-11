@@ -289,11 +289,30 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         return jdbcReader;
     }
 
+    private boolean needTruncate(FlinkActionParam unit) {
+        if (unit.getReader().getSync().getIsTruncate() == 1
+                && "overwrite".equalsIgnoreCase(unit.getReader().getSync().getType())) {
+            return true;
+        }
+
+        if (unit.getReader().getSync().getIsTruncate() == 1
+                && "increment".equalsIgnoreCase(unit.getReader().getSync().getType())
+                && !ObjectUtils.isEmpty(unit.getReader().getSync().getSyncCondition())
+                && !ObjectUtils.isEmpty(unit.getReader().getSync().getSyncCondition().getStart())
+                && unit.getReader().getSync().getSyncCondition().getStart().getValue() != null) {
+            return true;
+        }
+
+        return false;
+    }
+
     private Writer<JdbcWriter> buildJdbcWriter(FlinkActionParam unit) {
         Writer<JdbcWriter> jdbcWriter = new Writer<>();
 
         List<String> preSql = new ArrayList<>();
-        if (unit.getReader().getSync().getIsTruncate() == 1) {
+
+        // 若全量更新，先清空数据；若增量清空，判断若起始游标为空，才预先清空数据
+        if (needTruncate(unit)) {
             preSql.add(String.format("truncate table %s", unit.getWriter().getTableName()));
         }
 
@@ -366,14 +385,15 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 if (unit.getReader().getSync() != null && unit.getReader().getSync().getSyncCondition() != null) {
                     maxSql = String.format("select max(%s) from %s_%s",
                             unit.getReader().getSync().getSyncCondition().getField(), unit.getReader().getRealName(), unit.getJobId());
-                    log.info("max_sql: (%s)", maxSql);
+                    log.info(String.format("max_sql: (%s)", maxSql));
                 }
-                req.setMaxSql(maxSql);
+
+                req.setMaxSql("null".equals(maxSql) ? null : maxSql);
 
                 DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getFromSink().getUrl());
                 DmcReader dmcReader = dmcTableApi.getDmcReader(req);
 
-                log.info("max_value: (%s)", dmcReader.getMaxValue());
+                log.info(String.format("max_value: (%s)", dmcReader.getMaxValue()));
                 unit.getReader().setRealName(dmcReader.getTabName().split("_")[0]);
 
                 setNextMaxValue(unit, dmcReader.getMaxValue());

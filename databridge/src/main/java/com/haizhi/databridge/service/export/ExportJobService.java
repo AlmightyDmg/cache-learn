@@ -480,8 +480,15 @@ public class ExportJobService extends RequestCommonData {
 	**/
 	@Transactional
 	public void jobStart(String jobId) {
-		jobClientApi.start(jobId);
 		jobRepository.updateJob(jobId, EXPORT_STATUS_CREATE);
+		JobBean jobBean = jobRepository.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("任务不存在"));
+
+		// 定时任务需要调用xxljob启动调度
+		ExportJobVo.SchedulerConfVo schedulerConf = toObject(jobBean.getSyncConfigBack(), ExportJobVo.SchedulerConfVo.class);
+		String cronType = getExecuteMode(schedulerConf.getMode());
+		if ("CRON".equalsIgnoreCase(cronType)) {
+			jobClientApi.start(jobId);
+		}
 	}
 
 	@Transactional
@@ -491,8 +498,9 @@ public class ExportJobService extends RequestCommonData {
 			throw new DatabridgeException("任务已在运行中，请勿重复触发");
 		}
 
-		if (isAuto == 1 && EXPORT_STATUS_STOP == jobBean.getStatus()) {
-			log.info(String.format("任务(%s)已经暂定，不执行导出任务.", jobId));
+		ExportJobVo.SchedulerConfVo schedulerConf = toObject(jobBean.getSyncConfigBack(), ExportJobVo.SchedulerConfVo.class);
+		if (isAuto == 1 && (EXPORT_STATUS_STOP == jobBean.getStatus() || schedulerConf.getMode() != 2)) {
+			log.info(String.format("任务(%s)已经暂定或者非自动任务，不执行导出任务.", jobId));
 			return;
 		}
 
@@ -501,7 +509,6 @@ public class ExportJobService extends RequestCommonData {
 
 		// if xxl-job not exist, then create it.
 		if (!jobClientApi.isXxljobExist(jobId)) {
-			ExportJobVo.SchedulerConfVo schedulerConf = toObject(jobBean.getSyncConfigBack(), ExportJobVo.SchedulerConfVo.class);
 			String cronType = getExecuteMode(schedulerConf.getMode());
 			jobClientApi.add(jobId, toQuartsCron(schedulerConf.getSyncConfig()), cronType,
 					DataTransJobParam.builder().jobType(EXPORT).jobId(jobId).build());
