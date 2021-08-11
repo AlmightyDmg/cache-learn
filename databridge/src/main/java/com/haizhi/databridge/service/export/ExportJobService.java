@@ -495,7 +495,11 @@ public class ExportJobService extends RequestCommonData {
 	public void jobExec(String jobId, Integer isAuto) {
 		JobBean jobBean = jobRepository.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("任务不存在"));
 		if (jobBean.getStatus() == EXPORT_STATUS_SYNC) {
-			throw new DatabridgeException("任务已在运行中，请勿重复触发");
+			if (isAuto == 1) {
+				return;
+			} else {
+				throw new DatabridgeException("任务已在运行中，请勿重复触发");
+			}
 		}
 
 		ExportJobVo.SchedulerConfVo schedulerConf = toObject(jobBean.getSyncConfigBack(), ExportJobVo.SchedulerConfVo.class);
