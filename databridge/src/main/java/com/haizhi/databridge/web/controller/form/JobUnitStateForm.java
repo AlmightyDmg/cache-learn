@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class JobUnitStateForm {
     private String jobId;
+    private String jobTaskId;
     private String fromTableId;
     private String toTableId;
     private Integer tableStatus;

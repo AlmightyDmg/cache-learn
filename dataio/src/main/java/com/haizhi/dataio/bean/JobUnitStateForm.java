@@ -19,6 +19,9 @@ public class JobUnitStateForm {
     @Field("jobId")
     private String jobId;
 
+    @Field("job_task_id")
+    String jobTaskId;
+
     @Field("fromTableId")
     private String fromTableId;
 

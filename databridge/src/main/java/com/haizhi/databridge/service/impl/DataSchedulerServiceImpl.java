@@ -20,6 +20,7 @@ import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_STATUS_TERMINATED;
 import static com.haizhi.databridge.constants.DatabridgeConstants.IMPORT_TABLE_TERMINATED;
 import static com.haizhi.databridge.constants.DatabridgeConstants.JOB_FORCE_STOP;
+import static com.haizhi.databridge.constants.DatabridgeConstants.M_PER_S;
 import static com.haizhi.databridge.service.impl.DataSourceServiceImpl.encodeConnectId;
 import static com.haizhi.databridge.util.CronUtils.toQuartsCron;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -59,12 +60,15 @@ import com.haizhi.databridge.bean.domain.importdata.TDataBaseSourceBean;
 import com.haizhi.databridge.bean.domain.importdata.TSchedulerBean;
 import com.haizhi.databridge.bean.domain.importdata.TSchedulerHistory;
 import com.haizhi.databridge.bean.domain.importdata.TTableBean;
+import com.haizhi.databridge.bean.domain.importdata.TTableHistoryBean;
+import com.haizhi.databridge.bean.domain.importdata.TblTransTaskRelBean;
 import com.haizhi.databridge.bean.dto.DataSchedulerDto;
 import com.haizhi.databridge.bean.dto.DataSourceObjDto;
 import com.haizhi.databridge.bean.dto.DataTableDto;
 import com.haizhi.databridge.bean.vo.DataSchedulerVo;
 import com.haizhi.databridge.bean.vo.DataTableVo;
 import com.haizhi.databridge.bean.vo.DataTransJobVo;
+import com.haizhi.databridge.bean.vo.SchedHisParamVo;
 import com.haizhi.databridge.client.xxljob.JobClientApi;
 import com.haizhi.databridge.client.xxljob.request.DataTransJobParam;
 import com.haizhi.databridge.config.DmcClientProperties;
@@ -73,7 +77,9 @@ import com.haizhi.databridge.constants.DatabridgeConstants;
 import com.haizhi.databridge.exception.DatabridgeException;
 import com.haizhi.databridge.repository.importdata.TSchedulerHistoryRepository;
 import com.haizhi.databridge.repository.importdata.TSchedulerRepository;
+import com.haizhi.databridge.repository.importdata.TTableHistoryRepository;
 import com.haizhi.databridge.repository.importdata.TTableRepository;
+import com.haizhi.databridge.repository.importdata.TblTransTaskRelRepository;
 import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSchedulerService;
 import com.haizhi.databridge.util.Base64Utils;
@@ -117,7 +123,13 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	private TSchedulerHistoryRepository schedulerHistoryRepo;
 
 	@Autowired
+	private TTableHistoryRepository tableHistoryRepo;
+
+	@Autowired
 	private DmcJobApi dmcJobApi;
+
+	@Autowired
+	private TblTransTaskRelRepository tblTransTaskRelRepo;
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
@@ -821,16 +833,16 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	}
 
 	@Override
-	public String updateJobStatus(JobStateForm jobStateForm) {
-		TSchedulerBean schedulerBean = tSchedulerRepo.findBySchedulerId(jobStateForm.getJobId())
+	public String updateJobStatus(JobStateForm form) {
+		TSchedulerBean schedulerBean = tSchedulerRepo.findBySchedulerId(form.getJobId())
 				.orElseThrow(() -> new DatabridgeException("job not exist"));
-		schedulerBean.setStartAt(new Timestamp(jobStateForm.getStartTime()));
-		if (null != jobStateForm.getEndTime()) {
-			schedulerBean.setFinishAt(new Timestamp(jobStateForm.getEndTime()));
+		schedulerBean.setStartAt(new Timestamp(form.getStartTime()));
+		if (null != form.getEndTime()) {
+			schedulerBean.setFinishAt(new Timestamp(form.getEndTime()));
 		}
 
 		String status = "";
-		switch (jobStateForm.getJobStatus()) {
+		switch (form.getJobStatus()) {
 			case 0: status = IMPORT_STATUS_SYNCING; break;
 			case 1: status = IMPORT_STATUS_ERROR; break;
 			case 2: status = IMPORT_STATUS_IDLE; break;
@@ -839,8 +851,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		}
 
 		schedulerBean.setStatus(status);
-		if (jobStateForm.getErrmsg() != null) {
-			schedulerBean.setException(jobStateForm.getErrmsg());
+		if (form.getErrmsg() != null) {
+			schedulerBean.setException(form.getErrmsg());
 		}
 		tSchedulerRepo.update(schedulerBean);
 
@@ -852,6 +864,22 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 						table.setStatus(IMPORT_TABLE_TERMINATED);
 						tTableRepo.update(table);
 					});
+		}
+
+		if (form.getEndTime() != null) {
+			schedulerHistoryRepo.save(TSchedulerHistory.builder()
+					.owner(schedulerBean.getOwner())
+					.schedulerId(form.getJobId())
+					.schedulerName(schedulerBean.getSchedulerName())
+					.startAt(new Timestamp(form.getStartTime()))
+					.elapse((int) ((form.getEndTime() - form.getStartTime()) / M_PER_S))
+					.exception(form.getErrmsg()).taskId(form.getJobTaskId())
+					.status(status)
+					.params(JsonUtils.toJson(SchedHisParamVo.builder().realUserId(schedulerBean.getOwner())
+							.result(SchedHisParamVo.Result.builder()
+									.success(form.getTbSuccess()).total(form.getTbTotal()).build()).build()))
+					.exception(form.getErrmsg())
+					.build());
 		}
 
 		return null;
@@ -902,17 +930,34 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 		tTableRepo.update(tTableBean);
 
+		// 保存表执行的历史记录
 		if (form.getEndTime() != null) {
-			TSchedulerBean schedulerBean = tSchedulerRepo.findBySchedulerId(form.getJobId())
-					.orElseThrow(() -> new DatabridgeException("job not exist"));
-			schedulerHistoryRepo.save(TSchedulerHistory.builder()
-					.owner(form.getUserId()).schedulerId(form.getJobId())
-					.startAt(new Timestamp(form.getStartTime()))
-					.elapse((int) (form.getEndTime() - form.getStartTime())).taskId("flink")
-					.schedulerName(schedulerBean.getSchedulerName())
-					.build());
+			saveTableHistory(form, tTableBean, status);
 		}
 		return null;
+	}
+
+	private void saveTableHistory(JobUnitStateForm form, TTableBean tTableBean, String status) {
+		Optional<TblTransTaskRelBean> tblTransTaskRelBeanOptional = tblTransTaskRelRepo.findTransTask(form.getJobId(),
+				form.getFromTableId(), form.getToTableId());
+		String transTaskId = "";
+		if (tblTransTaskRelBeanOptional.isPresent()) {
+			transTaskId = tblTransTaskRelBeanOptional.get().getTransTaskId();
+		}
+
+		tableHistoryRepo.save(TTableHistoryBean.builder()
+				.owner(tTableBean.getOwner()).tableId(form.getFromTableId()).startAt(new Timestamp(form.getStartTime()))
+				.elapse((int) (form.getEndTime() - form.getStartTime())).tbName(tTableBean.getTbName())
+				.exception(form.getErrorMsg()).count(tTableBean.getPosted()).status(status).toucher("系统")
+				.extra("{\"full\": 0, \"sql\": null}").toucherType(1).taskId(form.getJobTaskId())
+				.traceback(transTaskId).build());
+
+		// 成功执行，清空flinkTaskId，下次重新执行
+		if (tblTransTaskRelBeanOptional.isPresent()) {
+			TblTransTaskRelBean taskRelBean = tblTransTaskRelBeanOptional.get();
+			taskRelBean.setTransTaskId("");
+			tblTransTaskRelRepo.save(taskRelBean);
+		}
 	}
 
 	@Transactional

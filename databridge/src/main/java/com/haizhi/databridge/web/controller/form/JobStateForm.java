@@ -11,11 +11,14 @@ import lombok.NoArgsConstructor;
 @Builder
 public class JobStateForm {
     String jobId;
+    String jobTaskId;
     Integer jobStatus;
     String jobType;
     Long startTime;
     Long endTime;
     String errmsg;
+    Integer tbSuccess;
+    Integer tbTotal;
 
     private Integer appendCount = 0;
     private Integer updateCount = 0;

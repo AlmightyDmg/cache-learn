@@ -29,6 +29,15 @@ public class JobStateForm {
     @Field("errmsg")
     String errmsg;
 
+    @Field("job_task_id")
+    String jobTaskId;
+
+    @Field("tb_success")
+    Integer tbSuccess;
+
+    @Field("tb_total")
+    Integer tbTotal;
+
     @Field("appendCount")
     private Integer appendCount = 0;
     @Field("updateCount")

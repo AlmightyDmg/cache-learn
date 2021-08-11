@@ -57,6 +57,7 @@ import com.haizhi.dataio.job.sql.RelOperator;
 import com.haizhi.dataio.job.sql.SqlOperator;
 import com.haizhi.dataio.job.writer.JdbcWriter;
 import com.haizhi.dataio.job.writer.Writer;
+import com.haizhi.dataio.utils.JobUtils;
 import com.haizhi.dataio.utils.JsonUtils;
 
 /**
@@ -139,7 +140,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         JobExecCountDto jobExecCountDto = new JobExecCountDto();
         log.info(String.format("jobid: %s, begin to sync", info.getJobId()));
         databridgeClient.updateJobStatus(JobStateForm.builder().jobId(info.getJobId()).jobType(info.getJobType())
-                .jobStatus(0).startTime(startTime.get()).endTime(null)
+                .jobStatus(0).startTime(startTime.get()).endTime(null).jobTaskId(JobUtils.cntx().getJobTaskId())
                 .allCount(jobExecCountDto.getAllCount())
                 .appendCount(jobExecCountDto.getAppendCount())
                 .deleteCount(jobExecCountDto.getDeleteCount())
@@ -164,7 +165,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             });
         }
         databridgeClient.updateJobStatus(JobStateForm.builder().jobId(info.getJobId()).jobType(info.getJobType())
-                .jobStatus(status).startTime(startTime.get()).endTime(new Date().getTime())
+                .jobStatus(status).startTime(startTime.get()).endTime(new Date().getTime()).jobTaskId(JobUtils.cntx().getJobTaskId())
+                .tbTotal(JobUtils.cntx().getTotal()).tbSuccess(JobUtils.cntx().getSuccess())
                 .allCount(jobExecCountDto.getAllCount())
                 .appendCount(jobExecCountDto.getAppendCount())
                 .deleteCount(jobExecCountDto.getDeleteCount())
@@ -250,6 +252,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         }
 
         databridgeClient.updateJobExecUnit(JobUnitStateForm.builder().jobId(unit.getJobId())
+                .jobTaskId(JobUtils.cntx().getJobTaskId())
                 .fromTableId(unit.getReader().getTableId()).toTableId(unit.getWriter().getTableId())
                 .toFolderId(unit.getWriter().getTablePath())
                 .startTime(unitStartTime.get().get(unit.getReader().getTableName()))
@@ -489,7 +492,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
 
         // 实时更新同步数量
         databridgeClient.updateJobExecUnit(JobUnitStateForm.builder()
-                .jobId(unitParam.getJobId())
+                .jobId(unitParam.getJobId()).jobTaskId(JobUtils.cntx().getJobTaskId())
                 .fromTableId(unitParam.getReader().getTableId())
                 .toTableId(unitParam.getWriter().getTableId())
                 .startTime(unitStartTime.get().get(unitParam.getReader().getTableName()))
@@ -566,8 +569,12 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             }
         }
 
+        if (success) {
+            JobUtils.cntx().addSuccess();
+        }
+
         databridgeClient.updateJobExecUnit(JobUnitStateForm.builder()
-                .jobId(unit.getJobId())
+                .jobId(unit.getJobId()).jobTaskId(JobUtils.cntx().getJobTaskId())
                 .fromTableId(unit.getReader().getTableId())
                 .toTableId(unit.getWriter().getTableId())
                 .startTime(unitStartTime.get().get(unit.getReader().getTableName()))

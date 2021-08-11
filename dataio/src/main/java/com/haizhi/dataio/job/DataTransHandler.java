@@ -19,6 +19,7 @@ import com.haizhi.dataio.client.databridge.DatabridgeClient;
 import com.haizhi.dataio.job.action.ExportAction;
 import com.haizhi.dataio.job.action.FlinkAction;
 import com.haizhi.dataio.job.action.ImportAction;
+import com.haizhi.dataio.utils.JobUtils;
 import com.haizhi.dataio.utils.JsonUtils;
 
 /**
@@ -69,12 +70,16 @@ public class DataTransHandler {
         XxlJobHelper.log("begin dataTransJobHandler. ");
         DataTransJobParam jobParam = JsonUtils.toObject(XxlJobHelper.getJobParam(), DataTransJobParam.class);
 
+        // 生成任务ID
+        JobUtils.initContext();
+
         long startTime = new Date().getTime();
         DataTransJobDetail jobDetail = null;
         boolean useFlink = false;
         try {
             jobDetail = getJobDetail(jobParam);
             useFlink = useFlink(jobDetail);
+            JobUtils.cntx().setTotal(jobDetail.getSyncUnits().size());
             if (useFlink) {
                 logger.info(String.format("jobid: %s, dbtype: %s, use flink to sync", jobParam.getJobId(), jobParam.getJobType()));
                 flinkAction.doAction(jobDetail);
@@ -114,6 +119,8 @@ public class DataTransHandler {
             XxlJobHelper.handleFail(e.getMessage());
         }
 
+        JobUtils.finiContext();
+
         XxlJobHelper.log("end dataTransJobHandler. ");
         // default success
         XxlJobHelper.handleSuccess("success");
@@ -122,8 +129,8 @@ public class DataTransHandler {
     private void shutdownJob(long startTime, DataTransJobParam jobParam, int status, String message) {
         JobExecCountDto jobExecCountDto = new JobExecCountDto();
         databridgeClient.updateJobStatus(JobStateForm.builder().jobId(jobParam.getJobId()).jobType(jobParam.getJobType())
-                .jobStatus(status).startTime(startTime).endTime(new Date().getTime())
-                .errmsg(message)
+                .jobStatus(status).startTime(startTime).endTime(new Date().getTime()).jobTaskId(JobUtils.cntx().getJobTaskId())
+                .errmsg(message).tbSuccess(JobUtils.cntx().getSuccess()).tbTotal(JobUtils.cntx().getTotal())
                 .allCount(jobExecCountDto.getAllCount())
                 .appendCount(jobExecCountDto.getAppendCount())
                 .deleteCount(jobExecCountDto.getDeleteCount())

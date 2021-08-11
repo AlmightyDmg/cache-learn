@@ -717,23 +717,27 @@ public class ExportJobService extends RequestCommonData {
 	@Transactional
 	public String updateJobTask(JobUnitStateForm form) {
 		// 执行完成清空与flinktask的关系
-		TblTransTaskRelBean tblTransTaskRelBean = tblTransTaskRelRepo.findTransTask(form.getJobId(),
-				form.getFromTableId(), form.getToTableId()).orElse(TblTransTaskRelBean.builder()
-				.jobId(form.getJobId()).fromTableId(form.getFromTableId()).toTableId(form.getToTableId())
-				.transTaskId("")
-				.owner(form.getUserId())
-				.build());
-		tblTransTaskRelRepo.save(tblTransTaskRelBean);
+		if (form.getEndTime() != null) {
+			TblTransTaskRelBean tblTransTaskRelBean = tblTransTaskRelRepo.findTransTask(form.getJobId(),
+					form.getFromTableId(), form.getToTableId()).orElse(TblTransTaskRelBean.builder()
+					.jobId(form.getJobId()).fromTableId(form.getFromTableId()).toTableId(form.getToTableId())
+					.transTaskId("")
+					.owner(form.getUserId())
+					.build());
+			tblTransTaskRelRepo.save(tblTransTaskRelBean);
 
-		// 若是导入，更新table的状态， 同步开始和结束的位置，以及tablehistory
-		JobBean jobBean = jobRepository.findByJobId(form.getJobId()).orElseThrow(() -> new DatabridgeException("job not exist"));
-		ExportJobVo.ExportModeVo exportModeVo = ObjectUtils.isArray(jobBean.getExportMode()) ? null : toObject(
-				jobBean.getExportMode(), ExportJobVo.ExportModeVo.class);
-		if (exportModeVo != null && "increment".equalsIgnoreCase(exportModeVo.getMode()) && !ObjectUtils.isEmpty(form.getIncreateValue())) {
-			exportModeVo.setIncreateValue(form.getIncreateValue());
-			jobBean.setExportMode(JsonUtils.toJson(exportModeVo));
-			log.info(String.format("jobId: %s, increase to: %s", form.getJobId(), form.getIncreateValue()));
-			jobRepository.update(jobBean);
+			// 增量更新，记录本次同步结束的位置
+			JobBean jobBean = jobRepository.findByJobId(form.getJobId()).orElseThrow(() -> new DatabridgeException("job not exist"));
+			ExportJobVo.ExportModeVo exportModeVo = ObjectUtils.isArray(jobBean.getExportMode()) ? null : toObject(
+					jobBean.getExportMode(), ExportJobVo.ExportModeVo.class);
+			if (exportModeVo != null
+					&& "increment".equalsIgnoreCase(exportModeVo.getMode())
+					&& !ObjectUtils.isEmpty(form.getIncreateValue())) {
+				exportModeVo.setIncreateValue(form.getIncreateValue());
+				jobBean.setExportMode(JsonUtils.toJson(exportModeVo));
+				log.info(String.format("jobId: %s, increase to: %s", form.getJobId(), form.getIncreateValue()));
+				jobRepository.update(jobBean);
+			}
 		}
 
 		return "";

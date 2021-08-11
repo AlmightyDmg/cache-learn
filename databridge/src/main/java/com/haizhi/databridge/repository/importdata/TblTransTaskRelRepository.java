@@ -26,4 +26,9 @@ public interface TblTransTaskRelRepository extends HaizhiBaseRepository<TblTrans
     @Transactional
     @Query(value = "update t_trans_task_rel set is_del = 1 where job_id = ?1", nativeQuery = true)
     void logicDeleteByJobId(String jobId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "update t_trans_task_rel set trans_task_id = '' where job_id = ?1 and is_del = 0 ", nativeQuery = true)
+    void clearTaskId(String jobId);
 }
