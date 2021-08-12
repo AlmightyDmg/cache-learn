@@ -105,6 +105,7 @@ public class DataTransJobVo {
         String type; // [overwrite全量更新，increment增量更新]
         Integer isTruncate; // 增量时是否清空
         Integer fetchSize; // 每次获取的条数
+        Integer dereplication = 0; // 去重
         CheckRule checkRule;
         SyncCondition syncCondition;
 

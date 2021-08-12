@@ -1,6 +1,7 @@
 // CHECKSTYLE:OFF
 package com.haizhi.dataclient.datapi.dmc;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.Map;
 
 import javax.validation.Valid;
 
+import com.google.common.collect.Maps;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,16 +27,20 @@ import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcWriter;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.ExplainResp;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataFieldResp;
 import com.haizhi.dataclient.connection.dmc.client.noah.response.GetTableDataResp;
+import com.haizhi.dataclient.connection.dmc.client.pandora.req.FieldDependencyCheckReq;
 import com.haizhi.dataclient.connection.dmc.client.pentagon.dto.PentagonResult;
 import com.haizhi.dataclient.connection.dmc.client.pentagon.response.GetTableSchemaResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ChangeFolderReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CheckTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateFieldReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteFieldReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteMapTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.InfoTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbFileReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ModifyFieldReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ModifyTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.InfoTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.MergeTbFileResp;
@@ -111,11 +117,12 @@ public class DmcTableApi extends DataApi<DmcConnection> {
         return getDataConnection().getMobiusClient().explain(queryExplainReq);
     }
 
-    public void updateTableStatus(String tableId, Integer status, String userId) {
+    public void modifyTable(String tableId, Integer status, String userId, Integer dereplication) {
         getDataConnection().getTassadarClient().modifyTb(ModifyTbReq.builder()
                 .tbId(tableId)
                 .status(status)
                 .userId(userId)
+                .forceMerge(dereplication == null ? "" : dereplication.toString())
                 .build());
     }
 
@@ -125,13 +132,15 @@ public class DmcTableApi extends DataApi<DmcConnection> {
     }
 
     public List<String> createTb(String tableName, List<CreateTbReq.TbField> fields, String userId,
-                                 String dbId, String dbName) {
+                                 String dbId, String dbName, Integer dereplication) {
         String folder = getDataConnection().getTassadarClient()
                 .createFolderIfNotExist(1, userId, dbName, 1).getResult().getFolder();
+
+
         CreateTbReq createTbReq = CreateTbReq.builder()
                 .name(tableName).userId(userId).manageType(1).treeType(0)
                 .dmcRequest(1).fields(fields).type(2)
-                .dbId(dbId)
+                .dbId(dbId).forceMerge(dereplication == null ? 0 : dereplication)
                 .build();
         String tbId = getDataConnection().getTassadarClient().createTb(createTbReq).getResult().getTbId();
 
@@ -213,5 +222,30 @@ public class DmcTableApi extends DataApi<DmcConnection> {
         }
 
         return false;
+    }
+
+    public void deleteField(String tbId, String fieldId, String title, String userId) {
+        List<Map<String, Object>> checkData = new ArrayList<>();
+        Map<String, Object> dataMap = new HashMap<>();
+        dataMap.put("field_id", fieldId);
+        dataMap.put("title", title);
+        checkData.add(dataMap);
+
+        // 检查是否有依赖
+        if (getDataConnection().getPandoraClient().fieldDependencyCheck(FieldDependencyCheckReq.builder()
+                .tbId(tbId).userId(userId).data(JsonUtils.toJson(checkData)).build()).getResult().isEmpty()) {
+
+            // 若无依赖，删除字段
+            getDataConnection().getTassadarClient().deleteField(DeleteFieldReq.builder().dmcRequest(1)
+                    .tbId(tbId).userId(userId).fieldId(fieldId).build());
+        }
+    }
+
+    public void modifyField(ModifyFieldReq modifyFieldReq) {
+        getDataConnection().getTassadarClient().modifyField(modifyFieldReq);
+    }
+
+    public void createField(CreateFieldReq createFieldReq) {
+        getDataConnection().getTassadarClient().createField(createFieldReq);
     }
 }

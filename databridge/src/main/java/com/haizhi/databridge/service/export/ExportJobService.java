@@ -496,6 +496,7 @@ public class ExportJobService extends RequestCommonData {
 		JobBean jobBean = jobRepository.findByJobId(jobId).orElseThrow(() -> new DatabridgeException("任务不存在"));
 		if (jobBean.getStatus() == EXPORT_STATUS_SYNC) {
 			if (isAuto == 1) {
+				log.info(String.format("task(%s) is already running.", jobId));
 				return;
 			} else {
 				throw new DatabridgeException("任务已在运行中，请勿重复触发");
@@ -504,12 +505,14 @@ public class ExportJobService extends RequestCommonData {
 
 		ExportJobVo.SchedulerConfVo schedulerConf = toObject(jobBean.getSyncConfigBack(), ExportJobVo.SchedulerConfVo.class);
 		if (isAuto == 1 && (EXPORT_STATUS_STOP == jobBean.getStatus() || schedulerConf.getMode() != 2)) {
-			log.info(String.format("任务(%s)已经暂定或者非自动任务，不执行导出任务.", jobId));
+			log.info(String.format("task(%s) is running.", jobId));
 			return;
 		}
 
-		jobBean.setStatus(EXPORT_STATUS_SYNC);
-		jobRepository.update(jobBean);
+		if (isAuto == 0) {
+			jobBean.setStatus(EXPORT_STATUS_SYNC);
+			jobRepository.update(jobBean);
+		}
 
 		// if xxl-job not exist, then create it.
 		if (!jobClientApi.isXxljobExist(jobId)) {
@@ -596,6 +599,16 @@ public class ExportJobService extends RequestCommonData {
 		return syncCon;
 	}
 
+	private String getFromFieldName(ExportJobVo.JobConfigInnerVo jobConf, String toFieldName) {
+		for (ExportJobVo.FieldMappingInnerVo mappingInnerVo : jobConf.getFieldsMapping()) {
+			if (mappingInnerVo.getMappingName().equals(toFieldName)) {
+				return mappingInnerVo.getOriginalName();
+			}
+		}
+
+		return "";
+	}
+
 	private DataTransJobVo.Reader getReader(ExportJobVo.JobConfigInnerVo jobConf, JobBean jobBean) {
 		ExportJobForm.ExportModeForm exportMode =
 				JsonUtils.toObject(jobBean.getExportMode(), ExportJobForm.ExportModeForm.class);
@@ -610,8 +623,9 @@ public class ExportJobService extends RequestCommonData {
 		DataTransJobVo.CheckRule checkRule = DataTransJobVo.CheckRule.builder()
 				.failureStrategy(Optional.ofNullable(jobBean.getExportFailureStrategy()).orElse(0))
 				.rules(Optional.ofNullable(ruleList).orElse(new ArrayList<>()).stream()
-						.filter(x -> fieldMap.containsKey(x.getMappingName()))
-						.map(x -> x.getCond().replace("${field}", fieldMap.get(x.getMappingName()).getFieldId()))
+						.filter(x -> fieldMap.containsKey(getFromFieldName(jobConf, x.getMappingName())))
+						.map(x -> x.getCond().replace("${field}",
+								fieldMap.get(getFromFieldName(jobConf, x.getMappingName())).getFieldId()))
 						.collect(Collectors.toList())).build();
 
 		DataTransJobVo.Sync.SyncCondition syncCon = getSyncCond(exportMode, dmcTbInfo.getFields());

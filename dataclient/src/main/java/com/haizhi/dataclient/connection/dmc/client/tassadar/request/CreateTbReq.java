@@ -42,7 +42,7 @@ public class CreateTbReq extends TassadarReqBase {
 	private String storageId = null;
 	@Default
 	@Field("force_merge")
-	private String forceMerge = null;
+	private Integer forceMerge = null;
 	@Default
 	@Field("comment")
 	private String comment = "";

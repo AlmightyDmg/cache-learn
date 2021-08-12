@@ -18,6 +18,7 @@ public class TableCreateReq extends MobiusReqBase {
 	private String isStreaming = "0";
 
 	@Data
+	@SuperBuilder
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public static class CreateField {
 		@JsonProperty("seq_no")

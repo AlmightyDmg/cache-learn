@@ -27,9 +27,13 @@ import org.springframework.util.StringUtils;
 import com.haizhi.dataclient.connection.dmc.client.mobius.common.TbCol;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.GetReaderReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.request.GetWriterReq;
+import com.haizhi.dataclient.connection.dmc.client.mobius.request.TableCreateReq;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcReader;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.DmcWriter;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateFieldReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteFieldReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ModifyFieldReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.InfoTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.MergeTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.TassadarResult;
@@ -137,6 +141,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     protected void begin(DataTransJobDetail info) {
         // 更新同步任务的状态
         startTime.set(new Date().getTime());
+        unitStartTime.set(new HashMap<>());
+        countRes.set(new HashMap<>());
         JobExecCountDto jobExecCountDto = new JobExecCountDto();
         log.info(String.format("jobid: %s, begin to sync", info.getJobId()));
         databridgeClient.updateJobStatus(JobStateForm.builder().jobId(info.getJobId()).jobType(info.getJobType())
@@ -184,7 +190,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                         .type(fieldTypeIndexMap.getOrDefault(col.getType(), 2))
                         .remark(col.getRemark()).uniqIndex(col.getUniqIndex()).build()).collect(Collectors.toList());
         List<String> folderTb = dmcTableApi.createTb(unit.getWriter().getTableName(), fields,
-                unit.getUserId(), unit.getToSink().getSchema(), unit.getToSink().getCatalog());
+                unit.getUserId(), unit.getToSink().getSchema(), unit.getToSink().getCatalog(),
+                unit.getReader().getSync().getDereplication());
 
         return folderTb;
     }
@@ -227,7 +234,11 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             unit.getWriter().setRealName(dmcTbInfo.getStorageId());
 
             // 0:CREATE|1:SYNCING|2:SYNC_FINISH|3:SYNC_ERROR|4:MIGRATE|5:MIGRATE_ERROR|6:MERGE_ERROR
-            dmcTableApi.updateTableStatus(tableId, 1, unit.getUserId());
+            dmcTableApi.modifyTable(tableId, 1, unit.getUserId(), unit.getReader().getSync().getDereplication());
+
+            // 修改字段配置
+//            handleColumn(tableId, unit.getUserId(), dmcTbInfo.getFields(), unit.getWriter().getColumns(), dmcTableApi);
+
             if (Integer.valueOf(1).equals(unit.getReader().getSync().getIsTruncate())) {
                 dmcTableApi.truncateData(unit.getWriter().getRealName());
             }
@@ -257,6 +268,43 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 .toFolderId(unit.getWriter().getTablePath())
                 .startTime(unitStartTime.get().get(unit.getReader().getTableName()))
                 .jobType(unit.getJobType()).tableStatus(0).userId(unit.getUserId()).build());
+    }
+
+    private void handleColumn(String tbId,
+                              String userId,
+                              List<InfoTbResp.TbField> originFields,
+                              List<DataTransJobDetail.Column> modifyColumns,
+                              DmcTableApi dmcTblApi) {
+        Map<String, InfoTbResp.TbField> originFieldMap = originFields.stream()
+                .collect(Collectors.toMap(InfoTbResp.TbField::getFieldId, fie -> fie));
+
+        Map<String, DataTransJobDetail.Column> modifyFieldMap = modifyColumns.stream()
+                .collect(Collectors.toMap(DataTransJobDetail.Column::getRealName, fie -> fie));
+
+
+        originFields.forEach(origin -> {
+            if (!modifyFieldMap.containsKey(origin.getFieldId())) {
+                // delete field
+                dmcTblApi.deleteField(tbId, origin.getFieldId(), origin.getTitle(), userId);
+            }
+        });
+
+        modifyColumns.forEach(modify -> {
+            InfoTbResp.TbField field = originFieldMap.get(modify.getRealName());
+            if (field == null) {
+                // create field
+                dmcTblApi.createField(CreateFieldReq.builder().userId(userId)
+                        .name(modify.getName()).type(modify.getType()).dmcRequest(1)
+                        .remark(modify.getRemark()).uniqIndex(modify.getUniqIndex() ? 1 : 0).build());
+            } else if (!ObjectUtils.nullSafeEquals(modify.getType(), fieldTypeMap.get(field.getType()))
+                    || ObjectUtils.nullSafeEquals(modify.getRemark(), field.getRemark())
+                    || !ObjectUtils.nullSafeEquals(modify.getUniqIndex() ? 1 : 0, field.getUniqIndex())) {
+                // modify field
+                dmcTblApi.modifyField(ModifyFieldReq.builder().userId(userId).tbId(tbId).dmcRequest(1)
+                        .fieldId(field.getFieldId()).remark(modify.getRemark()).type(modify.getType())
+                        .uniqIndex(modify.getUniqIndex() ? 1 : 0).build());
+            }
+        });
     }
 
     private SqlOperator genCheckSql(SqlOperator baseSqlOp, DataTransJobDetail.CheckRule checkRule) {
@@ -378,13 +426,15 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 req.setStorageId(unit.getReader().getRealName());
                 String selCols = unit.getReader().getColumns().stream()
                         .map(DataTransJobDetail.Column::getRealName).collect(Collectors.joining(","));
-                req.setTmpSql(String.format("select %s from %s where %s", selCols, unit.getReader().getRealName(),
-                        genWhere(unit).generate()));
+
+                String whereSql = genWhere(unit).generate();
+                req.setTmpSql(String.format("select %s from %s where %s", selCols, unit.getReader().getRealName(), whereSql));
 
                 String maxSql = "";
                 if (unit.getReader().getSync() != null && unit.getReader().getSync().getSyncCondition() != null) {
-                    maxSql = String.format("select max(%s) from %s_%s",
-                            unit.getReader().getSync().getSyncCondition().getField(), unit.getReader().getRealName(), unit.getJobId());
+                    maxSql = String.format("select max(%s) from %s_%s where %s",
+                            unit.getReader().getSync().getSyncCondition().getField(), unit.getReader().getRealName(), unit.getJobId(),
+                            whereSql);
                     log.info(String.format("max_sql: (%s)", maxSql));
                 }
 

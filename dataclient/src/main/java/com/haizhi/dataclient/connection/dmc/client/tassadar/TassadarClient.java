@@ -1,5 +1,8 @@
 package com.haizhi.dataclient.connection.dmc.client.tassadar;
 
+import java.util.List;
+import java.util.Map;
+
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 
@@ -11,14 +14,18 @@ import retrofit2.http.QueryBean;
 import com.haizhi.dataclient.connection.dmc.client.mobius.response.CreateFolderResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ChangeFolderReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CheckTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateFieldReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.CreateTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteFieldReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteMapTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.DeleteTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.InfoTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbFileReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.MergeTbReq;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ModifyFieldReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.request.ModifyTbReq;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.CreateTbResp;
+import com.haizhi.dataclient.connection.dmc.client.tassadar.response.DeleteFieldResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.DeleteMapTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.DeleteTbResp;
 import com.haizhi.dataclient.connection.dmc.client.tassadar.response.InfoTbResp;
@@ -76,4 +83,16 @@ public interface TassadarClient {
     @FormUrlEncoded
     TassadarResult<StandartableInfoResp> standartableInfo(@NotBlank @Field("tb_id") String tbId,
                                                           @NotBlank @Field("user_id") String userId);
+
+    @POST("field/create")
+    @FormUrlEncoded
+    TassadarResult<String> createField(@Valid @QueryBean CreateFieldReq request);
+
+    @POST("field/delete")
+    @FormUrlEncoded
+    TassadarResult<DeleteFieldResp> deleteField(@Valid @QueryBean DeleteFieldReq request);
+
+    @POST("field/modify")
+    @FormUrlEncoded
+    TassadarResult<List<Map<String, String>>> modifyField(@Valid @QueryBean ModifyFieldReq request);
 }
