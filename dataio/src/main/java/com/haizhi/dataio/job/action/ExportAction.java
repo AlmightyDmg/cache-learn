@@ -31,6 +31,7 @@ public class ExportAction implements IAction<OldDtsParam> {
                 if (!databridgeClient.jobFinished(actionInfo.getJobId(), "export")) {
                     Thread.sleep(CHECK_INTERVAL);
                 }
+                break;
             }
         } catch (InterruptedException e) {
             this.stop(actionInfo);
