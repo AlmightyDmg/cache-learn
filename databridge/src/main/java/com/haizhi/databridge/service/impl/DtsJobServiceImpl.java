@@ -76,10 +76,9 @@ public class DtsJobServiceImpl implements DtsJobService {
     @Override
     public Boolean jobFinished(String jobId, String jobType) {
         if ("import".equals(jobType)) {
-            dataSchedulerService.jobFinished(jobId);
+            return dataSchedulerService.jobFinished(jobId);
         } else {
-            exportJobService.jobFinished(jobId);
+            return exportJobService.jobFinished(jobId);
         }
-        return null;
     }
 }

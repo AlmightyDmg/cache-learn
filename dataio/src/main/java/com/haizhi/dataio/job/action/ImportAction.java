@@ -27,10 +27,11 @@ public class ImportAction implements IAction<OldDtsParam> {
             DmcApiFactory.getDmcJobApi(dmcConfig).startImportJob(param.getUserId(),
                     param.getJobId(), param.getTables(), param.getFull());
             while (true) {
-                if (!databridgeClient.jobFinished(param.getJobId(), "import")) {
+                if (databridgeClient.jobFinished(param.getJobId(), "import")) {
+                    break;
+                } else {
                     Thread.sleep(CHECK_INTERVAL);
                 }
-                break;
             }
         } catch (InterruptedException e) {
             this.stop(param);

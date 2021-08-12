@@ -294,14 +294,14 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             if (field == null) {
                 // create field
                 dmcTblApi.createField(CreateFieldReq.builder().userId(userId)
-                        .name(modify.getName()).type(modify.getType()).dmcRequest(1)
+                        .name(modify.getName()).type(fieldTypeIndexMap.get(modify.getType())).dmcRequest(1)
                         .remark(modify.getRemark()).uniqIndex(modify.getUniqIndex() ? 1 : 0).build());
             } else if (!ObjectUtils.nullSafeEquals(modify.getType(), fieldTypeMap.get(field.getType()))
                     || ObjectUtils.nullSafeEquals(modify.getRemark(), field.getRemark())
                     || !ObjectUtils.nullSafeEquals(modify.getUniqIndex() ? 1 : 0, field.getUniqIndex())) {
                 // modify field
                 dmcTblApi.modifyField(ModifyFieldReq.builder().userId(userId).tbId(tbId).dmcRequest(1)
-                        .fieldId(field.getFieldId()).remark(modify.getRemark()).type(modify.getType())
+                        .fieldId(field.getFieldId()).remark(modify.getRemark()).type(fieldTypeIndexMap.get(modify.getType()))
                         .uniqIndex(modify.getUniqIndex() ? 1 : 0).build());
             }
         });

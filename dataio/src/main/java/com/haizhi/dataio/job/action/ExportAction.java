@@ -28,10 +28,11 @@ public class ExportAction implements IAction<OldDtsParam> {
             DmcApiFactory.getDmcJobApi(dmcConfig).startExportJob(actionInfo.getJobId());
 
             while (true) {
-                if (!databridgeClient.jobFinished(actionInfo.getJobId(), "export")) {
+                if (databridgeClient.jobFinished(actionInfo.getJobId(), "export")) {
+                    break;
+                } else {
                     Thread.sleep(CHECK_INTERVAL);
                 }
-                break;
             }
         } catch (InterruptedException e) {
             this.stop(actionInfo);

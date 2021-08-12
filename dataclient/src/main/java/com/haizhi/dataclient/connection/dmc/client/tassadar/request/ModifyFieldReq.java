@@ -31,7 +31,7 @@ public class ModifyFieldReq extends TassadarReqBase {
 	private Integer uniqIndex = null;
 	@Default
 	@Field("type")
-	private String type = null;
+	private Integer type = null;
 	@Default
 	@Field("seq_no")
 	private String seqNo = null;
