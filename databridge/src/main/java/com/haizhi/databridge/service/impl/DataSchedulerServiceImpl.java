@@ -729,7 +729,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		List<DataTransJobVo.Column> columns = null;
 		String errorMsg = "";
 		try {
-			columns = getFromColumns(syncConfig, dbBean, tableBean.getTbName(), syncConfig.getFields(), userId);
+			// 获取字段，若设置了自动同步，每次同步需要设置到数据库
+			columns = getFromColumns(syncConfig, dbBean, tableBean, syncConfig.getFields(), userId);
 		} catch (Exception e) {
 			log.error(e);
 			errorMsg = e.getMessage();
@@ -761,12 +762,13 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		Integer isTruncate = syncConfig.getIncrease() == null && Integer.valueOf(1).equals(syncConfig.getClean()) ? 1 : 0;
 		String schema = schemaList.size() > 2 ? schemaList.get(1) : null;
 		String catalog = schemaList.size() > 2 ? schemaList.get(0) : null;
+		int dereplication = ObjectUtils.isEmpty(syncConfig.getDereplication()) ? 0 : syncConfig.getDereplication();
 		return DataTransJobVo.SyncUnit.builder()
 				.userId(options.getRealUser())
 				.reader(DataTransJobVo.Reader.builder()
 						.columns(columns).connectId(connectId)
 						.sync(DataTransJobVo.Sync.builder().type(syncType).isTruncate(isTruncate).fetchSize(syncConfig.getRows())
-								.dereplication(syncConfig.getDereplication()).syncCondition(syncCondition).build())
+								.dereplication(dereplication).syncCondition(syncCondition).build())
 						.filter(filter).tableId(tableBean.getTableId()).tableName(tableBean.getTbName())
 						.build())
 				.writer(DataTransJobVo.Writer.builder()
@@ -811,12 +813,14 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	@SneakyThrows
 	public List<DataTransJobVo.Column> getFromColumns(DataTableDto.SyncConfigDto syncConfig,
 													  TDataBaseSourceBean tDataBaseSourceBean,
-													  String tableId,
+													  TTableBean tableBean,
 													  List<Object> userConfigFields,
 													  String userId) {
 //		String base64 = Base64.getEncoder()
 //				.encodeToString((ZLibUtils.compress(tDataBaseSourceBean.getSetup().getBytes(UTF_8))));
 //		base64 = base64.replace('/', '-');
+		String tableName = tableBean.getTbName();
+		String tableId = tableBean.getTableId();
 		DataSourceObjDto.SetUp setup = JsonUtils.toObject(tDataBaseSourceBean.getSetup(), DataSourceObjDto.SetUp.class);
 		if (setup.getCrypter() != null && setup.getCrypter()) {
 			setup.setPwd(CrypterUtils.decryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
@@ -825,16 +829,34 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		String ref = syncConfig.getRef();
 
 		DmcTableApi client = SpringUtils.getBean(DmcTableApi.class);
-		GetTableDataFieldResp tableDataFieldResp = client.getTableDataField(connectId, ref, tableId, userId);
+		GetTableDataFieldResp tableDataFieldResp = client.getTableDataField(connectId, ref, tableName, userId);
 		List<GetTableDataFieldResp.Field> fieldList = tableDataFieldResp.getResult().getFields();
 
 		List<DataTransJobVo.Column> result = new ArrayList<>();
 
+		int autoField = Optional.ofNullable(syncConfig.getAutoFields()).orElse(0);
 		for (GetTableDataFieldResp.Field field : fieldList) {
-			if (ObjectUtils.isEmpty(userConfigFields) || userConfigFields.contains(field.getName())) {
+			if (autoField == 1) {
+				List<Object> newFieldList = new ArrayList<>(userConfigFields);
+				if (!newFieldList.contains(field.getName())) {
+					newFieldList.add(field.getName());
+				}
+
+				// update fields in db
+				syncConfig.setFields(newFieldList);
+				tableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
+				tTableRepo.update(tableBean);
+
+
 				result.add(DataTransJobVo.Column.builder()
 						.name(field.getName()).remark(field.getRemark()).uniqIndex(field.isUniq_index())
 						.type(field.getType()).realType(field.getRaw_type()).build());
+			} else {
+				if (ObjectUtils.isEmpty(userConfigFields) || userConfigFields.contains(field.getName())) {
+					result.add(DataTransJobVo.Column.builder()
+							.name(field.getName()).remark(field.getRemark()).uniqIndex(field.isUniq_index())
+							.type(field.getType()).realType(field.getRaw_type()).build());
+				}
 			}
 		}
 

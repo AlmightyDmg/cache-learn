@@ -3,6 +3,7 @@ package com.haizhi.dataio.job.action;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -375,11 +376,11 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         jdbcWriter.setParameter(JdbcWriter.builder()
                 .username(unit.getToSink().getUsername())
                 .password(unit.getToSink().getPassword())
-                .connection(Arrays.asList(WriterConnection.builder()
+                .connection(Collections.singletonList(WriterConnection.builder()
                         .jdbcUrl(String.format(ReaderConnection.TYPE_PATTERN.get(unit.getToSink().getType().toLowerCase()),
                                 unit.getToSink().getUrl(),
                                 unit.getToSink().getCatalog()))
-                        .table(Arrays.asList(unit.getWriter().getTableName()))
+                        .table(Collections.singletonList(unit.getWriter().getTableName()))
                         .build()))
                 .column(unit.getWriter().getColumns().stream().map(col ->
                         MetaColumn.builder().name(col.getName()).type(JdbcTypeMapping.getGpType(col.getType())).build())
