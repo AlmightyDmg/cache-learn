@@ -595,7 +595,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 		String fieldType = null;
 		Map<String, DataTransJobVo.Column> columnMap = new HashMap<>();
-		Optional.of(columns).ifPresent(x -> columns.forEach(col -> columnMap.put(col.getName(), col)));
+		Optional.ofNullable(columns).ifPresent(x -> columns.forEach(col -> columnMap.put(col.getName(), col)));
 		if (columnMap.containsKey(syncConfig.getIncrease().getField())) {
 			fieldType = columnMap.get(syncConfig.getIncrease().getField()).getType();
 		}
@@ -764,7 +764,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		return DataTransJobVo.SyncUnit.builder()
 				.userId(options.getRealUser())
 				.reader(DataTransJobVo.Reader.builder()
-						.columns(columns)
+						.columns(columns).connectId(connectId)
 						.sync(DataTransJobVo.Sync.builder().type(syncType).isTruncate(isTruncate).fetchSize(syncConfig.getRows())
 								.dereplication(syncConfig.getDereplication()).syncCondition(syncCondition).build())
 						.filter(filter).tableId(tableBean.getTableId()).tableName(tableBean.getTbName())

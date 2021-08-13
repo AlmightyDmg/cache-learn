@@ -52,6 +52,7 @@ public class DataTransJobVo {
         List<Column> columns;
         Sync sync;
         Filter filter;
+        String connectId;
     }
 
     @Data
@@ -64,6 +65,7 @@ public class DataTransJobVo {
         String realName;
         String tablePath;
         List<Column> columns;
+        String connectId;
     }
 
     @Data

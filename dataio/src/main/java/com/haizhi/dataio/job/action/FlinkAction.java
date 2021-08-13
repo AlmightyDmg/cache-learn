@@ -198,6 +198,9 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
 
     @Override
     protected void beforeExec(FlinkActionParam unit) throws DataioException {
+        unitStartTime.set(Optional.ofNullable(unitStartTime.get()).orElse(new HashMap<>()));
+        unitStartTime.get().put(unit.getReader().getTableName(), new Date().getTime());
+
         String fromDbType = unit.getFromSink().getType();
         String toDbType = unit.getToSink().getType();
         if (!FlinkAction.isSupportedDb(fromDbType, toDbType)) {
@@ -207,9 +210,6 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
 
         log.info(String.format("jobid: %s, begin from %s to %s",
                 unit.getJobId(), unit.getReader().getTableName(), unit.getWriter().getTableName()));
-
-        unitStartTime.set(Optional.ofNullable(unitStartTime.get()).orElse(new HashMap<>()));
-        unitStartTime.get().put(unit.getReader().getTableName(), new Date().getTime());
 
         // 同步表状态
         if ("DMC".equalsIgnoreCase(unit.getToSink().getType())) {
@@ -259,6 +259,8 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 List<String> checkSqlList = unit.getReader().getSync().getCheckRule().getRules();
                 unit.getReader().getFilter().getSqlConditions().addAll(checkSqlList);
             }
+
+
         }
 
         databridgeClient.updateJobExecUnit(JobUnitStateForm.builder().jobId(unit.getJobId())
@@ -318,7 +320,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         return new RelOperator("and", Arrays.asList(baseSqlOp, checkOp));
     }
 
-    private Reader<JdbcReader> buildJdbcReader(FlinkActionParam unit) {
+    private Reader<JdbcReader> buildJdbcReader(FlinkActionParam unit, String whereSql) {
         Reader<JdbcReader> jdbcReader = new Reader<>();
         jdbcReader.setName(unit.getFromSink().getType().toLowerCase() + "reader");
         jdbcReader.setParameter(JdbcReader.builder()
@@ -337,7 +339,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                                 .name(col.getName())
                                 .value("BDP_AUDIT".equals(col.getName()) ? "now()" : col.getValue()).build())
                         .collect(Collectors.toList()))
-                .where(genWhere(unit).generate())
+                .where(whereSql)
                 .build());
         return jdbcReader;
     }
@@ -397,6 +399,22 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         }
     }
 
+    private void setMaxValue(FlinkActionParam unit, DmcTableApi dmcTableApi, String whereSql) {
+        String connectId = unit.getReader().getConnectId();
+        String fieldName = unit.getReader().getSync().getSyncCondition().getField();
+        String catalog = unit.getFromSink().getCatalog();
+        String schema = unit.getFromSink().getSchema();
+        String tableName = unit.getReader().getTableName();
+        StringBuilder fullName = new StringBuilder();
+        Optional.ofNullable(catalog).ifPresent(fullName::append);
+        Optional.ofNullable(schema).ifPresent(x -> fullName.append(".").append(schema));
+        Optional.ofNullable(tableName).ifPresent(x -> fullName.append(".").append(tableName));
+        String maxSql = String.format("select max(\"%s\") from %s where %s", fieldName, fullName.toString(), whereSql);
+        String maxValue = dmcTableApi.getTableDataQuery(connectId, maxSql, unit.getUserId())
+                .getResult().getData().get(0).get(0);
+        unit.getReader().getSync().getSyncCondition().getEnd().setValue(maxValue);
+    }
+
     @Override
     protected String execute(FlinkActionParam unit) {
         log.info(String.format("jobid: %s, exec from %s to %s",
@@ -413,7 +431,13 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             if ("import".equalsIgnoreCase(unit.getJobType())) {
                 DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
 
-                Reader<JdbcReader> jdbcReader = buildJdbcReader(unit);
+                // 若是增量，查询最大值，作为下次的起始值
+                String whereSql = genWhere(unit).generate();
+                if (unit.getReader().getSync().getSyncCondition() != null) {
+                    setMaxValue(unit, dmcTableApi, whereSql);
+                }
+
+                Reader<JdbcReader> jdbcReader = buildJdbcReader(unit, whereSql);
 
                 GetWriterReq req = GetWriterReq.builder()
                         .jobId(unit.getJobId()).storageId(unit.getWriter().getRealName())

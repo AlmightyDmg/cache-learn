@@ -57,6 +57,7 @@ public class DataTransJobDetail extends JobDetail {
         List<Column> columns;
         Sync sync;
         Filter filter;
+        String connectId;
     }
 
     @Data
@@ -69,6 +70,7 @@ public class DataTransJobDetail extends JobDetail {
         String realName;
         String tablePath;
         List<Column> columns;
+        String connectId;
     }
 
     @Data
