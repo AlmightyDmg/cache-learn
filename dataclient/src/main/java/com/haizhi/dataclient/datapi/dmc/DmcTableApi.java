@@ -122,7 +122,7 @@ public class DmcTableApi extends DataApi<DmcConnection> {
                 .tbId(tableId)
                 .status(status)
                 .userId(userId)
-                .forceMerge(dereplication == null ? "" : dereplication.toString())
+                .forceMerge(dereplication == null ? null : dereplication.toString())
                 .build());
     }
 
