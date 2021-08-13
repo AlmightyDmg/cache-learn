@@ -245,7 +245,7 @@ public class DmcTableApi extends DataApi<DmcConnection> {
         getDataConnection().getTassadarClient().modifyField(modifyFieldReq);
     }
 
-    public void createField(CreateFieldReq createFieldReq) {
-        getDataConnection().getTassadarClient().createField(createFieldReq);
+    public String createField(CreateFieldReq createFieldReq) {
+        return getDataConnection().getTassadarClient().createField(createFieldReq).getResult();
     }
 }

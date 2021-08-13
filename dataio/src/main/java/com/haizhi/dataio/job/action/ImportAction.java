@@ -26,6 +26,7 @@ public class ImportAction implements IAction<OldDtsParam> {
             DmcConfig dmcConfig = JsonUtils.toObject(param.getEndpoint(), DmcConfig.class);
             DmcApiFactory.getDmcJobApi(dmcConfig).startImportJob(param.getUserId(),
                     param.getJobId(), param.getTables(), param.getFull());
+            Thread.sleep(CHECK_INTERVAL);
             while (true) {
                 if (databridgeClient.jobFinished(param.getJobId(), "import")) {
                     break;

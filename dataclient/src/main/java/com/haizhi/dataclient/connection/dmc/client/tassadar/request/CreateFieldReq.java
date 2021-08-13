@@ -23,7 +23,6 @@ public class CreateFieldReq extends TassadarReqBase {
 	@NotBlank
 	@Field("name")
 	private String name;
-	@NotBlank
 	@Field("type")
 	private Integer type;
 	@Default

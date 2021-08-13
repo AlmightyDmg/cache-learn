@@ -587,28 +587,36 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 	}
 
 	private DataTransJobVo.Sync.SyncCondition getSyncCondition(DataTableDto.SyncConfigDto syncConfig,
-					String connectId, String userId) throws Exception {
+					String connectId, String userId, List<DataTransJobVo.Column> columns) throws Exception {
 		DataTransJobVo.Sync.SyncCondition syncCondition = null;
 		if (ObjectUtils.isEmpty(syncConfig.getIncrease())) {
 			return null;
 		}
+
+		String fieldType = null;
+		Map<String, DataTransJobVo.Column> columnMap = new HashMap<>();
+		Optional.of(columns).ifPresent(x -> columns.forEach(col -> columnMap.put(col.getName(), col)));
+		if (columnMap.containsKey(syncConfig.getIncrease().getField())) {
+			fieldType = columnMap.get(syncConfig.getIncrease().getField()).getType();
+		}
+
 		if ("maximum".equalsIgnoreCase(syncConfig.getIncrease().getType())) {
 			DataTableDto.EndDto endDto = syncConfig.getIncrease().getMaximum().getEnd();
-			int endEnable = 1;
+			int endEnable = syncConfig.getIncrease().getMaximum().getEnd().getEnable() ? 1 : 0;
 			String endValue = "";
-			if (StringUtils.isEmpty(endDto.getMode()) || "today".equalsIgnoreCase(endDto.getMode())) {
-				endEnable = syncConfig.getIncrease().getMaximum().getEnd().getEnable() ? 1 : 0;
-				if (endEnable == 1) {
+			if (endEnable == 1) {
+				if (StringUtils.isEmpty(endDto.getMode()) || "today".equalsIgnoreCase(endDto.getMode())) {
 					endValue = syncConfig.getIncrease().getMaximum().getEnd().getValue().toString();
+				} else {
+					endValue = localtime2Str(getTime(LocalDateTime.now(), endDto.getMode(), endDto.getType(),
+							Optional.ofNullable(endDto.getValue()).orElse("").toString()));
 				}
-			} else {
-				endValue = localtime2Str(getTime(LocalDateTime.now(), endDto.getMode(), endDto.getType(),
-						Optional.ofNullable(endDto.getValue()).orElse("").toString()));
 			}
 			syncCondition = DataTransJobVo.Sync.SyncCondition.builder().field(syncConfig.getIncrease().getField())
+					.fieldType(fieldType)
 					.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
 							.operator(syncConfig.getIncrease().getMaximum().getStart().getCompare())
-							.enable(syncConfig.getIncrease().getMaximum().getStart().getEnable() ? 1 : 0)
+							.enable(1)
 							.value(syncConfig.getIncrease().getMaximum().getStart().getValue()).build())
 					.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
 							.operator("<").enable(endEnable).value(endValue).build()).build();
@@ -622,6 +630,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 					Optional.ofNullable(relaTime.getEnd().getValue()).orElse("").toString());
 
 			syncCondition = DataTransJobVo.Sync.SyncCondition.builder().field(syncConfig.getIncrease().getField())
+					.fieldType(fieldType)
 					.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
 							.operator(">=").enable(from == null ? 0 : 1).value(localtime2Str(from)).build())
 					.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
@@ -731,7 +740,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 
 		rebuildPass(setup);
 		String connectId = encodeConnectId(JsonUtils.toJson(setup));
-		DataTransJobVo.Sync.SyncCondition syncCondition = getSyncCondition(syncConfig, connectId, userId);
+		DataTransJobVo.Sync.SyncCondition syncCondition = getSyncCondition(syncConfig, connectId, userId, columns);
 
 		DataTransJobVo.Filter filter = getFilter(syncConfig);
 

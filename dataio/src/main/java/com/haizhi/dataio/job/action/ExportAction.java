@@ -26,7 +26,7 @@ public class ExportAction implements IAction<OldDtsParam> {
         try {
             DmcConfig dmcConfig = JsonUtils.toObject(actionInfo.getEndpoint(), DmcConfig.class);
             DmcApiFactory.getDmcJobApi(dmcConfig).startExportJob(actionInfo.getJobId());
-
+            Thread.sleep(CHECK_INTERVAL);
             while (true) {
                 if (databridgeClient.jobFinished(actionInfo.getJobId(), "export")) {
                     break;

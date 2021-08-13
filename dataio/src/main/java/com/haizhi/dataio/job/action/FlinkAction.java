@@ -222,22 +222,21 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 unit.getWriter().setTableId(folderTb.get(1));
             }
 
+            // 0:CREATE|1:SYNCING|2:SYNC_FINISH|3:SYNC_ERROR|4:MIGRATE|5:MIGRATE_ERROR|6:MERGE_ERROR
+            dmcTableApi.modifyTable(tableId, 1, unit.getUserId(), unit.getReader().getSync().getDereplication());
+
+            // 修改字段配置
+            handleColumn(tableId, unit, dmcTableApi);
+
             InfoTbResp dmcTbInfo = dmcTableApi.getDmcTbInfo(tableId);
             Map<String, InfoTbResp.TbField> fieldMap = dmcTbInfo.getFields().stream()
                     .collect(Collectors.toMap(InfoTbResp.TbField::getName, x -> x));
-
             unit.getWriter().getColumns().forEach(col -> {
                 col.setRealName(fieldMap.get(col.getName()).getFieldId());
                 col.setType(fieldTypeMap.get(fieldMap.get(col.getName()).getType()));
             });
             unit.getWriter().setTableId(tableId);
             unit.getWriter().setRealName(dmcTbInfo.getStorageId());
-
-            // 0:CREATE|1:SYNCING|2:SYNC_FINISH|3:SYNC_ERROR|4:MIGRATE|5:MIGRATE_ERROR|6:MERGE_ERROR
-            dmcTableApi.modifyTable(tableId, 1, unit.getUserId(), unit.getReader().getSync().getDereplication());
-
-            // 修改字段配置
-//            handleColumn(tableId, unit.getUserId(), dmcTbInfo.getFields(), unit.getWriter().getColumns(), dmcTableApi);
 
             if (Integer.valueOf(1).equals(unit.getReader().getSync().getIsTruncate())) {
                 dmcTableApi.truncateData(unit.getWriter().getRealName());
@@ -271,33 +270,39 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
     }
 
     private void handleColumn(String tbId,
-                              String userId,
-                              List<InfoTbResp.TbField> originFields,
-                              List<DataTransJobDetail.Column> modifyColumns,
+                              FlinkActionParam unit,
                               DmcTableApi dmcTblApi) {
+        InfoTbResp dmcTbInfo = dmcTblApi.getDmcTbInfo(tbId);
+        List<InfoTbResp.TbField> originFields = dmcTbInfo.getFields();
+
+        List<DataTransJobDetail.Column> modifyColumns = unit.getWriter().getColumns();
         Map<String, InfoTbResp.TbField> originFieldMap = originFields.stream()
-                .collect(Collectors.toMap(InfoTbResp.TbField::getFieldId, fie -> fie));
+                .collect(Collectors.toMap(InfoTbResp.TbField::getName, fie -> fie));
 
         Map<String, DataTransJobDetail.Column> modifyFieldMap = modifyColumns.stream()
-                .collect(Collectors.toMap(DataTransJobDetail.Column::getRealName, fie -> fie));
+                .collect(Collectors.toMap(DataTransJobDetail.Column::getName, fie -> fie));
 
 
+        String userId = unit.getUserId();
+
+        // delete field
         originFields.forEach(origin -> {
-            if (!modifyFieldMap.containsKey(origin.getFieldId())) {
+            if (!modifyFieldMap.containsKey(origin.getName())) {
                 // delete field
                 dmcTblApi.deleteField(tbId, origin.getFieldId(), origin.getTitle(), userId);
             }
         });
 
+        // modify field
         modifyColumns.forEach(modify -> {
-            InfoTbResp.TbField field = originFieldMap.get(modify.getRealName());
+            InfoTbResp.TbField field = originFieldMap.get(modify.getName());
             if (field == null) {
                 // create field
-                dmcTblApi.createField(CreateFieldReq.builder().userId(userId)
-                        .name(modify.getName()).type(fieldTypeIndexMap.get(modify.getType())).dmcRequest(1)
+                String fieldId = dmcTblApi.createField(CreateFieldReq.builder().userId(userId).tbId(tbId).dmcRequest(1)
+                        .name(modify.getName()).title(modify.getName()).type(fieldTypeIndexMap.get(modify.getType()))
                         .remark(modify.getRemark()).uniqIndex(modify.getUniqIndex() ? 1 : 0).build());
             } else if (!ObjectUtils.nullSafeEquals(modify.getType(), fieldTypeMap.get(field.getType()))
-                    || ObjectUtils.nullSafeEquals(modify.getRemark(), field.getRemark())
+                    || !ObjectUtils.nullSafeEquals(modify.getRemark(), field.getRemark())
                     || !ObjectUtils.nullSafeEquals(modify.getUniqIndex() ? 1 : 0, field.getUniqIndex())) {
                 // modify field
                 dmcTblApi.modifyField(ModifyFieldReq.builder().userId(userId).tbId(tbId).dmcRequest(1)
@@ -490,23 +495,23 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
             String field = unit.getReader().getSync().getSyncCondition().getField();
             String fieldType = unit.getReader().getSync().getSyncCondition().getFieldType();
             Object value = unit.getReader().getSync().getSyncCondition().getStart().getValue();
-            if (ObjectUtils.isEmpty(value)) {
-                return new EmptyOperator();
-            }
 
             if ("increment".equalsIgnoreCase(unit.getReader().getSync().getType())) {
-                CompareOperator fromOp = new CompareOperator(field,
-                        unit.getReader().getSync().getSyncCondition().getStart().getOperator(),
-                        fieldType,
-                        unit.getReader().getSync().getSyncCondition().getStart().getValue());
+                if (unit.getReader().getSync().getSyncCondition().getStart().getEnable() == 1) {
+                    CompareOperator fromOp = new CompareOperator(field,
+                            unit.getReader().getSync().getSyncCondition().getStart().getOperator(),
+                            fieldType,
+                            unit.getReader().getSync().getSyncCondition().getStart().getValue());
+                    sqlOperatorList.add(fromOp);
+                }
 
-                CompareOperator toOp = new CompareOperator(field,
-                        unit.getReader().getSync().getSyncCondition().getEnd().getOperator(),
-                        fieldType,
-                        unit.getReader().getSync().getSyncCondition().getEnd().getValue());
-
-                sqlOperatorList.add(fromOp);
-                sqlOperatorList.add(toOp);
+                if (unit.getReader().getSync().getSyncCondition().getEnd().getEnable() == 1) {
+                    CompareOperator toOp = new CompareOperator(field,
+                            unit.getReader().getSync().getSyncCondition().getEnd().getOperator(),
+                            fieldType,
+                            unit.getReader().getSync().getSyncCondition().getEnd().getValue());
+                    sqlOperatorList.add(toOp);
+                }
             }
         }
 

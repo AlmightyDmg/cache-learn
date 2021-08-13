@@ -503,6 +503,15 @@ public class ExportJobService extends RequestCommonData {
 			}
 		}
 
+		if (jobBean.getStatus() == EXPORT_STATUS_STOP) {
+			if (isAuto == 1) {
+				log.info(String.format("task(%s) is already running.", jobId));
+				return;
+			} else {
+				throw new DatabridgeException("任务处于暂停状态");
+			}
+		}
+
 		ExportJobVo.SchedulerConfVo schedulerConf = toObject(jobBean.getSyncConfigBack(), ExportJobVo.SchedulerConfVo.class);
 		if (isAuto == 1 && (EXPORT_STATUS_STOP == jobBean.getStatus() || schedulerConf.getMode() != 2)) {
 			log.info(String.format("task(%s) is running.", jobId));
@@ -510,6 +519,10 @@ public class ExportJobService extends RequestCommonData {
 		}
 
 		if (isAuto == 0) {
+			if (EXPORT_STATUS_STOP == jobBean.getStatus()) {
+				throw new DatabridgeException("任务处于暂停状态");
+			}
+
 			jobBean.setStatus(EXPORT_STATUS_SYNC);
 			jobRepository.update(jobBean);
 		}
