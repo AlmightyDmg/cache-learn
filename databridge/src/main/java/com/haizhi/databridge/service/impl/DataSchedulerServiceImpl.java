@@ -953,11 +953,13 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			syncConfig.setOutputRef(outputRef);
 		}
 
-		if (syncConfig.getIncrease() != null
+		if ("finished".equals(status)
+				&& syncConfig.getIncrease() != null
 				&& "maximum".equalsIgnoreCase(syncConfig.getIncrease().getType())
 				&& !ObjectUtils.isEmpty(form.getIncreateValue())) {
 			syncConfig.getIncrease().getMaximum().getStart().setValue(form.getIncreateValue());
 			syncConfig.getIncrease().getMaximum().getStart().setEnable(true);
+			syncConfig.getIncrease().getMaximum().getStart().setCompare(">");
 		}
 
 		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));

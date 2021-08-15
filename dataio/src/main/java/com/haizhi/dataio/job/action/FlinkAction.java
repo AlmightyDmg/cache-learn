@@ -400,7 +400,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         }
     }
 
-    private boolean setMaxValue(FlinkActionParam unit, DmcTableApi dmcTableApi, String whereSql) {
+    private String retreveMaxValue(FlinkActionParam unit, DmcTableApi dmcTableApi, String whereSql) {
         String connectId = unit.getReader().getConnectId();
         String fieldName = unit.getReader().getSync().getSyncCondition().getField();
         String catalog = unit.getFromSink().getCatalog();
@@ -413,13 +413,9 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         String maxSql = String.format("select max(\"%s\") from %s where %s", fieldName, fullName.toString(), whereSql);
         String maxValue = dmcTableApi.getTableDataQuery(connectId, maxSql, unit.getUserId())
                 .getResult().getData().get(0).get(0);
-        log.error(String.format("next max value: %s", maxValue));
-        if (ObjectUtils.isEmpty(maxValue)) {
-            return false;
-        }
-        unit.getReader().getSync().getSyncCondition().getEnd().setValue(maxValue);
+        log.info(String.format("next max value: %s", maxValue));
 
-        return true;
+        return maxValue;
     }
 
     @Override
@@ -439,11 +435,17 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 DmcTableApi dmcTableApi = DmcApiFactory.getDmcTableApi(unit.getToSink().getUrl());
 
                 // 若是增量，查询最大值，作为下次的起始值
-                String whereSql = genWhere(unit).generate();
+                SqlOperator sqlOperator = genWhere(unit);
+                String whereSql = sqlOperator.generate();
                 if (unit.getReader().getSync().getSyncCondition() != null
                         && "maximum".equals(unit.getReader().getSync().getSyncCondition().getType())) {
-                    if (setMaxValue(unit, dmcTableApi, whereSql)) {
-                        whereSql = genWhere(unit).generate();
+                    String maxValue = retreveMaxValue(unit, dmcTableApi, whereSql);
+                    if (!ObjectUtils.isEmpty(maxValue)) {
+                        JobUtils.cntx().getNextMaxValue().put(unit.getReader().getTableId(), maxValue);
+                        String field = unit.getReader().getSync().getSyncCondition().getField();
+                        String fieldType = unit.getReader().getSync().getSyncCondition().getFieldType();
+                        CompareOperator maxOp = new CompareOperator(field, "<=", fieldType, maxValue);
+                        whereSql = RelOperator.newRelOperator("and", sqlOperator, maxOp).generate();
                     }
                 }
 
@@ -513,10 +515,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                 && unit.getReader().getSync().getSyncCondition() != null) {
             if (!ObjectUtils.isEmpty(unit.getReader().getSync().getSyncCondition())
                     || !ObjectUtils.isEmpty(unit.getReader().getSync().getSyncCondition().getField())) {
-                DataTransJobDetail.Sync.SyncCondition.Conditon endCondition =
-                        DataTransJobDetail.Sync.SyncCondition.Conditon.builder()
-                                .operator(">").enable(1).value(maxValue).build();
-                unit.getReader().getSync().getSyncCondition().setEnd(endCondition);
+                JobUtils.cntx().getNextMaxValue().put(unit.getReader().getTableId(), maxValue);
             }
         }
     }
@@ -657,11 +656,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
                     dmcTableApi.deleteOldData(unit.getReader().getRealName(), unit.getJobId());
                 }
 
-                if (unit.getReader().getSync() != null
-                        && unit.getReader().getSync().getSyncCondition() != null
-                        && unit.getReader().getSync().getSyncCondition().getEnd() != null) {
-                    nextIncrValue = unit.getReader().getSync().getSyncCondition().getEnd().getValue();
-                }
+                nextIncrValue = JobUtils.cntx().getNextMaxValue().get(unit.getReader().getTableId());
 
                 String tableName = unit.getReader().getTableName();
                 getExecCount(tableName).setUpdateCount(0);
