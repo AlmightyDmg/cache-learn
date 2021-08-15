@@ -343,7 +343,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		Map<String, DataSchedulerVo.SchedulerVo> scheduler2VoMap = new HashMap<>();
 		for (TSchedulerBean schedulerBean: schedulerBeans) {
 			DataSchedulerDto.OptionsDto optionsDto = JsonUtils.toObject(schedulerBean.getOptions(), DataSchedulerDto.OptionsDto.class);
-
+			optionsDto.setTables(optionsDto.getTables().stream().distinct().collect(Collectors.toList()));
 			try {
 				scheduler2VoMap.put(schedulerBean.getSchedulerId(), buildDataSchedulerVo(schedulerBean, optionsDto, tableVoMap)
 				);
@@ -1072,7 +1072,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				updateSchedulerId(tableId, changeBaseForm.getUserId(), tSchedulerBean.getSchedulerId());
 			}
 
-			optionsDto.setTables(changeBaseForm.getTables());
+			optionsDto.setTables(changeBaseForm.getTables().stream().distinct().collect(Collectors.toList()));
 			tSchedulerBean.setOwner(changeBaseForm.getUserId());
 			tSchedulerBean.setOptions(JsonUtils.toJson(optionsDto));
 		}
