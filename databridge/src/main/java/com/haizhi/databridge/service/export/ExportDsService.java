@@ -425,12 +425,18 @@ public class ExportDsService extends RequestCommonData {
 			Optional<List<JobBean>> optionalJobBeanList = jobRepository.findAllByXtbIdInAndJobSource(
 				form.getDelTableList(), JOB_SOURCE_FROM_DMC);
 			if (optionalJobBeanList.isPresent()) {
+				List<String> connectorTables = getConnectorTables(form.getDsId());
+				Map<String, String> delIdNameMap = new HashMap<>();
+				exportDsTbRepository.findXtbInfos(form.getDelTableList()).ifPresent(tbs -> delIdNameMap.putAll(tbs.stream()
+						.collect(Collectors.toMap(ExportDsTbBean::getXtbId, ExportDsTbBean::getName))));
 				List<String> xtbIdList = optionalJobBeanList.get().stream().map(JobBean::getXtbId).collect(Collectors.toList());
 				for (String tableId: form.getDelTableList()) {
 					if (!xtbIdList.contains(tableId)) {
 						xtbDelete(tableId);
 					} else {
-						hasRely = true;
+						if (connectorTables.contains(delIdNameMap.get(tableId))) {
+							hasRely = true;
+						}
 					}
 				}
 				if (hasRely) {

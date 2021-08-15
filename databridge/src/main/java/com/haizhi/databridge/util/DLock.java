@@ -7,6 +7,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 public class DLock {
     private static final int EXPIRE_TIME = 20;
+    public static final String IMPORT_TABLE_CREATE = "IMPORT:TABLE:CREATE:%s:%s";
+    public static final String IMPORT_DB_CREATE = "IMPORT:DB:CREATE:%s";
 
     private RedisTemplate<String, String> redisTemplate;
 

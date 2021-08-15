@@ -400,7 +400,7 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         }
     }
 
-    private void setMaxValue(FlinkActionParam unit, DmcTableApi dmcTableApi, String whereSql) {
+    private boolean setMaxValue(FlinkActionParam unit, DmcTableApi dmcTableApi, String whereSql) {
         String connectId = unit.getReader().getConnectId();
         String fieldName = unit.getReader().getSync().getSyncCondition().getField();
         String catalog = unit.getFromSink().getCatalog();
@@ -413,7 +413,13 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
         String maxSql = String.format("select max(\"%s\") from %s where %s", fieldName, fullName.toString(), whereSql);
         String maxValue = dmcTableApi.getTableDataQuery(connectId, maxSql, unit.getUserId())
                 .getResult().getData().get(0).get(0);
+        log.error(String.format("next max value: %s", maxValue));
+        if (ObjectUtils.isEmpty(maxValue)) {
+            return false;
+        }
         unit.getReader().getSync().getSyncCondition().getEnd().setValue(maxValue);
+
+        return true;
     }
 
     @Override
@@ -434,8 +440,11 @@ public class FlinkAction extends AbstractFlinkAction<DataTransJobDetail, DataTra
 
                 // 若是增量，查询最大值，作为下次的起始值
                 String whereSql = genWhere(unit).generate();
-                if (unit.getReader().getSync().getSyncCondition() != null) {
-                    setMaxValue(unit, dmcTableApi, whereSql);
+                if (unit.getReader().getSync().getSyncCondition() != null
+                        && "maximum".equals(unit.getReader().getSync().getSyncCondition().getType())) {
+                    if (setMaxValue(unit, dmcTableApi, whereSql)) {
+                        whereSql = genWhere(unit).generate();
+                    }
                 }
 
                 Reader<JdbcReader> jdbcReader = buildJdbcReader(unit, whereSql);

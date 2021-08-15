@@ -96,7 +96,6 @@ public class DataTransJobVo {
         String subType;
         String schema;
         String catalog;
-        String otherConfig;
     }
 
     @Data
@@ -116,6 +115,8 @@ public class DataTransJobVo {
         @NoArgsConstructor
         @Builder
         public static class SyncCondition {
+            /*  relativetime, maximum */
+            String type;
             String field;
             String fieldType;
             Conditon start;

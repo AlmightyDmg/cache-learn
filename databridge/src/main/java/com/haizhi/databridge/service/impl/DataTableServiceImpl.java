@@ -3,6 +3,7 @@ package com.haizhi.databridge.service.impl;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncType.SYNC_TYPE_FULL;
 import static com.haizhi.databridge.constants.DataSourceConstants.SyncType.SYNC_TYPE_INCREASE;
 import static com.haizhi.databridge.service.impl.DataSchedulerServiceImpl.base64Decode;
+import static com.haizhi.databridge.util.DLock.IMPORT_TABLE_CREATE;
 import static com.haizhi.databridge.util.IdUtils.genKey;
 
 import java.io.IOException;
@@ -92,7 +93,7 @@ public class DataTableServiceImpl extends RequestCommonData implements DataTable
 			throw new DatabridgeException(StatusCode.TYPE_NOT_ALLOWED, "BINLOG同步方式仅支持MYSQL");
 		}
 
-		String lockKey = String.format("IMPORT:TABLE:CREATE:%s:%s", dbId, createBaseForm.getTbName());
+		String lockKey = String.format(IMPORT_TABLE_CREATE, dbId, createBaseForm.getTbName());
 		String lockVal = String.valueOf(System.currentTimeMillis());
 		String tableId = genKey("ntb");
 		try {

@@ -18,7 +18,6 @@ import com.haizhi.dataclient.dataconfig.dmc.DmcConfig;
 @Data
 public class DmcClientProperties {
     private String subType;
-    private Map<String, String> otherConfig;
     private DmcConfig.ServicePropertieBean mobius;
     private DmcConfig.ServicePropertieBean overlord;
     private DmcConfig.ServicePropertieBean behemoth;

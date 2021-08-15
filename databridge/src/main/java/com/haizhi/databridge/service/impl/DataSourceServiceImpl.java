@@ -1,5 +1,6 @@
 package com.haizhi.databridge.service.impl;
 
+import static com.haizhi.databridge.util.DLock.IMPORT_DB_CREATE;
 import static com.haizhi.databridge.util.IdUtils.genKey;
 
 import java.io.IOException;
@@ -30,6 +31,7 @@ import com.haizhi.databridge.repository.importdata.TTableRepository;
 import com.haizhi.databridge.repository.importdata.TdataBaseSourceRepository;
 import com.haizhi.databridge.service.DataSourceService;
 import com.haizhi.databridge.util.CrypterUtils;
+import com.haizhi.databridge.util.DLock;
 import com.haizhi.databridge.util.GzipUtils;
 import com.haizhi.databridge.util.JsonUtils;
 import com.haizhi.databridge.util.RequestCommonData;
@@ -49,6 +51,9 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	@Autowired
 	private TTableRepository tTableRepo;
 
+	@Autowired
+	private DLock dLock;
+
 	/**
 	 * @Description //数据源创建接口
 	 * @Date 2021/6/2 4:11 下午
@@ -59,53 +64,65 @@ public class DataSourceServiceImpl extends RequestCommonData implements DataSour
 	@Transactional(rollbackFor = Exception.class)
 	public DataBaseSourceVo.CreateVo create(DataSourceForm.DataSourceCreateForm dataSourceCreateForm) throws IOException {
 
-		if (Boolean.TRUE.equals(checkDsSourceExists(dataSourceCreateForm.getDsName(), getUserId()))) {
-			throw new DatabridgeException(StatusCode.SOURCE_EXISTS, String.format("数据源名称%s已存在", dataSourceCreateForm.getDsName()));
+		String lockKey = String.format(IMPORT_DB_CREATE, dataSourceCreateForm.getDsName());
+		String lockVal = String.valueOf(System.currentTimeMillis());
+		try {
+			String dbExistMsg = String.format("数据源名称%s已存在.", dataSourceCreateForm.getDsName());
+			if (!dLock.tryLock(lockKey, lockVal)) {
+				throw new DatabridgeException(StatusCode.DB_EXISTS, dbExistMsg);
+			}
+
+			if (Boolean.TRUE.equals(checkDsSourceExists(dataSourceCreateForm.getDsName(), getUserId()))) {
+				throw new DatabridgeException(StatusCode.SOURCE_EXISTS, String.format("数据源名称%s已存在",
+						dataSourceCreateForm.getDsName()));
+			}
+			// 这两个参数增加通过外部传参的方式，方便将来可能与第三方服务做对接
+			String dbId = ObjectUtils.isEmpty(dataSourceCreateForm.getDbId()) ? genKey("db") : dataSourceCreateForm.getDbId();
+			String owner = ObjectUtils.isEmpty(dataSourceCreateForm.getOwner()) ? getOwner() : dataSourceCreateForm.getOwner();
+			Integer sourceType = dataSourceCreateForm.getSourceType();
+			// 针对api数据源做出特殊的设置，详情问周同生
+			if (sourceType.equals(DataSourceConstants.SourceType.SOURCE_FROM_API)) {
+				Map<String, Object> connInfo = new HashMap<>();
+				connInfo.put("ds_name", dataSourceCreateForm.getDsName());
+				final int onlyForRandom = 1000;
+				connInfo.put("random", Integer.valueOf((int) (System.currentTimeMillis() * onlyForRandom)).toString());
+				connInfo.put("type", DataSourceConstants.SourceType.SOURCE_FROM_API);
+				connInfo.put("role", DataSourceConstants.RoleType.DB_ROLE_READER);
+				dataSourceCreateForm.setConnectId(encodeConnectId(JsonUtils.toJson(connInfo)));
+			}
+
+			String connStr = GzipUtils.uncompress2Str(dataSourceCreateForm.getConnectId(), "+-");
+			//		DataSourceObjDto.SetUp setup = JsonUtils.toObject(connStr, DataSourceObjDto.SetUp.class);
+			// 前传过来的密码是明文，只不过用base64压缩了而已
+			//		setup.setPwd(CrypterUtils.encryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
+			Map<String, Object> setup = encryptConn(connStr);
+			DataSourceObjDto.Options options = new DataSourceObjDto.Options();
+			//		DataSourceObjDto.Output output = new DataSourceObjDto.Output();
+			options.setFieldComments(dataSourceCreateForm.getFieldComments());
+			options.setTableComments(dataSourceCreateForm.getTableComments());
+			options.setRealUser(dataSourceCreateForm.getRealUser());
+			options.setIsDmc(dataSourceCreateForm.getIsDmc());
+			options.setLabels(dataSourceCreateForm.getLabels());
+			options.setDsId(dataSourceCreateForm.getDsId());
+
+			TDataBaseSourceBean dbBean = new TDataBaseSourceBean();
+			dbBean.setDbType((String) setup.get("type"));
+			dbBean.setDsName(dataSourceCreateForm.getDsName());
+			dbBean.setRemark(dataSourceCreateForm.getRemark());
+			dbBean.setOptions(JsonUtils.toJson(options));
+			dbBean.setOwner(owner);
+			dbBean.setDbId(dbId);
+			dbBean.setSetup(JsonUtils.toJson(setup));
+			tdbsRepo.save(dbBean);
+
+			return DataBaseSourceVo.CreateVo.builder()
+					.dbId(dbId)
+					.connectId(dataSourceCreateForm.getConnectId())
+					.build();
+			// TODO 流式数据还没写呢
+		} finally {
+			dLock.unlock(lockKey, lockVal);
 		}
-		// 这两个参数增加通过外部传参的方式，方便将来可能与第三方服务做对接
-		String dbId = ObjectUtils.isEmpty(dataSourceCreateForm.getDbId()) ? genKey("db") : dataSourceCreateForm.getDbId();
-		String owner = ObjectUtils.isEmpty(dataSourceCreateForm.getOwner()) ? getOwner() : dataSourceCreateForm.getOwner();
-		Integer sourceType = dataSourceCreateForm.getSourceType();
-		// 针对api数据源做出特殊的设置，详情问周同生
-		if (sourceType.equals(DataSourceConstants.SourceType.SOURCE_FROM_API)) {
-			Map<String, Object> connInfo = new HashMap<>();
-			connInfo.put("ds_name", dataSourceCreateForm.getDsName());
-			final int onlyForRandom = 1000;
-			connInfo.put("random", Integer.valueOf((int) (System.currentTimeMillis() * onlyForRandom)).toString());
-			connInfo.put("type", DataSourceConstants.SourceType.SOURCE_FROM_API);
-			connInfo.put("role", DataSourceConstants.RoleType.DB_ROLE_READER);
-			dataSourceCreateForm.setConnectId(encodeConnectId(JsonUtils.toJson(connInfo)));
-		}
-
-		String connStr = GzipUtils.uncompress2Str(dataSourceCreateForm.getConnectId(), "+-");
-//		DataSourceObjDto.SetUp setup = JsonUtils.toObject(connStr, DataSourceObjDto.SetUp.class);
-		// 前传过来的密码是明文，只不过用base64压缩了而已
-//		setup.setPwd(CrypterUtils.encryptData(setup.getPwd(), DataSourceConstants.DataBaseCrypterKey.KEY));
-		Map<String, Object> setup = encryptConn(connStr);
-		DataSourceObjDto.Options options = new DataSourceObjDto.Options();
-//		DataSourceObjDto.Output output = new DataSourceObjDto.Output();
-		options.setFieldComments(dataSourceCreateForm.getFieldComments());
-		options.setTableComments(dataSourceCreateForm.getTableComments());
-		options.setRealUser(dataSourceCreateForm.getRealUser());
-		options.setIsDmc(dataSourceCreateForm.getIsDmc());
-		options.setLabels(dataSourceCreateForm.getLabels());
-		options.setDsId(dataSourceCreateForm.getDsId());
-
-		TDataBaseSourceBean dbBean = new TDataBaseSourceBean();
-		dbBean.setDbType((String) setup.get("type"));
-		dbBean.setDsName(dataSourceCreateForm.getDsName());
-		dbBean.setRemark(dataSourceCreateForm.getRemark());
-		dbBean.setOptions(JsonUtils.toJson(options));
-		dbBean.setOwner(owner);
-		dbBean.setDbId(dbId);
-		dbBean.setSetup(JsonUtils.toJson(setup));
-		tdbsRepo.save(dbBean);
-
-		return DataBaseSourceVo.CreateVo.builder()
-				.dbId(dbId)
-				.connectId(dataSourceCreateForm.getConnectId())
-				.build();
-		// TODO 流式数据还没写呢
 
 	}
 

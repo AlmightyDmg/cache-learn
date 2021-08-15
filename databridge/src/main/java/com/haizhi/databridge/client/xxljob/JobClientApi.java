@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.haizhi.databridge.bean.domain.importdata.JobRelBean;
@@ -34,14 +35,18 @@ public class JobClientApi {
     private static final int SUCCESS_CODE = 200;
     private static final int PAGE_SIZE = 20000;
     private static final int LOG_STATUS_RUNNING = 3;
-    private static final int DEFAULT_JOB_GROUP = 1;
-    private static final String DEF_EXEC_HANDLER = "dataTransJobHandler";
 
     @Autowired
     XxlJobClient client;
 
     @Autowired
     SkdJobRelRepository jobRel;
+
+    @Value("${xxl-job.job-group}")
+    Integer jobGroup;
+
+    @Value("${xxl-job.exec-handler}")
+    String execHandler;
 
     /**
      *
@@ -61,10 +66,10 @@ public class JobClientApi {
                 .misfireStrategy("DO_NOTHING")
                 .executorRouteStrategy("FIRST")
                 .glueType("BEAN")
-                .jobGroup(DEFAULT_JOB_GROUP)
+                .jobGroup(jobGroup)
                 .executorFailRetryCount(1)
                 .executorTimeout(0)
-                .executorHandler(DEF_EXEC_HANDLER)
+                .executorHandler(execHandler)
                 .build());
 
         String xxlJobId = handleResult(result);
@@ -110,7 +115,7 @@ public class JobClientApi {
     public int cancel(String jobId) {
         XxlJobInfo xxlJobInfo = getJobInfo(jobId);
         Map<String, Object> logs = client.logList(LogQueryParam.builder()
-                .start(0).length(PAGE_SIZE).jobGroup(DEFAULT_JOB_GROUP).jobId(xxlJobInfo.getId()).logStatus(LOG_STATUS_RUNNING).build());
+                .start(0).length(PAGE_SIZE).jobGroup(jobGroup).jobId(xxlJobInfo.getId()).logStatus(LOG_STATUS_RUNNING).build());
         ((List<Map<String, Object>>) logs.get(DATA_FIELD))
                 .forEach(log -> client.logKill(Integer.parseInt(String.valueOf(log.get("id")))));
         return ((List<Map<String, Object>>) logs.get(DATA_FIELD)).size();
@@ -119,7 +124,7 @@ public class JobClientApi {
     public boolean isJobRunning(String jobId) {
         XxlJobInfo xxlJobInfo = getJobInfo(jobId);
         Map<String, Object> logs = client.logList(LogQueryParam.builder()
-                .start(0).length(PAGE_SIZE).jobGroup(DEFAULT_JOB_GROUP).jobId(xxlJobInfo.getId()).logStatus(LOG_STATUS_RUNNING).build());
+                .start(0).length(PAGE_SIZE).jobGroup(jobGroup).jobId(xxlJobInfo.getId()).logStatus(LOG_STATUS_RUNNING).build());
 
         return logs.size() > 0;
     }
@@ -152,7 +157,7 @@ public class JobClientApi {
         Map<String, Object> jobMap = client.pageList(PageQueryParam.builder()
                 .start(0)
                 .length(PAGE_SIZE)
-                .jobGroup(DEFAULT_JOB_GROUP)
+                .jobGroup(jobGroup)
                 .jobDesc(jobId)  //databridge上的jobId对应xxljob上的jobDesc
                 .triggerStatus(-1)
                 .build());

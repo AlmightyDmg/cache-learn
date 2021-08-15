@@ -101,7 +101,6 @@ public class DataTransJobDetail extends JobDetail {
         String subType;
         String schema;
         String catalog;
-        String otherConfig;
     }
 
     @Data
@@ -121,6 +120,8 @@ public class DataTransJobDetail extends JobDetail {
         @NoArgsConstructor
         @Builder
         public static class SyncCondition {
+            /*  relativetime, maximum */
+            String type;
             String field;
             String fieldType;
             Conditon start;

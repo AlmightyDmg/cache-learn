@@ -593,62 +593,69 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 			return null;
 		}
 
-		String fieldType = null;
+		LocalDateTime now = LocalDateTime.now();
 		Map<String, DataTransJobVo.Column> columnMap = new HashMap<>();
 		Optional.ofNullable(columns).ifPresent(x -> columns.forEach(col -> columnMap.put(col.getName(), col)));
-		if (columnMap.containsKey(syncConfig.getIncrease().getField())) {
-			fieldType = columnMap.get(syncConfig.getIncrease().getField()).getType();
-		}
+
+		String fieldName = syncConfig.getIncrease().getField();
+		String fieldType = columnMap.containsKey(fieldName) ? columnMap.get(fieldName).getType() : null;
 
 		if ("maximum".equalsIgnoreCase(syncConfig.getIncrease().getType())) {
-			DataTableDto.EndDto endDto = syncConfig.getIncrease().getMaximum().getEnd();
-			int endEnable = syncConfig.getIncrease().getMaximum().getEnd().getEnable() ? 1 : 0;
-			String endValue = "";
-			if (endEnable == 1) {
-				if (StringUtils.isEmpty(endDto.getMode()) || "today".equalsIgnoreCase(endDto.getMode())) {
-					endValue = syncConfig.getIncrease().getMaximum().getEnd().getValue().toString();
-				} else {
-					endValue = localtime2Str(getTime(LocalDateTime.now(), endDto.getMode(), endDto.getType(),
-							Optional.ofNullable(endDto.getValue()).orElse("").toString()));
-				}
-			}
-			syncCondition = DataTransJobVo.Sync.SyncCondition.builder().field(syncConfig.getIncrease().getField())
-					.fieldType(fieldType)
-					.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
-							.operator(syncConfig.getIncrease().getMaximum().getStart().getCompare())
-							.enable(1)
-							.value(syncConfig.getIncrease().getMaximum().getStart().getValue()).build())
-					.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
-							.operator("<").enable(endEnable).value(endValue).build()).build();
+			syncCondition = DataTransJobVo.Sync.SyncCondition.builder()
+					.field(fieldName).fieldType(fieldType).type(syncConfig.getIncrease().getType())
+					.start(configStart(syncConfig)).end(configEnd(syncConfig)).build();
 		} else if ("relativetime".equalsIgnoreCase(syncConfig.getIncrease().getType())) {
 			DataTableDto.RelativetimeDto relaTime = syncConfig.getIncrease().getRelativetime();
-			LocalDateTime now = LocalDateTime.now();
 			LocalDateTime from = getTime(now, relaTime.getStart().getMode(), relaTime.getStart().getType(),
 					Optional.ofNullable(relaTime.getStart().getValue()).orElse("").toString());
 
 			LocalDateTime to = getTime(now, relaTime.getEnd().getMode(), relaTime.getEnd().getType(),
 					Optional.ofNullable(relaTime.getEnd().getValue()).orElse("").toString());
 
-			syncCondition = DataTransJobVo.Sync.SyncCondition.builder().field(syncConfig.getIncrease().getField())
-					.fieldType(fieldType)
+			syncCondition = DataTransJobVo.Sync.SyncCondition.builder().field(fieldName).fieldType(fieldType)
 					.start(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
 							.operator(">=").enable(from == null ? 0 : 1).value(localtime2Str(from)).build())
 					.end(DataTransJobVo.Sync.SyncCondition.Conditon.builder()
 							.operator("<").enable(to == null ? 0 : 1).value(localtime2Str(to)).build()).build();
 		}
 
-		if (StringUtils.isEmpty(syncCondition.getEnd().getValue())) {
-			DmcTableApi dmcTableApi = SpringUtils.getBean(DmcTableApi.class);
-			List<String> schema = JsonUtils.toList(new String(Base64Utils.decodeBase64(syncConfig.getRef()), "UTF-8"),
-					String.class);
-			String sql = String.format("select max(%s) from %s", syncCondition.getField(), buildTable(schema));
-			String value = dmcTableApi.getTableDataQuery(connectId, sql, userId).getResult().getData().get(0).get(0);
-			syncCondition.getEnd().setValue(value);
-			syncCondition.getEnd().setOperator("<=");
-			syncCondition.getEnd().setEnable(1);
-		}
+//		if (StringUtils.isEmpty(syncCondition.getEnd().getValue())) {
+//			DmcTableApi dmcTableApi = SpringUtils.getBean(DmcTableApi.class);
+//			List<String> schema = JsonUtils.toList(new String(Base64Utils.decodeBase64(syncConfig.getRef()), "UTF-8"),
+//					String.class);
+//			String sql = String.format("select max(%s) from %s", syncCondition.getField(), buildTable(schema));
+//			String value = dmcTableApi.getTableDataQuery(connectId, sql, userId).getResult().getData().get(0).get(0);
+//			syncCondition.getEnd().setValue(value);
+//			syncCondition.getEnd().setOperator("<=");
+//			syncCondition.getEnd().setEnable(1);
+//		}
 
 		return syncCondition;
+	}
+
+	private DataTransJobVo.Sync.SyncCondition.Conditon configStart(DataTableDto.SyncConfigDto syncConfig) {
+		return DataTransJobVo.Sync.SyncCondition.Conditon.builder()
+				.enable(syncConfig.getIncrease().getMaximum().getStart().getEnable() ? 1 : 0)
+				.operator(syncConfig.getIncrease().getMaximum().getStart().getCompare())
+				.value(syncConfig.getIncrease().getMaximum().getStart().getValue()).build();
+	}
+
+	private DataTransJobVo.Sync.SyncCondition.Conditon configEnd(DataTableDto.SyncConfigDto syncConfig) {
+		DataTableDto.EndDto endDto = syncConfig.getIncrease().getMaximum().getEnd();
+		int endEnable = endDto.getEnable() ? 1 : 0;
+		String endValue = "";
+		if (endEnable == 1) {
+			if (StringUtils.isEmpty(endDto.getMode()) || "today".equalsIgnoreCase(endDto.getMode())) {
+				endValue = syncConfig.getIncrease().getMaximum().getEnd().getValue().toString();
+			} else {
+				LocalDateTime now = LocalDateTime.now();
+				endValue = localtime2Str(getTime(now, endDto.getMode(), endDto.getType(),
+						Optional.ofNullable(endDto.getValue()).orElse("").toString()));
+			}
+		}
+
+		return DataTransJobVo.Sync.SyncCondition.Conditon.builder()
+				.operator("<").enable(endEnable).value(endValue).build();
 	}
 
 	private String buildTable(List<String> schema) {
@@ -767,8 +774,8 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				.userId(options.getRealUser())
 				.reader(DataTransJobVo.Reader.builder()
 						.columns(columns).connectId(connectId)
-						.sync(DataTransJobVo.Sync.builder().type(syncType).isTruncate(isTruncate).fetchSize(syncConfig.getRows())
-								.dereplication(dereplication).syncCondition(syncCondition).build())
+						.sync(DataTransJobVo.Sync.builder().isTruncate(isTruncate).fetchSize(syncConfig.getRows())
+								.type(syncType).dereplication(dereplication).syncCondition(syncCondition).build())
 						.filter(filter).tableId(tableBean.getTableId()).tableName(tableBean.getTbName())
 						.build())
 				.writer(DataTransJobVo.Writer.builder()
@@ -835,23 +842,21 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		List<DataTransJobVo.Column> result = new ArrayList<>();
 
 		int autoField = Optional.ofNullable(syncConfig.getAutoFields()).orElse(0);
-		for (GetTableDataFieldResp.Field field : fieldList) {
-			if (autoField == 1) {
-				List<Object> newFieldList = new ArrayList<>(userConfigFields);
-				if (!newFieldList.contains(field.getName())) {
-					newFieldList.add(field.getName());
-				}
-
-				// update fields in db
-				syncConfig.setFields(newFieldList);
-				tableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
-				tTableRepo.update(tableBean);
-
-
+		List<Object> newFieldList = new ArrayList<>();
+		if (autoField == 1) {
+			for (GetTableDataFieldResp.Field field : fieldList) {
+				newFieldList.add(field.getName());
 				result.add(DataTransJobVo.Column.builder()
 						.name(field.getName()).remark(field.getRemark()).uniqIndex(field.isUniq_index())
 						.type(field.getType()).realType(field.getRaw_type()).build());
-			} else {
+			}
+
+			// update fields in db
+			syncConfig.setFields(newFieldList);
+			tableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
+			tTableRepo.update(tableBean);
+		} else {
+			for (GetTableDataFieldResp.Field field : fieldList) {
 				if (ObjectUtils.isEmpty(userConfigFields) || userConfigFields.contains(field.getName())) {
 					result.add(DataTransJobVo.Column.builder()
 							.name(field.getName()).remark(field.getRemark()).uniqIndex(field.isUniq_index())
@@ -952,6 +957,7 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 				&& "maximum".equalsIgnoreCase(syncConfig.getIncrease().getType())
 				&& !ObjectUtils.isEmpty(form.getIncreateValue())) {
 			syncConfig.getIncrease().getMaximum().getStart().setValue(form.getIncreateValue());
+			syncConfig.getIncrease().getMaximum().getStart().setEnable(true);
 		}
 
 		tTableBean.setSyncConfig(JsonUtils.toJson(syncConfig));
