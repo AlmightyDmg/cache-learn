@@ -1228,13 +1228,13 @@ public class DataSchedulerServiceImpl extends RequestCommonData implements DataS
 		// 调用xxljob的取消任务接口
 		int stopCount = jobClientApi.cancel(stopForm.getSchedulerId());
 
+		// 若xxl服务停止或者重启，可能noah还在执行，调用noah的接口暂停任务
+		dmcJobApi.stopImportJob(schedulerBean.getOwner(), schedulerBean.getSchedulerId());
+
 		String status = schedulerBean.getStatus();
 		if ((ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_SYNCING)
 				|| ObjectUtils.nullSafeEquals(status, IMPORT_STATUS_PENDING))
 				&& stopCount == 0) {
-
-			// 若xxl服务停止或者重启，可能noah还在执行，调用noah的接口暂停任务
-			dmcJobApi.stopImportJob(schedulerBean.getOwner(), schedulerBean.getSchedulerId());
 
 			// 修复状态为运行中，但实际已经停止的情况
 			schedulerBean.setStatus(IMPORT_STATUS_TERMINATED);

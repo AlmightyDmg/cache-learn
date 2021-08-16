@@ -23,21 +23,21 @@ public class ExportAction implements IAction<OldDtsParam> {
 
     @Override
     public void doAction(OldDtsParam actionInfo) throws InterruptedException {
-        try {
+//        try {
             DmcConfig dmcConfig = JsonUtils.toObject(actionInfo.getEndpoint(), DmcConfig.class);
             DmcApiFactory.getDmcJobApi(dmcConfig).startExportJob(actionInfo.getJobId());
-            Thread.sleep(CHECK_INTERVAL);
-            while (true) {
-                if (databridgeClient.jobFinished(actionInfo.getJobId(), "export")) {
-                    break;
-                } else {
-                    Thread.sleep(CHECK_INTERVAL);
-                }
-            }
-        } catch (InterruptedException e) {
-            this.stop(actionInfo);
-            throw e;
-        }
+//            Thread.sleep(CHECK_INTERVAL);
+//            while (true) {
+//                if (databridgeClient.jobFinished(actionInfo.getJobId(), "export")) {
+//                    break;
+//                } else {
+//                    Thread.sleep(CHECK_INTERVAL);
+//                }
+//            }
+//        } catch (InterruptedException e) {
+//            this.stop(actionInfo);
+//            throw e;
+//        }
     }
 
     public void stop(OldDtsParam actionInfo) {

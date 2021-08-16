@@ -22,22 +22,22 @@ public class ImportAction implements IAction<OldDtsParam> {
 
     @Override
     public void doAction(OldDtsParam param) throws InterruptedException {
-        try {
+//        try {
             DmcConfig dmcConfig = JsonUtils.toObject(param.getEndpoint(), DmcConfig.class);
             DmcApiFactory.getDmcJobApi(dmcConfig).startImportJob(param.getUserId(),
                     param.getJobId(), param.getTables(), param.getFull());
-            Thread.sleep(CHECK_INTERVAL);
-            while (true) {
-                if (databridgeClient.jobFinished(param.getJobId(), "import")) {
-                    break;
-                } else {
-                    Thread.sleep(CHECK_INTERVAL);
-                }
-            }
-        } catch (InterruptedException e) {
-            this.stop(param);
-            throw e;
-        }
+//            Thread.sleep(CHECK_INTERVAL);
+//            while (true) {
+//                if (databridgeClient.jobFinished(param.getJobId(), "import")) {
+//                    break;
+//                } else {
+//                    Thread.sleep(CHECK_INTERVAL);
+//                }
+//            }
+//        } catch (InterruptedException e) {
+//            this.stop(param);
+//            throw e;
+//        }
     }
 
     public void stop(OldDtsParam param) {
