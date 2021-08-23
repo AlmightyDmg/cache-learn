@@ -7,12 +7,12 @@ spring:
   datasource:
     primary:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      jdbc-url: jdbc:mysql://offlinedb.haizhi.com:3306/noah?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
+      jdbc-url: jdbc:mysql://10.0.0.119.:3306/noah?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
       username: haizhioffdb
       password: b@30QpqPkh
     second:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      jdbc-url: jdbc:mysql://offlinedb.haizhi.com:3306/tassadar?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
+      jdbc-url: jdbc:mysql://10.0.0.119:3306/tassadar?characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&zeroDateTimeBehavior=convertToNull
       username: haizhioffdb
       password: b@30QpqPkh
   jpa:
@@ -33,7 +33,7 @@ spring:
     proxy-target-class: true
   redis:
     database: 0       # Redis数据库索引（默认为0）,如果设置为1，那么存入的key-value都存放在select 1中
-    host: 123.126.105.106
+    host: 10.0.0.106
     port: 30227
     password: haizhi1234
     jedis:
